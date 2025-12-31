@@ -125,18 +125,17 @@ export default function AddDocumentModal({
   const [selectedJobRoles, setSelectedJobRoles] = useState<string[]>(["all"]);
 
   // ✅ Access control state
-  const [canViewAdmin, setCanViewAdmin] = useState(true);
+  // Note: Admin toggle removed - admins always see all documents
   const [canViewManager, setCanViewManager] = useState(false);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
-  const hasAnyAudience = canViewAdmin || canViewManager || canViewEmployee;
+  const hasAnyAudience = canViewManager || canViewEmployee;
   const audienceSummary = useMemo(() => {
-    const roles: string[] = [];
-    if (canViewAdmin) roles.push("Admins");
+    const roles: string[] = ["Admins"]; // Admins always have access
     if (canViewManager) roles.push("Managers");
     if (canViewEmployee) roles.push("Employees");
     return roles.join(", ");
-  }, [canViewAdmin, canViewManager, canViewEmployee]);
+  }, [canViewManager, canViewEmployee]);
 
   // --- ADDED: Requires Acknowledgement state ---
   const [requiresAck, setRequiresAck] = useState(false);
@@ -342,8 +341,8 @@ export default function AddDocumentModal({
         );
       }
 
-      // ✅ Include access rights
-      formData.append("canViewAdmin", String(canViewAdmin));
+      // ✅ Include access rights (canViewAdmin always true - admins see all)
+      formData.append("canViewAdmin", "true");
       formData.append("canViewManager", String(canViewManager));
       formData.append("canViewEmployee", String(canViewEmployee));
 
@@ -438,7 +437,7 @@ export default function AddDocumentModal({
         formData.append("description", description || "");
         formData.append("employeeId", type === "employee" ? employeeId : "");
         formData.append("type", type || "");
-        formData.append("canViewAdmin", String(canViewAdmin));
+        formData.append("canViewAdmin", "true"); // Admins always see all documents
         formData.append("canViewManager", String(canViewManager));
         formData.append("canViewEmployee", String(canViewEmployee));
         formData.append("requiresAck", String(requiresAck));
@@ -804,10 +803,6 @@ export default function AddDocumentModal({
                       </div>
                       <div className="flex items-center gap-4">
                         <label className="flex items-center gap-1.5 cursor-pointer">
-                          <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
-                          <span className="text-xs font-medium">Admin</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer">
                           <Switch checked={canViewManager} onChange={setCanViewManager} />
                           <span className="text-xs font-medium">Manager</span>
                         </label>
@@ -817,11 +812,14 @@ export default function AddDocumentModal({
                         </label>
                       </div>
                     </div>
+                    <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                      Note: Admins can always see all documents.
+                    </div>
 
                     {!hasAnyAudience ? (
                       <div className="flex items-start gap-2 text-sm text-destructive">
                         <AlertCircle className="w-4 h-4 mt-0.5" />
-                        <span>Select at least one audience so this document remains accessible.</span>
+                        <span>Select at least one audience (Managers or Employees).</span>
                       </div>
                     ) : (
                       <div className="text-xs text-muted-foreground">Visible to: {audienceSummary}</div>

@@ -471,7 +471,7 @@ export default function AddEmployeeModal({
     return JSON.stringify(formData) !== JSON.stringify(initialFormData);
   }, [formData, initialFormData]);
 
-  // Calculate entitlement modal state
+  // Calculate entitlement modal state - these don't affect form dirty state
   const [fullTimeHours, setFullTimeHours] = useState("40");
   const [showAllTemplates, setShowAllTemplates] = useState(false);
   const [fullTimeEntitlement, setFullTimeEntitlement] = useState("20");
@@ -1027,20 +1027,12 @@ export default function AddEmployeeModal({
     updateHolidayYearSelection(holidayStartMonth, numericValue);
   };
 
-  // Calculate prorated entitlement based on NZ requirements
+  // Calculate prorated entitlement based on working pattern (simplified)
   const calculateEntitlement = () => {
-    const fullTimeHoursNum = parseFloat(fullTimeHours);
     const fullTimeEntitlementNum = parseFloat(fullTimeEntitlement || "20");
-    const startDate = new Date(formData.startDate);
-    const startDateValid = !Number.isNaN(startDate.getTime());
 
-    if (
-      !fullTimeHoursNum ||
-      !fullTimeEntitlementNum ||
-      !startDateValid ||
-      !formData.workingPatternId
-    ) {
-      toast.error("Please fill in all required fields");
+    if (!fullTimeEntitlementNum || !formData.workingPatternId) {
+      toast.error("Please select a working pattern and enter full-time entitlement");
       return;
     }
 
@@ -1065,42 +1057,19 @@ export default function AddEmployeeModal({
       });
     });
 
-    // Calculate annual entitlement based on days worked per week
-    // Uses configurable fullTimeEntitlement (default 20 days = 4 weeks for NZ)
+    // Average across pattern weeks if multiple weeks
+    employeeDaysPerWeek = employeeDaysPerWeek / selectedPattern.weeks.length;
+
+    // Simple pro-rata calculation: (working days per week ÷ 5) × full-time entitlement
     const annualEntitlement = (employeeDaysPerWeek / 5) * fullTimeEntitlementNum;
 
-    // NZ compliance: accrual based on 12-month anniversary from start date
-    // Calculate the first anniversary date
-    const anniversaryDate = new Date(startDate);
-    anniversaryDate.setFullYear(anniversaryDate.getFullYear() + 1);
-
-    // Calculate days remaining from start date to first anniversary
-    const totalDaysToAnniversary = 365; // Standard year for proration
-    const today = new Date();
-
-    // If start date is in the future or today, use full year calculation
-    // Otherwise, calculate days remaining until anniversary
-    let daysRemaining: number;
-    if (startDate > today) {
-      daysRemaining = totalDaysToAnniversary;
-    } else if (today >= anniversaryDate) {
-      // Past first anniversary - use full entitlement
-      daysRemaining = totalDaysToAnniversary;
-    } else {
-      // Between start date and first anniversary - prorate
-      daysRemaining = Math.ceil(
-        (anniversaryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-      );
-    }
-
-    // Calculate pro-rated entitlement
-    const proratedEntitlement =
-      annualEntitlement * (daysRemaining / totalDaysToAnniversary);
-
-    // Round to nearest half day
-    const roundedEntitlement = Math.round(proratedEntitlement * 2) / 2;
+    // Round to nearest 0.5 days for practical scheduling
+    const roundedEntitlement = Math.round(annualEntitlement * 2) / 2;
 
     setCalculatedEntitlement(roundedEntitlement);
+    
+    // Show calculation breakdown in console for debugging
+    console.log(`Calculation: ${employeeDaysPerWeek} days/week ÷ 5 × ${fullTimeEntitlementNum} days = ${roundedEntitlement} days`);
   };
 
   const applyCalculatedEntitlement = () => {
@@ -1109,6 +1078,14 @@ export default function AddEmployeeModal({
       entitlementDays: calculatedEntitlement.toString(),
     });
     setIsCalculateModalOpen(false);
+  };
+
+  const handleCalculatorModalClose = (open: boolean) => {
+    if (!open) {
+      // Reset calculator state when closing without affecting form dirty state
+      setCalculatedEntitlement(0);
+    }
+    setIsCalculateModalOpen(open);
   };
 
   const nextStep = () => {
@@ -2936,7 +2913,7 @@ export default function AddEmployeeModal({
       {/* Calculate Entitlement Modal */}
       <Dialog
         open={isCalculateModalOpen}
-        onOpenChange={setIsCalculateModalOpen}
+        onOpenChange={handleCalculatorModalClose}
       >
         <DialogContent title="Calculate Holiday Entitlement">
           <div className="space-y-4">
@@ -2952,19 +2929,13 @@ export default function AddEmployeeModal({
                   <TooltipContent className="max-w-xs">
                     <div className="space-y-2 text-sm">
                       <p>
-                        <strong>NZ Full-time entitlement:</strong> 20 days (4 weeks)
-                        after 12 months of continuous employment
+                        <strong>Pro-rata calculation:</strong> Working days per week ÷ 5 × Full-time entitlement
                       </p>
                       <p>
-                        <strong>Part-time calculation:</strong> Days worked per
-                        week ÷ 5 × Full-time entitlement
+                        <strong>Example:</strong> 3 days/week ÷ 5 × 20 days = 12 days annually
                       </p>
                       <p>
-                        <strong>Pro-rata formula:</strong> Annual entitlement ×
-                        (Days remaining to anniversary ÷ 365)
-                      </p>
-                      <p>
-                        <strong>Rounding:</strong> To nearest half day
+                        <strong>Rounding:</strong> To nearest 0.5 days for practical scheduling
                       </p>
                     </div>
                   </TooltipContent>
@@ -2974,10 +2945,8 @@ export default function AddEmployeeModal({
 
             <div className="bg-blue-50 p-4 rounded-md border-l-4 border-blue-400">
               <p className="text-sm text-blue-800">
-                <strong>NZ Compliance:</strong> Annual leave accrues as 4 weeks
-                (20 days) after 12 months of continuous employment. Part-time
-                employees receive pro-rata entitlement based on their working
-                pattern. Leave is prorated before the first anniversary.
+                <strong>Pro-rata Calculator:</strong> Calculates annual leave entitlement based on working pattern. 
+                Formula: (Working days per week ÷ 5) × Full-time entitlement = Annual entitlement
               </p>
             </div>
 
@@ -2997,35 +2966,24 @@ export default function AddEmployeeModal({
               </p>
             </div>
 
-            <div>
-              <Label className="text-sm font-medium">
-                Standard Full-Time Weekly Hours (for reference)
-              </Label>
-              <Input
-                type="number"
-                value={fullTimeHours}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setFullTimeHours(e.target.value)}
-                placeholder="40"
-                className="mt-1"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Used to validate working pattern calculations
-              </p>
-            </div>
-
             <div className="bg-gray-50 p-4 rounded-md">
               <div className="space-y-2">
                 <p className="text-sm text-gray-600">
-                  Calculated Holiday Entitlement:
+                  Calculated Annual Entitlement:
                 </p>
                 <p className="text-2xl font-bold text-green-600">
                   {calculatedEntitlement} days
                 </p>
-                {calculatedEntitlement > 0 && (
+                {calculatedEntitlement > 0 && selectedWorkingPattern && (
                   <div className="text-xs text-gray-500 space-y-1">
-                    <p>Based on working pattern and start date</p>
-                    <p>Rounded to nearest half day</p>
+                    <p>Based on working pattern: {selectedWorkingPattern.name}</p>
+                    <p>Rounded to nearest 0.5 days</p>
                   </div>
+                )}
+                {calculatedEntitlement === 0 && (
+                  <p className="text-sm text-gray-500">
+                    Select a working pattern and click Calculate
+                  </p>
                 )}
               </div>
             </div>
@@ -3033,7 +2991,7 @@ export default function AddEmployeeModal({
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setIsCalculateModalOpen(false)}
+                onClick={() => handleCalculatorModalClose(false)}
               >
                 Cancel
               </Button>

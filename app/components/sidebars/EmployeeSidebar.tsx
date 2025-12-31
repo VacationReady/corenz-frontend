@@ -45,7 +45,6 @@ export default function EmployeeSidebar({
     { label: "My Timesheet", href: "/employee/timesheet", icon: <ClipboardList size={18} /> },
     { label: "My Schedule", href: "/employee/schedule", icon: <CalendarClock size={18} /> },
     { label: "My Performance", href: "/performance", icon: <Target size={18} /> },
-    { label: "My Leave", href: "/leave", icon: <Clock size={18} /> },
     { label: "Documents", href: "/documents", icon: <FileText size={18} /> },
   ];
 

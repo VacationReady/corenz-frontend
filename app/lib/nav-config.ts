@@ -31,7 +31,6 @@ const MANAGER_NAV: NavItem[] = [
 const EMPLOYEE_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Calendar", href: "/calendar" },
-  { label: "My Leave", href: "/leave" },
 ];
 
 const SUPER_ADMIN_EXTRA: NavItem[] = [

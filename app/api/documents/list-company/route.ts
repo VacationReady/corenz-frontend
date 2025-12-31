@@ -75,12 +75,18 @@ export async function GET(req: Request) {
   }
 
   // Build role-based access filter
+  // Admins should see ALL documents (no role filter)
+  // Managers should only see documents where canViewManager is true
+  // Employees should only see documents where canViewEmployee is true
   let roleFilter: any = {};
   if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
-    roleFilter = { canViewAdmin: true };
+    // Admins bypass role filtering - they see all documents
+    roleFilter = {};
   } else if (user.role === "MANAGER") {
+    // Managers only see documents explicitly marked for managers
     roleFilter = { canViewManager: true };
   } else {
+    // Employees only see documents explicitly marked for employees
     roleFilter = { canViewEmployee: true };
   }
 

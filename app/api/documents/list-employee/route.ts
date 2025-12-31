@@ -51,12 +51,18 @@ export async function GET(req: NextRequest) {
   const userRole = session.user.role; // "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN"
 
   // Build role-based filter using uppercase matches
+  // Admins should see ALL documents (no role filter)
+  // Managers should only see documents where canViewManager is true
+  // Employees should only see documents where canViewEmployee is true
   let accessFilter = {};
   if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
-    accessFilter = { canViewAdmin: true };
+    // Admins bypass role filtering - they see all documents
+    accessFilter = {};
   } else if (userRole === "MANAGER") {
+    // Managers only see documents explicitly marked for managers
     accessFilter = { canViewManager: true };
   } else if (userRole === "EMPLOYEE") {
+    // Employees only see documents explicitly marked for employees
     accessFilter = { canViewEmployee: true };
   }
 

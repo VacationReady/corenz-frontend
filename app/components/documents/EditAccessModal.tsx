@@ -70,7 +70,6 @@ export default function EditAccessModal({
   const [documentName, setDocumentName] = useState("");
   const [deptIds, setDeptIds] = useState<string[]>([]);
   const [roleIds, setRoleIds] = useState<string[]>([]);
-  const [canAdmin, setCanAdmin] = useState(false);
   const [canManager, setCanManager] = useState(false);
   const [canEmployee, setCanEmployee] = useState(false);
   const [requiresAck, setRequiresAck] = useState(false);
@@ -80,14 +79,13 @@ export default function EditAccessModal({
   const [signerJobRoles, setSignerJobRoles] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  const hasAnyAudience = canAdmin || canManager || canEmployee;
+  const hasAnyAudience = canManager || canEmployee;
   const audienceSummary = useMemo(() => {
-    const roles: string[] = [];
-    if (canAdmin) roles.push("Admins");
+    const roles: string[] = ["Admins"]; // Admins always have access
     if (canManager) roles.push("Managers");
     if (canEmployee) roles.push("Employees");
     return roles.join(", ");
-  }, [canAdmin, canManager, canEmployee]);
+  }, [canManager, canEmployee]);
   const [departmentsList, setDepartmentsList] = useState<
     { label: string; value: string }[]
   >([]);
@@ -131,7 +129,6 @@ export default function EditAccessModal({
           ? document.jobRoles.map((jr) => jr.id)
           : ["all"],
       );
-      setCanAdmin(document.canViewAdmin);
       setCanManager(document.canViewManager);
       setCanEmployee(document.canViewEmployee);
       setRequiresAck(document.requiresAck || false);
@@ -149,7 +146,7 @@ export default function EditAccessModal({
     }
 
     if (!hasAnyAudience) {
-      toast.error("Select at least one audience (Admins, Managers, or Employees).");
+      toast.error("Select at least one audience (Managers or Employees). Admins always have access.");
       return;
     }
     
@@ -161,7 +158,7 @@ export default function EditAccessModal({
         body: JSON.stringify({
           documentId: document.id,
           name: documentName.trim(),
-          canViewAdmin: canAdmin,
+          canViewAdmin: true, // Admins always have access
           canViewManager: canManager,
           canViewEmployee: canEmployee,
           requiresAck,
@@ -286,101 +283,76 @@ export default function EditAccessModal({
               <Shield className="w-4 h-4 text-violet-600" />
               Access Permissions
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setCanAdmin(!canAdmin)}
-                className={`relative p-3 rounded-xl border-2 transition-all duration-200 ${
-                  canAdmin 
-                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" 
-                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                }`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <div className={`p-2 rounded-lg ${canAdmin ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"}`}>
-                    <Shield className={`w-4 h-4 ${canAdmin ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+            <div className="space-y-3">
+              <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                <strong>Note:</strong> Admins can always see all documents. Configure which other roles can access this document below.
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setCanManager(!canManager)}
+                  className={`relative p-3 rounded-xl border-2 transition-all duration-200 ${
+                    canManager 
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" 
+                      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <div className={`p-2 rounded-lg ${canManager ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"}`}>
+                      <Briefcase className={`w-4 h-4 ${canManager ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                    </div>
+                    <span className={`text-xs font-medium ${canManager ? "text-emerald-700 dark:text-emerald-400" : "text-slate-600 dark:text-slate-400"}`}>
+                      Manager
+                    </span>
                   </div>
-                  <span className={`text-xs font-medium ${canAdmin ? "text-emerald-700 dark:text-emerald-400" : "text-slate-600 dark:text-slate-400"}`}>
-                    Admin
-                  </span>
-                </div>
-                {canAdmin && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center"
-                  >
-                    <CheckCircle2 className="w-3 h-3 text-white" />
-                  </motion.div>
-                )}
-              </motion.button>
+                  {canManager && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center"
+                    >
+                      <CheckCircle2 className="w-3 h-3 text-white" />
+                    </motion.div>
+                  )}
+                </motion.button>
 
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setCanManager(!canManager)}
-                className={`relative p-3 rounded-xl border-2 transition-all duration-200 ${
-                  canManager 
-                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" 
-                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                }`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <div className={`p-2 rounded-lg ${canManager ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"}`}>
-                    <Briefcase className={`w-4 h-4 ${canManager ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setCanEmployee(!canEmployee)}
+                  className={`relative p-3 rounded-xl border-2 transition-all duration-200 ${
+                    canEmployee 
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" 
+                      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <div className={`p-2 rounded-lg ${canEmployee ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"}`}>
+                      <Users className={`w-4 h-4 ${canEmployee ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                    </div>
+                    <span className={`text-xs font-medium ${canEmployee ? "text-emerald-700 dark:text-emerald-400" : "text-slate-600 dark:text-slate-400"}`}>
+                      Employee
+                    </span>
                   </div>
-                  <span className={`text-xs font-medium ${canManager ? "text-emerald-700 dark:text-emerald-400" : "text-slate-600 dark:text-slate-400"}`}>
-                    Manager
-                  </span>
-                </div>
-                {canManager && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center"
-                  >
-                    <CheckCircle2 className="w-3 h-3 text-white" />
-                  </motion.div>
-                )}
-              </motion.button>
-
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setCanEmployee(!canEmployee)}
-                className={`relative p-3 rounded-xl border-2 transition-all duration-200 ${
-                  canEmployee 
-                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" 
-                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                }`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <div className={`p-2 rounded-lg ${canEmployee ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"}`}>
-                    <Users className={`w-4 h-4 ${canEmployee ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
-                  </div>
-                  <span className={`text-xs font-medium ${canEmployee ? "text-emerald-700 dark:text-emerald-400" : "text-slate-600 dark:text-slate-400"}`}>
-                    Employee
-                  </span>
-                </div>
-                {canEmployee && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center"
-                  >
-                    <CheckCircle2 className="w-3 h-3 text-white" />
-                  </motion.div>
-                )}
-              </motion.button>
+                  {canEmployee && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center"
+                    >
+                      <CheckCircle2 className="w-3 h-3 text-white" />
+                    </motion.div>
+                  )}
+                </motion.button>
+              </div>
             </div>
 
             {!hasAnyAudience ? (
               <div className="text-sm text-red-600 dark:text-red-400">
-                Select at least one audience so this document remains accessible.
+                Select at least one audience so this document remains accessible to non-admin users.
               </div>
             ) : (
               <div className="text-xs text-slate-500 dark:text-slate-400">

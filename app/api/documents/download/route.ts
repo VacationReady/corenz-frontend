@@ -78,11 +78,20 @@ export async function GET(req: Request) {
     }
 
     // Role-based access flags
+    // Admins should see ALL documents (bypass role filtering)
+    // Managers should only see documents where canViewManager is true
+    // Employees should only see documents where canViewEmployee is true
     let allowed = false;
-    if (["ADMIN", "SUPER_ADMIN"].includes(user.role))
-      allowed = document.canViewAdmin;
-    else if (user.role === "MANAGER") allowed = document.canViewManager;
-    else allowed = document.canViewEmployee;
+    if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+      // Admins bypass role filtering - they can access all documents
+      allowed = true;
+    } else if (user.role === "MANAGER") {
+      // Managers only access documents explicitly marked for managers
+      allowed = document.canViewManager;
+    } else {
+      // Employees only access documents explicitly marked for employees
+      allowed = document.canViewEmployee;
+    }
 
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

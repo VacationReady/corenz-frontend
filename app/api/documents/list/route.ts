@@ -195,11 +195,12 @@ export async function GET(req: Request) {
   }
 
   // ✅ Role flag - based on actual user role, not edit/delete permissions
-  // Managers with read-only access should still see canViewManager documents
-  // Only employees should be restricted to canViewEmployee
+  // Admins should see ALL documents (no role filter)
+  // Managers should only see documents where canViewManager is true
+  // Employees should only see documents where canViewEmployee is true
   const roleFlag =
     user.role === "ADMIN" || user.role === "SUPER_ADMIN"
-      ? { canViewAdmin: true } // Admins see admin-level docs
+      ? {} // Admins bypass role filtering - they see all documents
       : user.role === "MANAGER"
         ? { canViewManager: true } // Managers (even read-only) see manager-level docs
         : { canViewEmployee: true }; // Employees see employee-level docs

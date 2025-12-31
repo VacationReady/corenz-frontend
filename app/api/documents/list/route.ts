@@ -44,10 +44,30 @@ export async function GET(req: Request) {
   // ✅ Log role and permissions for debugging
   console.log(`[Documents API] User ${session.user.id} - Role: ${user.role}, canManageDocuments: ${canManageDocuments}`);
 
-  // ✅ Admin/Manager bypass for document managers
+  // ✅ Build role-based access filter
+  // Admins should see ALL documents (no role filter)
+  // Managers should only see documents where canViewManager is true
+  // Employees should only see documents where canViewEmployee is true
+  // Note: canManageDocuments permission allows editing/deleting but NOT bypassing access control
+  let roleFilter: Prisma.DocumentWhereInput = {};
+  if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
+    // Admins bypass role filtering - they see all documents
+    roleFilter = {};
+  } else if (user.role === "MANAGER") {
+    // Managers only see documents explicitly marked for managers
+    roleFilter = { canViewManager: true };
+  } else {
+    // Employees only see documents explicitly marked for employees
+    roleFilter = { canViewEmployee: true };
+  }
+
+  // ✅ Admin/Manager bypass for document managers - but still respect role-based access
   if (canManageDocuments) {
     const adminDocs = await prisma.document.findMany({
-      where: baseFilter,
+      where: {
+        ...baseFilter,
+        ...roleFilter, // Apply role-based access filter
+      },
       include: {
         User: { select: { name: true, email: true } },
         Department: { select: { id: true, name: true } },
@@ -194,18 +214,7 @@ export async function GET(req: Request) {
     });
   }
 
-  // ✅ Role flag - based on actual user role, not edit/delete permissions
-  // Admins should see ALL documents (no role filter)
-  // Managers should only see documents where canViewManager is true
-  // Employees should only see documents where canViewEmployee is true
-  const roleFlag =
-    user.role === "ADMIN" || user.role === "SUPER_ADMIN"
-      ? {} // Admins bypass role filtering - they see all documents
-      : user.role === "MANAGER"
-        ? { canViewManager: true } // Managers (even read-only) see manager-level docs
-        : { canViewEmployee: true }; // Employees see employee-level docs
-
-  console.log(`[Documents API] RoleFlag for non-manager user: ${JSON.stringify(roleFlag)}`);
+  console.log(`[Documents API] RoleFilter for user: ${JSON.stringify(roleFilter)}`);
 
   // ✅ Build OR conditions safely
   const orConditions: Prisma.DocumentWhereInput[] = [
@@ -224,7 +233,7 @@ export async function GET(req: Request) {
     where: {
       ...baseFilter,
       AND: [
-        roleFlag,
+        roleFilter,
         {
           OR: orConditions,
         },

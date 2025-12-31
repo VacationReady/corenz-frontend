@@ -19,13 +19,21 @@
 - **For Managers**: Only show documents where `canViewManager: true` 
 - **For Employees**: Only show documents where `canViewEmployee: true`
 
-### 3. Inconsistent Behavior Across API Endpoints
+### 3. Permission-Based Bypass Was Ignoring Access Flags
+**Problem**: In `/api/documents/list`, managers with `canManageDocuments` permission (edit/delete) were bypassing ALL role-based filtering and seeing every document, regardless of access flags.
+
+**Solution**: 
+- The `canManageDocuments` permission now only grants edit/delete capabilities
+- Role-based access filtering is ALWAYS applied, even for document managers
+- Only true Admins/Super Admins bypass the role filter
+
+### 4. Inconsistent Behavior Across API Endpoints
 **Problem**: Multiple document API endpoints had the same broken filtering logic.
 
 **Solution**: Fixed the role-based filtering logic in all document API endpoints:
 - `app/api/documents/list-company/route.ts` - Main company document listing
 - `app/api/documents/list-employee/route.ts` - Employee-specific document listing  
-- `app/api/documents/list/route.ts` - Alternative document listing
+- `app/api/documents/list/route.ts` - Alternative document listing (with permission bypass fix)
 - `app/api/documents/download/route.ts` - Document download access control
 
 ## Files Modified
@@ -40,8 +48,9 @@
    - Updated comments to clarify the intended behavior
 
 3. **`app/api/documents/list/route.ts`**
-   - Modified roleFlag logic to use empty object for admin bypass
-   - Updated comments to reflect correct access control
+   - **CRITICAL FIX**: Removed the `canManageDocuments` permission bypass that was ignoring access flags
+   - Role-based filtering now applies to ALL users except Admins/Super Admins
+   - Document managers can still edit/delete but only see documents they have access to
 
 4. **`app/api/documents/download/route.ts`**
    - Fixed role-based access check to allow all documents for admins
@@ -67,6 +76,7 @@
 - ✅ Only see documents where `canViewManager: true`
 - ✅ Cannot see documents where `canViewManager: false`
 - ✅ Can toggle Manager access on/off when editing documents
+- ✅ Document management permissions (edit/delete) do NOT bypass access control
 
 ### For Employees:
 - ✅ Only see documents where `canViewEmployee: true`  
@@ -86,7 +96,11 @@
    - Manager should only see documents with Manager: ON
    - Employee should only see documents with Employee: ON
 
-3. **Verify UI behavior**:
+3. **Test manager with document permissions**:
+   - Manager with edit/delete permissions should still only see Manager: ON documents
+   - They should NOT see all documents just because they can manage them
+
+4. **Verify UI behavior**:
    - Admin toggle should not be visible
    - Explanatory text should be present
    - Validation should work with just Manager/Employee selection
@@ -97,3 +111,4 @@
 - ✅ Department and job role restrictions still apply correctly
 - ✅ Admin bypass only affects role-based filtering, not other security checks
 - ✅ Employee-specific documents still respect employee ownership
+- ✅ Document management permissions no longer bypass access control

@@ -530,18 +530,16 @@ function DocumentsContent() {
   const [showCapture, setShowCapture] = useState(false);
   const [activeFieldIdx, setActiveFieldIdx] = useState<number | null>(null);
   
-  const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(true);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
-  const hasAnyAudience = canViewAdmin || canViewManager || canViewEmployee;
+  const hasAnyAudience = canViewManager || canViewEmployee;
   const audienceSummary = useMemo(() => {
-    const roles: string[] = [];
-    if (canViewAdmin) roles.push("Admins");
+    const roles: string[] = ["Admins"]; // Admins always have access
     if (canViewManager) roles.push("Managers");
     if (canViewEmployee) roles.push("Employees");
     return roles.join(", ");
-  }, [canViewAdmin, canViewManager, canViewEmployee]);
+  }, [canViewManager, canViewEmployee]);
   
   const [placementPendingDocId, setPlacementPendingDocId] = useState<string | null>(null);
   const [placementPendingDocName, setPlacementPendingDocName] = useState<string | null>(null);
@@ -892,7 +890,7 @@ function DocumentsContent() {
     formData.append("category", category);
     formData.append("departments", JSON.stringify(uploadDepartments.includes("all") ? [] : uploadDepartments));
     formData.append("jobRoles", JSON.stringify(uploadJobRoles.includes("all") ? [] : uploadJobRoles));
-    formData.append("canViewAdmin", canViewAdmin.toString());
+    formData.append("canViewAdmin", "true"); // Admins always see all documents
     formData.append("canViewManager", canViewManager.toString());
     formData.append("canViewEmployee", canViewEmployee.toString());
     formData.append("requiresAck", requiresAck.toString());
@@ -998,7 +996,6 @@ function DocumentsContent() {
     setSignatureDueAt("");
     setUploadDepartments(["all"]);
     setUploadJobRoles(["all"]);
-    setCanViewAdmin(true);
     setCanViewManager(true);
     setCanViewEmployee(true);
   };
@@ -1260,7 +1257,7 @@ function DocumentsContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-visible"
               >
                 {filteredDocuments.map((doc, index) => (
                   <DocumentCard
@@ -1299,7 +1296,7 @@ function DocumentsContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-sm overflow-hidden"
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-sm overflow-visible"
               >
                 <Table>
                   <TableHeader>
@@ -1550,11 +1547,21 @@ function DocumentsContent() {
                 <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-4">
                   {/* Visibility */}
                   <div className="flex flex-wrap items-center gap-6">
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400 w-20">Visible to:</span>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
-                      <span className="text-sm">Admins</span>
-                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Visible to:</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-100 dark:bg-amber-900/30 cursor-help">
+                              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">?</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p>Admins always have access to all documents regardless of these settings.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <Switch checked={canViewManager} onChange={setCanViewManager} />
                       <span className="text-sm">Managers</span>
@@ -1564,11 +1571,12 @@ function DocumentsContent() {
                       <span className="text-sm">Employees</span>
                     </label>
                   </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Note: Admins can always see all documents.</p>
 
                   {!hasAnyAudience ? (
                     <div className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400">
                       <AlertCircle className="w-4 h-4 mt-0.5" />
-                      <span>Select at least one audience so this document remains accessible.</span>
+                      <span>Select at least one audience (Managers or Employees).</span>
                     </div>
                   ) : (
                     <div className="text-xs text-slate-500 dark:text-slate-400">

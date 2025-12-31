@@ -405,7 +405,6 @@ function EmployeeDocumentsContent({
   const [companyName, setCompanyName] = useState<string>("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
-  const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(false);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
@@ -635,7 +634,7 @@ function EmployeeDocumentsContent({
     formData.append("category", category);
     formData.append("employeeId", employeeId);
     formData.append("type", "employee");
-    formData.append("canViewAdmin", String(canViewAdmin));
+    formData.append("canViewAdmin", "true"); // Admins always see all documents
     formData.append("canViewManager", String(canViewManager));
     formData.append("canViewEmployee", String(canViewEmployee));
     formData.append("requiresAck", String(requiresAck));
@@ -661,7 +660,6 @@ function EmployeeDocumentsContent({
           setFile(null);
           setName("");
           setCategory("");
-          setCanViewAdmin(true);
           setCanViewManager(false);
           setCanViewEmployee(true);
           setRequiresAck(false);
@@ -1242,12 +1240,20 @@ function EmployeeDocumentsContent({
                       <div className="flex items-center gap-2">
                         <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         <span className="font-semibold text-sm text-blue-900 dark:text-blue-200">Visibility</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 cursor-help">
+                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">?</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              <p>Admins always have access to all documents regardless of these settings.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                       <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
-                          <span className="text-xs font-medium">Admin</span>
-                        </label>
                         <label className="flex items-center gap-1.5 cursor-pointer">
                           <Switch checked={canViewManager} onChange={setCanViewManager} />
                           <span className="text-xs font-medium">Manager</span>
@@ -1258,6 +1264,7 @@ function EmployeeDocumentsContent({
                         </label>
                       </div>
                     </div>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">Note: Admins can always see all documents.</p>
                   </div>
 
                   {/* File Upload */}

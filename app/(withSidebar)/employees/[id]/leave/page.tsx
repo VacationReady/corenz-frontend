@@ -80,6 +80,8 @@ import {
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import EditOtherEntitlementsModal from "@/components/leave/EditOtherEntitlementsModal";
 import EditAnnualLeaveModal from "@/components/leave/EditAnnualLeaveModal";
+import EntitlementChoiceDialog, { type EntitlementChoice } from "@/components/leave/EntitlementChoiceDialog";
+import AddCategoryModal from "@/components/AddCategoryModal";
 
 // ============================================================================
 // Types
@@ -372,6 +374,8 @@ function LeavePageContent() {
   // Modal State
   const [otherEntitlementsModalOpen, setOtherEntitlementsModalOpen] = useState(false);
   const [annualLeaveModalOpen, setAnnualLeaveModalOpen] = useState(false);
+  const [entitlementChoiceDialogOpen, setEntitlementChoiceDialogOpen] = useState(false);
+  const [addCategoryModalOpen, setAddCategoryModalOpen] = useState(false);
 
   // Sheet State
   const [selectedEvent, setSelectedEvent] = useState<LeaveEventExtendedProps | null>(null);
@@ -795,7 +799,7 @@ function LeavePageContent() {
               ))}
               <OtherEntitlementsCard 
                 entitlements={otherEntitlements} 
-                onEdit={() => setOtherEntitlementsModalOpen(true)}
+                onEdit={() => setEntitlementChoiceDialogOpen(true)}
                 canEdit={isPrivileged}
               />
             </div>
@@ -1143,6 +1147,37 @@ function LeavePageContent() {
           onClose={() => setOtherEntitlementsModalOpen(false)}
           employeeId={employeeId}
           onSuccess={refresh}
+          hideAddButton
+        />
+      )}
+
+      {/* Entitlement Choice Dialog */}
+      {isPrivileged && (
+        <EntitlementChoiceDialog
+          isOpen={entitlementChoiceDialogOpen}
+          onClose={() => setEntitlementChoiceDialogOpen(false)}
+          onChoice={(choice: EntitlementChoice) => {
+            setEntitlementChoiceDialogOpen(false);
+            if (choice === 'company-wide') {
+              setAddCategoryModalOpen(true);
+            } else if (choice === 'employee-only') {
+              setOtherEntitlementsModalOpen(true);
+            }
+          }}
+        />
+      )}
+
+      {/* Add Category Modal (for company-wide event types) */}
+      {isPrivileged && (
+        <AddCategoryModal
+          isOpen={addCategoryModalOpen}
+          onClose={() => setAddCategoryModalOpen(false)}
+          onSuccess={() => {
+            setAddCategoryModalOpen(false);
+            refresh();
+          }}
+          defaultCategoryType="TIME_OFF"
+          defaultBalanceRequired={true}
         />
       )}
 

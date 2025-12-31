@@ -9,6 +9,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
@@ -800,6 +806,18 @@ export default function AddDocumentModal({
                       <div className="flex items-center gap-2">
                         <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         <span className="font-medium text-sm">Visibility</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 cursor-help">
+                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">?</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              <p>Admins always have access to all documents regardless of these settings.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                       <div className="flex items-center gap-4">
                         <label className="flex items-center gap-1.5 cursor-pointer">

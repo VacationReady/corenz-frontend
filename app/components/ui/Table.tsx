@@ -17,7 +17,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
 
     return (
       <div className={cn(
-        "relative w-full overflow-auto rounded-2xl",
+        "relative w-full overflow-x-auto overflow-y-visible rounded-2xl",
         containerClasses
       )}>
         <table

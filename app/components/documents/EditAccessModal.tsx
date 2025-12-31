@@ -8,6 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
@@ -282,10 +288,22 @@ export default function EditAccessModal({
             <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
               <Shield className="w-4 h-4 text-violet-600" />
               Access Permissions
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-900/30 cursor-help">
+                      <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">?</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    <p>Admins always have access to all documents regardless of these settings.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="space-y-3">
               <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                <strong>Note:</strong> Admins can always see all documents. Configure which other roles can access this document below.
+                <strong>Note:</strong> Configure which other roles can access this document below.
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <motion.button

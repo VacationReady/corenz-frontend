@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X,
   Plus,
   Trash2,
   Loader2,
@@ -50,6 +49,8 @@ interface EditOtherEntitlementsModalProps {
   onClose: () => void;
   employeeId: string;
   onSuccess?: () => void;
+  /** If true, hides the "Add Entitlement" button (used when accessed via choice dialog) */
+  hideAddButton?: boolean;
 }
 
 export default function EditOtherEntitlementsModal({
@@ -57,6 +58,7 @@ export default function EditOtherEntitlementsModal({
   onClose,
   employeeId,
   onSuccess,
+  hideAddButton = false,
 }: EditOtherEntitlementsModalProps) {
   const [entitlements, setEntitlements] = useState<OtherEntitlement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -296,19 +298,34 @@ export default function EditOtherEntitlementsModal({
                 <div className="text-center py-8 text-muted-foreground">
                   <Gift className="w-10 h-10 mx-auto mb-3 opacity-30" />
                   <p className="text-sm">No other entitlements</p>
-                  <p className="text-xs mt-1">Click "Add Entitlement" to create one</p>
+                  {!hideAddButton && (
+                    <p className="text-xs mt-1">Click "Add Entitlement" to create one</p>
+                  )}
                 </div>
               )}
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddEntitlement}
-                className="w-full rounded-xl border-dashed"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Entitlement
-              </Button>
+              {!hideAddButton && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddEntitlement}
+                  className="w-full rounded-xl border-dashed"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Entitlement
+                </Button>
+              )}
+
+              {/* Warning for custom entitlements */}
+              {entitlements.some((e) => !e.isEventCategory) && (
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Custom entitlements (not linked to an event category) cannot be booked via self-service. 
+                    Consider creating a company-wide event type in Event Manager for full functionality.
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>

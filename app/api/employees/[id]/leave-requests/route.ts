@@ -494,7 +494,8 @@ export async function POST(
     }
 
     // Determine if the current user is booking leave for someone else (not themselves)
-    const isBookingForSomeoneElse = employee.User?.id !== session.user.id;
+    // If employee has no linked User, assume it's for someone else
+    const isBookingForSomeoneElse = !employee.User?.id || employee.User.id !== session.user.id;
     
     // Determine if the current user is a manager of this employee
     const isManagerOfEmployee = 
@@ -504,10 +505,14 @@ export async function POST(
     // Auto-approve immediately when:
     // 1. Created by ADMIN or SUPER_ADMIN (for anyone)
     // 2. Created by a MANAGER for their direct reports (not for themselves)
+    // 3. SICK LEAVE: Any admin or manager booking sick leave for someone else always auto-approves
+    //    (sick leave doesn't need approval workflow - it's recorded and reviewed at reporting stage)
     // Managers booking their OWN leave should follow normal approval workflow
     const canAutoApprove = 
       (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") ||
-      (session.user.role === "MANAGER" && isManagerOfEmployee && isBookingForSomeoneElse);
+      (session.user.role === "MANAGER" && isManagerOfEmployee && isBookingForSomeoneElse) ||
+      // Sick leave special case: any manager can auto-approve sick leave for any employee
+      (isSick && session.user.role === "MANAGER" && isBookingForSomeoneElse);
 
     // DEBUG: Log auto-approve decision
     console.log("🔍 [LEAVE_REQUEST_DEBUG] Auto-approve check:", {

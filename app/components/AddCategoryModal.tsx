@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlusIcon, BriefcaseIcon, UmbrellaIcon, Sparkles, CheckCircle2, Palette, Settings, Shield, Check, Scale } from "lucide-react";
 import Button from "@/components/ui/Button";
@@ -37,16 +37,22 @@ interface AddCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  /** Pre-select category type when modal opens */
+  defaultCategoryType?: "TIME_OFF" | "WORKING_EVENT";
+  /** Pre-enable balance tracking when modal opens */
+  defaultBalanceRequired?: boolean;
 }
 
 export default function AddCategoryModal({
   isOpen,
   onClose,
   onSuccess,
+  defaultCategoryType,
+  defaultBalanceRequired,
 }: AddCategoryModalProps) {
   const [categoryType, setCategoryType] = useState<
     "TIME_OFF" | "WORKING_EVENT" | null
-  >(null);
+  >(defaultCategoryType ?? null);
   const [name, setName] = useState("");
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [adminOnly, setAdminOnly] = useState(false);
@@ -58,9 +64,17 @@ export default function AddCategoryModal({
   const [loading, setLoading] = useState(false);
   const [iconKey, setIconKey] = useState<string | null>(null);
   // Balance configuration
-  const [balanceRequired, setBalanceRequired] = useState(false);
+  const [balanceRequired, setBalanceRequired] = useState(defaultBalanceRequired ?? false);
   const [defaultBalance, setDefaultBalance] = useState<string>("");
   const [balanceRefreshMonths, setBalanceRefreshMonths] = useState<string>("12");
+
+  // Reset state when modal opens with defaults
+  useEffect(() => {
+    if (isOpen) {
+      setCategoryType(defaultCategoryType ?? null);
+      setBalanceRequired(defaultBalanceRequired ?? false);
+    }
+  }, [isOpen, defaultCategoryType, defaultBalanceRequired]);
 
   const handleSubmit = async () => {
     if (!categoryType || !name) {

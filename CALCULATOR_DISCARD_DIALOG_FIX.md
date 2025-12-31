@@ -3,17 +3,17 @@
 ## Problem
 When clicking the "Calculate" button in the Holiday Entitlement Calculator modal, the "Discard unsaved changes?" dialog would appear incorrectly. After clicking "Continue Editing", any subsequent clicks would continue to trigger the discard dialog.
 
-## Root Cause
-The issue was caused by event bubbling and improper event handling in the calculator modal buttons. The buttons were:
-1. Not preventing default form submission behavior
-2. Not stopping event propagation to parent elements
-3. Missing explicit `type="button"` attributes
-4. Using complex modal close handlers that could interfere with the main form
+## Root Cause Analysis
+The issue was caused by multiple factors:
+
+1. **Event Bubbling**: Calculator modal buttons were not preventing event propagation
+2. **Modal Interference**: The calculator modal was triggering the main modal's close handlers
+3. **Defensive Handling Missing**: Main modal was responding to close events even when calculator was open
 
 ## Solution
-Applied the following fixes to the calculator modal buttons:
+Applied comprehensive fixes to isolate the calculator modal from the main form:
 
-### 1. Added Proper Event Handling
+### 1. Enhanced Button Event Handling
 ```typescript
 onClick={(e) => {
   e.preventDefault();
@@ -27,10 +27,36 @@ onClick={(e) => {
 <Button type="button" onClick={...}>
 ```
 
-### 3. Simplified Modal Close Logic
-Removed complex `handleCalculatorModalClose` function and used direct state updates:
+### 3. Defensive Main Modal Handlers
+```typescript
+onOpenChange={(nextOpen) => {
+  // Only handle explicit close requests when calculator is not open
+  if (!nextOpen && !isCalculateModalOpen) {
+    handleClose();
+  }
+}}
+
+onEscapeKeyDown={(e) => {
+  if (isDirty && !isSubmitting && !isCalculateModalOpen) {
+    e.preventDefault();
+    setShowDiscardDialog(true);
+    setPendingClose(true);
+  }
+}}
+
+onInteractOutside={(e) => {
+  if (isDirty && !isSubmitting && !isCalculateModalOpen) {
+    e.preventDefault();
+    setShowDiscardDialog(true);
+    setPendingClose(true);
+  }
+}}
+```
+
+### 4. Simplified Calculator Modal Logic
 ```typescript
 onOpenChange={(open) => {
+  // Only allow closing, not opening through this handler
   if (!open) {
     setIsCalculateModalOpen(false);
     setCalculatedEntitlement(0);
@@ -38,20 +64,18 @@ onOpenChange={(open) => {
 }}
 ```
 
-### 4. Isolated Calculator State
+### 5. Isolated Calculator State
 Ensured calculator state variables (`calculatedEntitlement`, `fullTimeEntitlement`, etc.) are completely separate from the main form's dirty state detection.
 
 ## Files Modified
 - `app/components/employees/AddEmployeeModal.tsx`
 
-## Testing
-- Calculator modal buttons no longer trigger the discard dialog
-- Calculator functionality works correctly (pro-rata calculations)
-- Main form dirty state detection remains unaffected
-- No regressions in existing functionality
+## Testing Scenarios
+✅ Calculator modal buttons no longer trigger the discard dialog  
+✅ Calculator functionality works correctly (pro-rata calculations)  
+✅ Main form dirty state detection remains unaffected  
+✅ Escape key and outside clicks are properly handled  
+✅ No regressions in existing functionality  
 
 ## Result
-✅ Calculator modal now works without interfering with the main form
-✅ No more false "discard changes" dialogs
-✅ Simplified and more reliable event handling
-✅ Maintained all existing functionality
+The calculator modal now works independently without interfering with the main form's unsaved changes detection. Users can calculate holiday entitlements without encountering false "discard changes" dialogs.

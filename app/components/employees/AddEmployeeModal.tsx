@@ -1496,8 +1496,9 @@ export default function AddEmployeeModal({
       <Dialog
         open={dialogOpen}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen) {
-            onClose();
+          // Only handle explicit close requests, not accidental ones
+          if (!nextOpen && !isCalculateModalOpen) {
+            handleClose();
           }
         }}
       >
@@ -1505,14 +1506,14 @@ export default function AddEmployeeModal({
           rawContent
           className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col"
           onEscapeKeyDown={(e) => {
-            if (isDirty && !isSubmitting) {
+            if (isDirty && !isSubmitting && !isCalculateModalOpen) {
               e.preventDefault();
               setShowDiscardDialog(true);
               setPendingClose(true);
             }
           }}
           onInteractOutside={(e) => {
-            if (isDirty && !isSubmitting) {
+            if (isDirty && !isSubmitting && !isCalculateModalOpen) {
               e.preventDefault();
               setShowDiscardDialog(true);
               setPendingClose(true);

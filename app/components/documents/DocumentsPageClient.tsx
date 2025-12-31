@@ -880,8 +880,8 @@ function DocumentsContent() {
     if (!file || !name || !category || category === "all") {
       return toast("Please fill in all fields and select a file.");
     }
-    if (!canViewAdmin && !canViewManager && !canViewEmployee) {
-      return toast.error("Select at least one audience (Admins, Managers, or Employees).");
+    if (!canViewManager && !canViewEmployee) {
+      return toast.error("Select at least one audience (Managers or Employees).");
     }
     setUploading(true);
     const formData = new FormData();

@@ -584,7 +584,8 @@ export async function POST(
             paidStatus: paidStatus ?? "PAID",
             updatedAt: new Date(),
             approvalStatus: "APPROVED",
-            approvedById: session.user.id,
+            // Use relation connect for approvedById
+            User_LeaveRequest_approvedByIdToUser: { connect: { id: session.user.id } },
           };
 
           // Only connect EventSubcategory if sickReasonId is provided and valid
@@ -693,7 +694,10 @@ export async function POST(
             // Approve leave request
             return (tx.leaveRequest as any).update({
               where: { id: newLeaveRequest.id },
-              data: { approvalStatus: "APPROVED", approvedById: session.user.id },
+              data: { 
+                approvalStatus: "APPROVED", 
+                User_LeaveRequest_approvedByIdToUser: { connect: { id: session.user.id } },
+              },
             });
           });
 
@@ -726,7 +730,10 @@ export async function POST(
 
             return (tx.leaveRequest as any).update({
               where: { id: newLeaveRequest.id },
-              data: { approvalStatus: "APPROVED", approvedById: session.user.id },
+              data: { 
+                approvalStatus: "APPROVED", 
+                User_LeaveRequest_approvedByIdToUser: { connect: { id: session.user.id } },
+              },
             });
           });
 

@@ -542,6 +542,14 @@ export async function POST(
         // Sick leave uses a separate balance tracking system from regular leave entitlements
         if (isSick) {
           console.log("🔍 [LEAVE_REQUEST_DEBUG] Entering sick leave handling block");
+          console.log("🔍 [LEAVE_REQUEST_DEBUG] Sick leave params:", {
+            EventCategoryId,
+            sickReasonId,
+            resolvedSickReason,
+            paidStatus,
+            startDateObj: startDateObj.toISOString(),
+            endDateObj: endDateObj.toISOString(),
+          });
           
           // Calculate deduction for sick leave
           const totalDays: number[] = [];
@@ -555,28 +563,42 @@ export async function POST(
 
           const totalDeductionDays = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
 
-          // Create leave request first
+          // Build the data object for leave request creation
+          const leaveRequestData: any = {
+            id: crypto.randomUUID(),
+            Employee: { connect: { id: employeeId } },
+            User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
+            EventCategory: { connect: { id: EventCategoryId } },
+            Company: { connect: { id: session.user.companyId } },
+            startDate: startDateObj,
+            endDate: endDateObj,
+            dayType: dayType ?? "FULL_DAY",
+            reason: reason ?? "",
+            leaveType: "SICK",
+            sickReason: resolvedSickReason,
+            paidStatus: paidStatus ?? "PAID",
+            updatedAt: new Date(),
+            approvalStatus: "APPROVED",
+            approvedById: session.user.id,
+          };
+
+          // Only connect EventSubcategory if sickReasonId is provided and valid
+          if (sickReasonId) {
+            // Verify the subcategory exists before trying to connect
+            const subcategoryExists = await prisma.eventSubcategory.findFirst({
+              where: { id: sickReasonId },
+              select: { id: true },
+            });
+            if (subcategoryExists) {
+              leaveRequestData.EventSubcategory = { connect: { id: sickReasonId } };
+            } else {
+              console.warn(`⚠️ [LEAVE_REQUEST_DEBUG] Subcategory ${sickReasonId} not found, skipping connection`);
+            }
+          }
+
+          // Create leave request
           const newLeaveRequest = await (prisma.leaveRequest as any).create({
-            data: {
-              id: crypto.randomUUID(),
-              Employee: { connect: { id: employeeId } },
-              User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
-              EventCategory: { connect: { id: EventCategoryId } },
-              Company: { connect: { id: session.user.companyId } },
-              startDate: startDateObj,
-              endDate: endDateObj,
-              dayType: dayType ?? "FULL_DAY",
-              reason: reason ?? "",
-              leaveType: "SICK",
-              sickReason: resolvedSickReason,
-              paidStatus: paidStatus ?? "PAID",
-              ...(sickReasonId
-                ? { EventSubcategory: { connect: { id: sickReasonId } } }
-                : {}),
-              updatedAt: new Date(),
-              approvalStatus: "APPROVED",
-              approvedById: session.user.id,
-            },
+            data: leaveRequestData,
           });
 
           console.log("✅ [LEAVE_REQUEST_DEBUG] Sick leave request created:", {
@@ -708,7 +730,12 @@ export async function POST(
       } catch (e: any) {
         console.error("❌ [LEAVE_REQUEST_DEBUG] Auto-approve by admin/manager failed:", e?.message || e);
         console.error("❌ [LEAVE_REQUEST_DEBUG] Full error:", e);
-        // Fall through to workflow path if deduction failed for any reason
+        // Re-throw the error instead of falling through to workflow path
+        // This ensures admins see the actual error instead of silent failure
+        return NextResponse.json(
+          { success: false, error: e?.message || "Failed to create leave request" },
+          { status: 500 },
+        );
       }
     }
 

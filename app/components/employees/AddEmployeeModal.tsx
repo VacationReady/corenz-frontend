@@ -1080,14 +1080,6 @@ export default function AddEmployeeModal({
     setIsCalculateModalOpen(false);
   };
 
-  const handleCalculatorModalClose = (open: boolean) => {
-    if (!open) {
-      // Reset calculator state when closing without affecting form dirty state
-      setCalculatedEntitlement(0);
-    }
-    setIsCalculateModalOpen(open);
-  };
-
   const nextStep = () => {
     // Validate step 1 required fields
     if (
@@ -2913,7 +2905,13 @@ export default function AddEmployeeModal({
       {/* Calculate Entitlement Modal */}
       <Dialog
         open={isCalculateModalOpen}
-        onOpenChange={handleCalculatorModalClose}
+        onOpenChange={(open) => {
+          // Only allow closing, not opening through this handler
+          if (!open) {
+            setIsCalculateModalOpen(false);
+            setCalculatedEntitlement(0);
+          }
+        }}
       >
         <DialogContent title="Calculate Holiday Entitlement">
           <div className="space-y-4">
@@ -2990,16 +2988,31 @@ export default function AddEmployeeModal({
 
             <DialogFooter>
               <Button
+                type="button"
                 variant="outline"
-                onClick={() => handleCalculatorModalClose(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsCalculateModalOpen(false);
+                  setCalculatedEntitlement(0);
+                }}
               >
                 Cancel
               </Button>
-              <Button onClick={calculateEntitlement} className="mr-2">
+              <Button type="button" onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                calculateEntitlement();
+              }} className="mr-2">
                 Calculate
               </Button>
               <Button
-                onClick={applyCalculatedEntitlement}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  applyCalculatedEntitlement();
+                }}
                 disabled={calculatedEntitlement === 0}
               >
                 Apply ({calculatedEntitlement} days)

@@ -223,6 +223,32 @@ export async function GET(
       const sickBalance = Number(employee.sickLeaveBalance);
       // Convert hours to days (8 hours per day per NZ standard)
       const sickDays = sickBalance / 8;
+      
+      // Calculate used sick leave from ledger USAGE entries
+      const sickLeaveUsage = await prisma.leaveBalanceLedger.aggregate({
+        where: {
+          employeeId,
+          leaveType: "SICK_LEAVE",
+          eventType: "USAGE",
+        },
+        _sum: {
+          deltaHours: true,
+        },
+      });
+      // deltaHours is negative for usage, so we negate to get positive used value
+      const usedHours = Math.abs(Number(sickLeaveUsage._sum.deltaHours || 0));
+      const usedDays = usedHours / 8;
+      
+      // Count pending sick leave requests
+      const pendingSickCount = await prisma.leaveRequest.count({
+        where: {
+          employeeId,
+          companyId: session.user.companyId,
+          leaveType: "SICK",
+          approvalStatus: "PENDING",
+        },
+      });
+      
       balances.push({
         id: `stored-sick-${employeeId}`,
         type: "stored",
@@ -230,9 +256,9 @@ export async function GET(
         categoryName: "Sick Leave",
         categoryIconKey: "thermometer",
         remaining: sickDays,
-        used: 0, // We don't track used for stored balances
+        used: usedDays,
         total: null, // Stored balance - no explicit total
-        pending: 0,
+        pending: pendingSickCount,
         carryover: 0,
         carryoverExpiry: null,
       });

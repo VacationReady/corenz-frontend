@@ -522,11 +522,11 @@ export default function AddLeaveRequestDialog({
               <div className="px-8 pb-8 space-y-6">
                 {/* Sick Leave Toggle - Only visible to admins/managers booking for others */}
                 {canBookSickLeave && (
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20">
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-amber-500/20">
-                        <Thermometer className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                      <div className="p-2 rounded-xl bg-blue-500/20">
+                        <Thermometer className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
                         <Label className="text-sm font-semibold text-foreground">Sick Leave</Label>
@@ -547,7 +547,7 @@ export default function AddLeaveRequestDialog({
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="mt-4 pt-4 border-t border-amber-500/20"
+                        className="mt-4 pt-4 border-t border-blue-500/20"
                       >
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
@@ -622,11 +622,11 @@ export default function AddLeaveRequestDialog({
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-violet-500/5 border border-purple-500/20"
+                      className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20"
                     >
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 rounded-xl bg-purple-500/20">
-                          <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <div className="p-2 rounded-xl bg-blue-500/20">
+                          <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-foreground">Custom Entitlements</Label>
@@ -641,7 +641,7 @@ export default function AddLeaveRequestDialog({
                           if (val && val !== "__none__") setType(""); // Clear regular type when selecting other entitlement
                         }}
                       >
-                        <SelectTrigger className="h-11 rounded-xl border-purple-500/30 bg-white/50 dark:bg-white/5 focus:border-purple-500 focus:ring-purple-500/20 transition-all">
+                        <SelectTrigger className="h-11 rounded-xl border-blue-500/30 bg-white/50 dark:bg-white/5 focus:border-blue-500 focus:ring-blue-500/20 transition-all">
                           <SelectValue placeholder="Select custom entitlement (optional)" />
                         </SelectTrigger>
                         <SelectContent>
@@ -652,7 +652,7 @@ export default function AddLeaveRequestDialog({
                             <SelectItem key={entitlement.id} value={entitlement.id}>
                               <div className="flex items-center justify-between gap-4 w-full">
                                 <span>{entitlement.name}</span>
-                                <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                                   {entitlement.balance} {entitlement.unit}
                                 </span>
                               </div>
@@ -662,7 +662,7 @@ export default function AddLeaveRequestDialog({
                       </Select>
                       
                       {selectedOtherEntitlement && (
-                        <p className="text-xs text-purple-600 dark:text-purple-400 mt-2 flex items-center gap-1">
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" />
                           This booking will auto-approve and deduct from the custom balance
                         </p>

@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const employeeId = searchParams.get("employeeId");
   const bootstrap = searchParams.get("bootstrap") === "1";
 
-  // ✅ Fetch user with permission profile, department & job role
+  // ✅ Fetch user with permission profile, department & job role, and their employee ID
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
@@ -23,12 +23,16 @@ export async function GET(req: Request) {
       departmentId: true,
       jobRoleId: true,
       PermissionProfile: true,
+      Employee: { select: { id: true } },
     },
   });
 
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
+
+  // Get the viewer's employee ID
+  const viewerEmployeeId = user.Employee?.id;
 
   // ✅ Base filter
   const baseFilter = {
@@ -41,20 +45,27 @@ export async function GET(req: Request) {
     hasPermission(user as any, "documents", "edit") ||
     hasPermission(user as any, "documents", "delete");
 
+  // ✅ Check if user is viewing their OWN employee documents
+  const isViewingOwnDocuments = employeeId && viewerEmployeeId === employeeId;
+
   // ✅ Log role and permissions for debugging
-  console.log(`[Documents API] User ${session.user.id} - Role: ${user.role}, canManageDocuments: ${canManageDocuments}`);
+  console.log(`[Documents API] User ${session.user.id} - Role: ${user.role}, canManageDocuments: ${canManageDocuments}, isViewingOwnDocuments: ${isViewingOwnDocuments}`);
 
   // ✅ Build role-based access filter
-  // Admins should see ALL documents (no role filter)
-  // Managers should only see documents where canViewManager is true
-  // Employees should only see documents where canViewEmployee is true
-  // Note: canManageDocuments permission allows editing/deleting but NOT bypassing access control
+  // For employee-specific documents:
+  //   - If viewing YOUR OWN documents: only see canViewEmployee docs (regardless of your role)
+  //   - If viewing SOMEONE ELSE's documents: use your role to determine access
+  // For company-wide documents (no employeeId): use your role
   let roleFilter: Prisma.DocumentWhereInput = {};
-  if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
+  
+  if (isViewingOwnDocuments) {
+    // When viewing your own documents, you're the "employee" - only see employee-visible docs
+    roleFilter = { canViewEmployee: true };
+  } else if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
     // Admins bypass role filtering - they see all documents
     roleFilter = {};
   } else if (user.role === "MANAGER") {
-    // Managers only see documents explicitly marked for managers
+    // Managers viewing someone else's documents see manager-visible docs
     roleFilter = { canViewManager: true };
   } else {
     // Employees only see documents explicitly marked for employees

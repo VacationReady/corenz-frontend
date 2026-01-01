@@ -50,16 +50,28 @@ export async function GET(req: NextRequest) {
   // Determine user role (uppercase from session type)
   const userRole = session.user.role; // "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN"
 
-  // Build role-based filter using uppercase matches
-  // Admins should see ALL documents (no role filter)
-  // Managers should only see documents where canViewManager is true
-  // Employees should only see documents where canViewEmployee is true
+  // Get the viewer's employee ID to check if they're viewing their own documents
+  const viewerUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { Employee: { select: { id: true } } },
+  });
+  const viewerEmployeeId = viewerUser?.Employee?.id;
+  const isViewingOwnDocuments = viewerEmployeeId === employeeId;
+
+  // Build role-based filter
+  // For employee-specific documents:
+  //   - If viewing YOUR OWN documents: only see canViewEmployee docs (regardless of your role)
+  //   - If viewing SOMEONE ELSE's documents: use your role to determine access
   let accessFilter = {};
-  if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
+  
+  if (isViewingOwnDocuments) {
+    // When viewing your own documents, you're the "employee" - only see employee-visible docs
+    accessFilter = { canViewEmployee: true };
+  } else if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
     // Admins bypass role filtering - they see all documents
     accessFilter = {};
   } else if (userRole === "MANAGER") {
-    // Managers only see documents explicitly marked for managers
+    // Managers viewing someone else's documents see manager-visible docs
     accessFilter = { canViewManager: true };
   } else if (userRole === "EMPLOYEE") {
     // Employees only see documents explicitly marked for employees

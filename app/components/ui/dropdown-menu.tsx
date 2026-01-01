@@ -1,7 +1,7 @@
 "use client";
 
-import React, { Fragment } from "react";
-import { Menu, Transition } from "@headlessui/react";
+import React, { Fragment, useRef, useState } from "react";
+import { Menu, Transition, Portal } from "@headlessui/react";
 import { cn } from "@/lib/utils"; // If you don&apos;t have this, replace with className joins.
 
 type DropdownMenuProps = {
@@ -13,6 +13,9 @@ export function DropdownMenu({
   children,
   align = "right",
 }: DropdownMenuProps) {
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, right: 0 });
+
   // Find trigger and content from children
   const triggerChild = React.Children.toArray(children).find(
     (child) => React.isValidElement(child) && child.type === DropdownMenuTrigger
@@ -25,34 +28,54 @@ export function DropdownMenu({
     ? (contentChild.props as any).children
     : null;
 
+  const updatePosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+        right: window.innerWidth - rect.right,
+      });
+    }
+  };
+
   return (
     <Menu as="div" className="relative inline-block text-left">
-      <Menu.Button as={Fragment}>
-        {triggerChild as any}
-      </Menu.Button>
-      <Transition
-        as={Fragment}
-        enter="transition ease-out duration-200"
-        enterFrom="transform opacity-0 scale-95 translate-y-1"
-        enterTo="transform opacity-100 scale-100 translate-y-0"
-        leave="transition ease-in duration-150"
-        leaveFrom="transform opacity-100 scale-100 translate-y-0"
-        leaveTo="opacity-0 scale-95 translate-y-1"
-      >
-        <Menu.Items
-          className={cn(
-            "absolute z-[9999] mt-2 min-w-[200px] p-1.5 rounded-2xl",
-            "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl",
-            "shadow-xl shadow-black/10 dark:shadow-black/30",
-            "border border-border/50 dark:border-slate-700/50",
-            "focus:outline-none",
-            align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left",
-          )}
-          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      <div ref={buttonRef} onClick={updatePosition}>
+        <Menu.Button as={Fragment}>
+          {triggerChild as any}
+        </Menu.Button>
+      </div>
+      <Portal>
+        <Transition
+          as={Fragment}
+          enter="transition ease-out duration-200"
+          enterFrom="transform opacity-0 scale-95 translate-y-1"
+          enterTo="transform opacity-100 scale-100 translate-y-0"
+          leave="transition ease-in duration-150"
+          leaveFrom="transform opacity-100 scale-100 translate-y-0"
+          leaveTo="opacity-0 scale-95 translate-y-1"
         >
-          {content}
-        </Menu.Items>
-      </Transition>
+          <Menu.Items
+            style={{
+              position: 'fixed',
+              top: menuPosition.top,
+              ...(align === 'right' ? { right: menuPosition.right } : { left: menuPosition.left }),
+            }}
+            className={cn(
+              "z-[9999] min-w-[200px] p-1.5 rounded-2xl",
+              "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl",
+              "shadow-xl shadow-black/10 dark:shadow-black/30",
+              "border border-border/50 dark:border-slate-700/50",
+              "focus:outline-none",
+              align === "right" ? "origin-top-right" : "origin-top-left",
+            )}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          >
+            {content}
+          </Menu.Items>
+        </Transition>
+      </Portal>
     </Menu>
   );
 }

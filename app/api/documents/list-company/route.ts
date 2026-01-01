@@ -74,23 +74,31 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  const sessionEmployeeId = user.Employee?.id ?? (session.user as any).employeeId;
+
+  // Check if user is viewing their OWN employee documents
+  const isViewingOwnDocuments = employeeId && sessionEmployeeId === employeeId;
+
   // Build role-based access filter
-  // Admins should see ALL documents (no role filter)
-  // Managers should only see documents where canViewManager is true
-  // Employees should only see documents where canViewEmployee is true
+  // For employee-specific documents:
+  //   - If viewing YOUR OWN documents: only see canViewEmployee docs (regardless of your role)
+  //   - If viewing SOMEONE ELSE's documents: use your role to determine access
+  // For company-wide documents (no employeeId): use your role
   let roleFilter: any = {};
-  if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+  
+  if (isViewingOwnDocuments) {
+    // When viewing your own documents, you're the "employee" - only see employee-visible docs
+    roleFilter = { canViewEmployee: true };
+  } else if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
     // Admins bypass role filtering - they see all documents
     roleFilter = {};
   } else if (user.role === "MANAGER") {
-    // Managers only see documents explicitly marked for managers
+    // Managers viewing someone else's documents see manager-visible docs
     roleFilter = { canViewManager: true };
   } else {
     // Employees only see documents explicitly marked for employees
     roleFilter = { canViewEmployee: true };
   }
-
-  const sessionEmployeeId = user.Employee?.id ?? (session.user as any).employeeId;
 
   if (!employeeId && user.role === "EMPLOYEE" && !sessionEmployeeId) {
     return NextResponse.json({ error: "Employee profile not found" }, { status: 403 });

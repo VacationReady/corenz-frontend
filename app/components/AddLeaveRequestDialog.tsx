@@ -637,15 +637,15 @@ export default function AddLeaveRequestDialog({
                       <Select 
                         value={selectedOtherEntitlement} 
                         onValueChange={(val) => { 
-                          setSelectedOtherEntitlement(val); 
-                          if (val) setType(""); // Clear regular type when selecting other entitlement
+                          setSelectedOtherEntitlement(val === "__none__" ? "" : val); 
+                          if (val && val !== "__none__") setType(""); // Clear regular type when selecting other entitlement
                         }}
                       >
                         <SelectTrigger className="h-11 rounded-xl border-purple-500/30 bg-white/50 dark:bg-white/5 focus:border-purple-500 focus:ring-purple-500/20 transition-all">
                           <SelectValue placeholder="Select custom entitlement (optional)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">
+                          <SelectItem value="__none__">
                             <span className="text-muted-foreground">None - use regular leave type</span>
                           </SelectItem>
                           {otherEntitlements.map((entitlement) => (

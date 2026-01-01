@@ -148,6 +148,16 @@ export default function AddTraining() {
     formData.append("dateCompleted", dateCompleted);
     if (expiryDate) formData.append("expiryDate", expiryDate);
     if (file) formData.append("file", file);
+    
+    // Include reasons for audit trail
+    const reasons: Record<string, string> = {
+      courseId: "Training course completed",
+      providerId: "Training provider",
+      dateCompleted: "Date of completion",
+    };
+    if (expiryDate) reasons.expiryDate = "Certificate expiry date";
+    if (file) reasons.documentId = "Certificate uploaded";
+    formData.append("reasons", JSON.stringify(reasons));
 
     try {
       const res = await fetch("/api/training-records/create", {

@@ -195,6 +195,12 @@ export async function GET(req: NextRequest) {
             color: true,
           },
         },
+        OtherEntitlement: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { startDate: "desc" },
     });
@@ -272,6 +278,9 @@ export async function GET(req: NextRequest) {
         // Determine if this is a sickness event for filtering purposes
         const isSickness = isSicknessLeave(req);
         
+        // Determine if this is an other entitlement booking (admin-only visibility)
+        const isOtherEntitlement = req.leaveType === "OTHER_ENTITLEMENT" || Boolean(req.otherEntitlementId);
+        
         // Check if this category is excluded from general visibility
         const categoryId = req.EventCategory?.id;
         const excludedFromGeneralVisibility = categoryId 
@@ -280,13 +289,17 @@ export async function GET(req: NextRequest) {
         
         return {
           id: req.id,
-          title: `${req.EventCategory?.name ?? "Leave"} - ${displayName}`,
+          title: isOtherEntitlement && req.OtherEntitlement?.name 
+            ? `${req.OtherEntitlement.name} - ${displayName}`
+            : `${req.EventCategory?.name ?? "Leave"} - ${displayName}`,
           start: formatDateLocal(startDate),
           end: formatDateLocal(exclusiveEndDate),
           allDay: true,
           type: "leave",
           reason: req.reason ?? null,
-          categoryName: req.EventCategory?.name ?? null,
+          categoryName: isOtherEntitlement && req.OtherEntitlement?.name 
+            ? req.OtherEntitlement.name 
+            : (req.EventCategory?.name ?? null),
           categoryIconKey: req.EventCategory?.iconKey ?? null,
           eventCategoryId: req.EventCategory?.id ?? null,
           approvalStatus: req.approvalStatus,
@@ -295,6 +308,7 @@ export async function GET(req: NextRequest) {
           textColor: '#FFFFFF',
           // Internal flags for filtering (not exposed to UI directly)
           _isSickness: isSickness,
+          _isOtherEntitlement: isOtherEntitlement,
           _excludedFromGeneralVisibility: excludedFromGeneralVisibility,
           _employeeUserId: req.Employee?.User?.id ?? null,
           // Provide both employee (camelCase) for UI and Employee (PascalCase) for compatibility
@@ -337,6 +351,11 @@ export async function GET(req: NextRequest) {
           return true;
         }
         
+        // For colleagues: NEVER show other entitlement bookings - admin-only visibility
+        if (event._isOtherEntitlement) {
+          return false;
+        }
+        
         // For colleagues: NEVER show sickness - this is a critical security requirement
         if (event._isSickness) {
           return false;
@@ -363,6 +382,12 @@ export async function GET(req: NextRequest) {
         // Always show own leave events (including own sickness and excluded categories)
         if (isOwnEvent) {
           return true;
+        }
+        
+        // For ALL non-own events: NEVER show other entitlement bookings - admin-only visibility
+        // This includes direct reports - managers cannot see other entitlement bookings
+        if (event._isOtherEntitlement) {
+          return false;
         }
         
         // Always show direct reports' leave (all types including sickness and excluded categories)

@@ -63,6 +63,8 @@ const SICK_LEAVE_REASONS = [
 interface AddLeaveRequestDialogProps {
   employeeId: string;
   isAdminOrManager: boolean;
+  /** Whether the current user is an admin (ADMIN or SUPER_ADMIN) */
+  isAdmin?: boolean;
   /** Whether the current user is booking leave for themselves */
   isBookingForSelf?: boolean;
   /** Optional override to control whether sick leave booking is enabled in the UI */
@@ -87,9 +89,17 @@ type EventCategory = {
   iconKey?: string | null;
 };
 
+type OtherEntitlement = {
+  id: string;
+  name: string;
+  balance: number;
+  unit: string;
+};
+
 export default function AddLeaveRequestDialog({
   employeeId,
   isAdminOrManager,
+  isAdmin = false,
   isBookingForSelf = true,
   canBookSickLeaveOverride,
   open,
@@ -110,7 +120,9 @@ export default function AddLeaveRequestDialog({
   const handleSetOpen = isControlled ? setOpen : setIsOpen;
 
   const [categories, setCategories] = useState<EventCategory[]>([]);
+  const [otherEntitlements, setOtherEntitlements] = useState<OtherEntitlement[]>([]);
   const [type, setType] = useState("");
+  const [selectedOtherEntitlement, setSelectedOtherEntitlement] = useState<string>("");
   const [subcategory, setSubcategory] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -159,6 +171,25 @@ export default function AddLeaveRequestDialog({
     }
   };
 
+  const fetchOtherEntitlements = async () => {
+    // Only fetch for admins booking for someone else
+    if (!isAdmin || isBookingForSelf) return;
+    
+    try {
+      const res = await fetch(`/api/employees/${employeeId}/other-entitlements`);
+      if (res.ok) {
+        const data = await res.json();
+        // Filter to only show entitlements with positive balance
+        const entitlements = (data.entitlements || []).filter(
+          (e: OtherEntitlement) => Number(e.balance) > 0
+        );
+        setOtherEntitlements(entitlements);
+      }
+    } catch (error) {
+      console.error("Error fetching other entitlements:", error);
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -166,12 +197,13 @@ export default function AddLeaveRequestDialog({
   useEffect(() => {
     if (modalOpen) {
       fetchCategories();
+      fetchOtherEntitlements();
       // Fetch sick leave data if not provided
       if (!sickLeaveData) {
         fetchSickLeaveData();
       }
     }
-  }, [modalOpen, sickLeaveData]);
+  }, [modalOpen, sickLeaveData, isAdmin, isBookingForSelf, employeeId]);
 
   // Set initial date when provided
   useEffect(() => {
@@ -239,8 +271,16 @@ export default function AddLeaveRequestDialog({
   }, [startDate, endDate, employeeId]);
 
   const handleSubmit = async (bypassWarnings = false) => {
-    // Validate based on sick leave toggle
-    if (isSickLeave) {
+    // Check if booking against other entitlement
+    const isOtherEntitlementBooking = Boolean(selectedOtherEntitlement);
+    
+    // Validate based on booking type
+    if (isOtherEntitlementBooking) {
+      if (!startDate || !endDate) {
+        toast.error("Please select start and end dates.");
+        return;
+      }
+    } else if (isSickLeave) {
       if (!startDate || !endDate) {
         toast.error("Please select start and end dates.");
         return;
@@ -255,7 +295,7 @@ export default function AddLeaveRequestDialog({
         toast.error("You are not yet eligible for sick leave.");
         return;
       }
-    } else {
+    } else if (!isOtherEntitlementBooking) {
       if (!type || !startDate || !endDate) {
         toast.error("Please fill in all required fields.");
         return;
@@ -267,9 +307,12 @@ export default function AddLeaveRequestDialog({
       return;
     }
 
-    const selectedCategory = !isSickLeave ? categories.find((cat) => cat.id === type) : null;
+    const selectedCategory = !isSickLeave && !isOtherEntitlementBooking ? categories.find((cat) => cat.id === type) : null;
+    const selectedEntitlement = isOtherEntitlementBooking 
+      ? otherEntitlements.find((e) => e.id === selectedOtherEntitlement) 
+      : null;
 
-    if (!isSickLeave && !selectedCategory) {
+    if (!isSickLeave && !isOtherEntitlementBooking && !selectedCategory) {
       toast.error("Invalid leave type selected.");
       return;
     }
@@ -280,10 +323,12 @@ export default function AddLeaveRequestDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          // Other entitlement booking (admin-only)
+          ...(isOtherEntitlementBooking ? { otherEntitlementId: selectedOtherEntitlement } : {}),
           // First-class sick leave toggle
           isSick: isSickLeave,
-          // Only include eventCategoryId when not sick leave
-          ...(isSickLeave ? {} : { eventCategoryId: type }),
+          // Only include eventCategoryId when not sick leave and not other entitlement
+          ...(!isSickLeave && !isOtherEntitlementBooking ? { eventCategoryId: type } : {}),
           eventSubcategoryId: subcategory || null,
           startDate,
           endDate,
@@ -344,17 +389,22 @@ export default function AddLeaveRequestDialog({
 
       // Store success data and show animation
       setSuccessData({
-        leaveType: isSickLeave ? "Sick Leave" : (selectedCategory?.name ?? "Leave"),
+        leaveType: isOtherEntitlementBooking 
+          ? (selectedEntitlement?.name ?? "Custom Entitlement")
+          : isSickLeave 
+            ? "Sick Leave" 
+            : (selectedCategory?.name ?? "Leave"),
         startDate,
         endDate,
         totalDays,
-        isAutoApproved: isAdminOrManager,
+        isAutoApproved: isAdminOrManager || isOtherEntitlementBooking,
       });
       handleSetOpen(false);
       setShowSuccess(true);
       
       // Reset form
       setType("");
+      setSelectedOtherEntitlement("");
       setSubcategory("");
       setStartDate("");
       setEndDate("");
@@ -402,11 +452,13 @@ export default function AddLeaveRequestDialog({
       !effectiveSickLeaveData.isEligibleToday &&
       effectiveSickLeaveData.availableDays <= 0,
   );
-  const isFormIncomplete = isSickLeave
-    ? !startDate ||
-      !endDate ||
-      (configuredSickReasons.length > 0 ? !sickReasonId : !sickReason)
-    : !type || !startDate || !endDate;
+  const isFormIncomplete = selectedOtherEntitlement
+    ? !startDate || !endDate
+    : isSickLeave
+      ? !startDate ||
+        !endDate ||
+        (configuredSickReasons.length > 0 ? !sickReasonId : !sickReason)
+      : !type || !startDate || !endDate;
 
   return (
     <TooltipProvider>
@@ -531,7 +583,7 @@ export default function AddLeaveRequestDialog({
 
                 {/* Leave Type Selection - Only show when NOT sick leave or when canBookSickLeave is false */}
                 <AnimatePresence>
-                  {!isSickLeave && (
+                  {!isSickLeave && !selectedOtherEntitlement && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
@@ -541,7 +593,7 @@ export default function AddLeaveRequestDialog({
                       <Label className="text-sm font-medium text-foreground/80">
                         Leave Type <span className="text-primary">*</span>
                       </Label>
-                      <Select value={type} onValueChange={setType}>
+                      <Select value={type} onValueChange={(val) => { setType(val); setSelectedOtherEntitlement(""); }}>
                         <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all">
                           <SelectValue placeholder="Select Leave Type" />
                         </SelectTrigger>
@@ -559,6 +611,62 @@ export default function AddLeaveRequestDialog({
                           })}
                         </SelectContent>
                       </Select>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Other Entitlements Section - Admin only, booking for others */}
+                <AnimatePresence>
+                  {isAdmin && !isBookingForSelf && otherEntitlements.length > 0 && !isSickLeave && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-violet-500/5 border border-purple-500/20"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-xl bg-purple-500/20">
+                          <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-semibold text-foreground">Custom Entitlements</Label>
+                          <p className="text-xs text-muted-foreground">Book against employee-specific balances (admin only)</p>
+                        </div>
+                      </div>
+                      
+                      <Select 
+                        value={selectedOtherEntitlement} 
+                        onValueChange={(val) => { 
+                          setSelectedOtherEntitlement(val); 
+                          if (val) setType(""); // Clear regular type when selecting other entitlement
+                        }}
+                      >
+                        <SelectTrigger className="h-11 rounded-xl border-purple-500/30 bg-white/50 dark:bg-white/5 focus:border-purple-500 focus:ring-purple-500/20 transition-all">
+                          <SelectValue placeholder="Select custom entitlement (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">
+                            <span className="text-muted-foreground">None - use regular leave type</span>
+                          </SelectItem>
+                          {otherEntitlements.map((entitlement) => (
+                            <SelectItem key={entitlement.id} value={entitlement.id}>
+                              <div className="flex items-center justify-between gap-4 w-full">
+                                <span>{entitlement.name}</span>
+                                <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                                  {entitlement.balance} {entitlement.unit}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      {selectedOtherEntitlement && (
+                        <p className="text-xs text-purple-600 dark:text-purple-400 mt-2 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          This booking will auto-approve and deduct from the custom balance
+                        </p>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>

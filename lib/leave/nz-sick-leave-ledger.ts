@@ -458,8 +458,9 @@ export async function recordSickLeaveUsage(
   }
   
   return prisma.$transaction(async (tx) => {
-    // First, ensure any pending grants are applied
-    await applySickLeaveGrants(tx as unknown as PrismaClient, employeeId, new Date(), actorId);
+    // NOTE: applySickLeaveGrants should be called BEFORE this function, not inside
+    // because it starts its own transaction and can't be nested.
+    // The caller is responsible for ensuring grants are applied first.
     
     // Row-level lock
     const employees = await tx.$queryRaw<EmployeeWithLeaveFields[]>`

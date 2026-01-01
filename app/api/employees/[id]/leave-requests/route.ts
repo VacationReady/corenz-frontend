@@ -46,6 +46,8 @@ const leaveRequestCreateSchema = z.object({
     .trim()
     .min(1, "EventCategoryId is required")
     .optional(),
+  // Other entitlement ID for custom employee-specific entitlements (admin-only)
+  otherEntitlementId: z.string().trim().min(1).optional(),
   startDate: z
     .string({ required_error: "startDate is required" })
     .trim()
@@ -215,7 +217,10 @@ export async function GET(
             id: true,
             startDate: true,
             endDate: true,
+            leaveType: true,
+            otherEntitlementId: true,
             EventCategory: { select: { id: true, name: true, iconKey: true } },
+            OtherEntitlement: { select: { id: true, name: true } },
             approvalStatus: true,
             reason: true,
           }
@@ -225,7 +230,9 @@ export async function GET(
             endDate: true,
             dayType: true,
             leaveType: true,
+            otherEntitlementId: true,
             EventCategory: { select: { id: true, name: true, iconKey: true } },
+            OtherEntitlement: { select: { id: true, name: true } },
             approvalStatus: true,
             reason: true,
             sickReason: true,
@@ -235,7 +242,15 @@ export async function GET(
     });
 
     if (calendarMode) {
-      return NextResponse.json(leaves);
+      // For calendar mode, include other entitlement name in the response
+      const calendarLeaves = leaves.map((leave) => ({
+        ...leave,
+        categoryName: leave.leaveType === "OTHER_ENTITLEMENT" && leave.OtherEntitlement?.name
+          ? leave.OtherEntitlement.name
+          : leave.EventCategory?.name,
+        isOtherEntitlement: leave.leaveType === "OTHER_ENTITLEMENT" || Boolean(leave.otherEntitlementId),
+      }));
+      return NextResponse.json(calendarLeaves);
     }
 
     // Transform response to include isSick flag based on leaveType
@@ -244,6 +259,7 @@ export async function GET(
     const transformedLeaves = leaves.map((leave) => {
       const isSick = leave.leaveType === "SICK" || 
         (leave.EventCategory?.name?.toLowerCase().includes("sick") ?? false);
+      const isOtherEntitlement = leave.leaveType === "OTHER_ENTITLEMENT" || Boolean(leave.otherEntitlementId);
 
       const resolvedSickReason =
         (leave.sickReason ?? null) ||
@@ -252,8 +268,14 @@ export async function GET(
       return {
         ...leave,
         isSick,
+        isOtherEntitlement,
+        otherEntitlementName: leave.OtherEntitlement?.name ?? null,
         // Ensure leaveType is set for UI consumption
         leaveType: leave.leaveType || (isSick ? "SICK" : leave.EventCategory?.name || "LEAVE"),
+        // Use other entitlement name as category name if applicable
+        categoryName: isOtherEntitlement && leave.OtherEntitlement?.name
+          ? leave.OtherEntitlement.name
+          : leave.EventCategory?.name,
         sickReason: resolvedSickReason,
         sickReasonId: ((leave as any).EventSubcategory?.id ?? null),
       };
@@ -305,12 +327,13 @@ export async function POST(
 
     const userId = session.user.id;
     const body = leaveRequestCreateSchema.parse(await req.json());
-    const { startDate, endDate, reason, sickReasonId, sickReason, paidStatus, dayType, isSick, bypassWarnings } = body;
+    const { startDate, endDate, reason, sickReasonId, sickReason, paidStatus, dayType, isSick, bypassWarnings, otherEntitlementId } = body;
     
     // DEBUG: Log incoming request details for sick leave troubleshooting
     console.log("🔍 [LEAVE_REQUEST_DEBUG] Incoming request:", {
       employeeId,
       isSick,
+      otherEntitlementId,
       startDate,
       endDate,
       sessionUserRole: session.user.role,
@@ -319,6 +342,150 @@ export async function POST(
       sickReason,
       paidStatus,
     });
+
+  // ============================================================================
+  // OTHER ENTITLEMENT BOOKING (Admin-only, no self-service)
+  // ============================================================================
+  if (otherEntitlementId) {
+    // Only admins can book against other entitlements
+    const isAdmin = session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
+    if (!isAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Only administrators can book against custom entitlements." },
+        { status: 403 },
+      );
+    }
+
+    // Verify the other entitlement exists and belongs to this employee
+    const otherEntitlement = await prisma.employeeOtherEntitlement.findFirst({
+      where: {
+        id: otherEntitlementId,
+        employeeId,
+        companyId: session.user.companyId,
+      },
+    });
+
+    if (!otherEntitlement) {
+      return NextResponse.json(
+        { success: false, error: "Custom entitlement not found." },
+        { status: 404 },
+      );
+    }
+
+    // Parse dates
+    const parseLocalDate = (dateStr: string): Date => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day, 0, 0, 0, 0);
+    };
+    const startDateObj = parseLocalDate(startDate);
+    const endDateObj = parseLocalDate(endDate);
+
+    // Calculate deduction based on working days
+    const totalDays: number[] = [];
+    let currentDate = new Date(startDateObj);
+    while (currentDate <= endDateObj) {
+      const deduction = await calculateLeaveDeduction(employeeId, currentDate);
+      totalDays.push(deduction);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
+
+    // Check balance (convert to number for comparison)
+    const currentBalance = Number(otherEntitlement.balance);
+    if (currentBalance < totalDeduction) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Insufficient balance. Available: ${currentBalance} ${otherEntitlement.unit}, Required: ${totalDeduction} ${otherEntitlement.unit}` 
+        },
+        { status: 400 },
+      );
+    }
+
+    // Find a placeholder category for "Other" leave or use the first available
+    let placeholderCategoryId = body.eventCategoryId || body.EventCategoryId;
+    if (!placeholderCategoryId) {
+      const otherCategory = await prisma.eventCategory.findFirst({
+        where: {
+          companyId: session.user.companyId,
+          OR: [
+            { name: { contains: "other", mode: "insensitive" } },
+            { name: { contains: "annual", mode: "insensitive" } },
+          ],
+        },
+        select: { id: true },
+        orderBy: { name: "asc" },
+      });
+      
+      if (!otherCategory) {
+        // Fallback to any active category
+        const anyCategory = await prisma.eventCategory.findFirst({
+          where: { companyId: session.user.companyId, isActive: true },
+          select: { id: true },
+        });
+        placeholderCategoryId = anyCategory?.id;
+      } else {
+        placeholderCategoryId = otherCategory.id;
+      }
+    }
+
+    if (!placeholderCategoryId) {
+      return NextResponse.json(
+        { success: false, error: "No event category available. Please contact your administrator." },
+        { status: 400 },
+      );
+    }
+
+    // Create leave request and deduct balance in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create the leave request (auto-approved, no workflow)
+      const newLeaveRequest = await (tx.leaveRequest as any).create({
+        data: {
+          id: crypto.randomUUID(),
+          Employee: { connect: { id: employeeId } },
+          User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
+          EventCategory: { connect: { id: placeholderCategoryId } },
+          Company: { connect: { id: session.user.companyId } },
+          OtherEntitlement: { connect: { id: otherEntitlementId } },
+          startDate: startDateObj,
+          endDate: endDateObj,
+          dayType: dayType ?? "FULL_DAY",
+          reason: reason ?? `${otherEntitlement.name} booking`,
+          leaveType: "OTHER_ENTITLEMENT",
+          approvalStatus: "APPROVED",
+          User_LeaveRequest_approvedByIdToUser: { connect: { id: session.user.id } },
+          updatedAt: new Date(),
+        },
+      });
+
+      // Deduct from the other entitlement balance
+      await tx.employeeOtherEntitlement.update({
+        where: { id: otherEntitlementId },
+        data: {
+          balance: { decrement: totalDeduction },
+        },
+      });
+
+      return newLeaveRequest;
+    });
+
+    console.log("✅ [OTHER_ENTITLEMENT_DEBUG] Leave request created:", {
+      id: result.id,
+      otherEntitlementId,
+      entitlementName: otherEntitlement.name,
+      deduction: totalDeduction,
+      previousBalance: currentBalance,
+      newBalance: currentBalance - totalDeduction,
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      data: result,
+      isOtherEntitlement: true,
+      entitlementName: otherEntitlement.name,
+      deduction: totalDeduction,
+    });
+  }
   
   // First-class sick leave: isSick === true means this is sick leave
   // When sick, eventCategoryId is ignored - we use a placeholder or the company's sick leave category

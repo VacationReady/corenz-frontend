@@ -569,17 +569,18 @@ model Employee {
 }
 
 model EmployeeOtherEntitlement {
-  id         String   @id @default(cuid())
-  employeeId String
-  companyId  String
-  name       String // e.g., "Time in Lieu", "Bereavement Days", "Study Leave"
-  balance    Decimal  @db.Decimal(8, 2) // Current balance (days or hours)
-  unit       String   @default("days") // "days" or "hours"
-  notes      String? // Optional notes about this entitlement
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  Employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  Company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id            String         @id @default(cuid())
+  employeeId    String
+  companyId     String
+  name          String // e.g., "Time in Lieu", "Bereavement Days", "Study Leave"
+  balance       Decimal        @db.Decimal(8, 2) // Current balance (days or hours)
+  unit          String         @default("days") // "days" or "hours"
+  notes         String? // Optional notes about this entitlement
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  Employee      Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  LeaveRequests LeaveRequest[]
 
   @@unique([employeeId, name])
   @@index([companyId, employeeId])
@@ -1237,8 +1238,10 @@ model LeaveRequest {
   eventCategoryId                      String
   requesterId                          String
   companyId                            String
-  /// First-class leave type indicator. "SICK" for sick leave, null for category-based leave.
+  /// First-class leave type indicator. "SICK" for sick leave, "OTHER_ENTITLEMENT" for custom entitlements, null for category-based leave.
   leaveType                            String?
+  /// Optional link to EmployeeOtherEntitlement for custom entitlement bookings (admin-only, no self-service)
+  otherEntitlementId                   String?
   LeaveApprovalStage                   LeaveApprovalStage[]
   User_LeaveRequest_approvedByIdToUser User?                @relation("LeaveRequest_approvedByIdToUser", fields: [approvedById], references: [id])
   Company                              Company              @relation(fields: [companyId], references: [id])
@@ -1246,6 +1249,9 @@ model LeaveRequest {
   EventCategory                        EventCategory        @relation(fields: [eventCategoryId], references: [id])
   User_LeaveRequest_requesterIdToUser  User                 @relation("LeaveRequest_requesterIdToUser", fields: [requesterId], references: [id])
   EventSubcategory                     EventSubcategory?    @relation(fields: [sickReasonId], references: [id])
+  OtherEntitlement                     EmployeeOtherEntitlement? @relation(fields: [otherEntitlementId], references: [id], onDelete: SetNull)
+
+  @@index([otherEntitlementId])
 }
 
 // ============================================

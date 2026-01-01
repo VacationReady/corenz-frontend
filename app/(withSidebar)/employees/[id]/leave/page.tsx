@@ -1127,6 +1127,7 @@ function LeavePageContent() {
       <AddLeaveRequestDialog
         employeeId={employeeId}
         isAdminOrManager={Boolean(isPrivileged)}
+        isAdmin={isAdminUser}
         isBookingForSelf={isBookingForSelf}
         canBookSickLeaveOverride={
           isBookingForSelf &&

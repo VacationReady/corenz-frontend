@@ -616,22 +616,35 @@ export async function POST(
           // Record sick leave usage via ledger system
           if (totalDeductionDays > 0) {
             try {
+              const hoursToDeduct = daysToHours(totalDeductionDays);
+              console.log(`🔍 [SICK_LEAVE_DEBUG] Recording usage: ${totalDeductionDays} days = ${hoursToDeduct} hours`);
+              
               // Apply any pending grants first
               await applySickLeaveGrants(prisma as any, employeeId, new Date(), session.user.id);
               // Record the usage
               await recordSickLeaveUsage(
                 prisma as any,
                 employeeId,
-                daysToHours(totalDeductionDays),
+                hoursToDeduct,
                 newLeaveRequest.id,
                 session.user.id
               );
-              console.log(`✅ Sick leave usage recorded via ledger: ${totalDeductionDays} days for request ${newLeaveRequest.id}`);
+              console.log(`✅ Sick leave usage recorded via ledger: ${totalDeductionDays} days (${hoursToDeduct} hours) for request ${newLeaveRequest.id}`);
             } catch (sickLeaveError: any) {
-              console.error("❌ Failed to record sick leave usage:", sickLeaveError);
+              console.error("❌ Failed to record sick leave usage:", sickLeaveError?.message || sickLeaveError);
+              // Log more details for debugging
+              console.error("❌ Sick leave error details:", {
+                employeeId,
+                totalDeductionDays,
+                hoursToDeduct: daysToHours(totalDeductionDays),
+                leaveRequestId: newLeaveRequest.id,
+                errorStack: sickLeaveError?.stack,
+              });
               // Don't fail the request - the leave is booked, balance tracking can be reconciled
               // This matches the behavior in advanceLeaveApproval.ts
             }
+          } else {
+            console.log(`⚠️ [SICK_LEAVE_DEBUG] No deduction needed: totalDeductionDays = ${totalDeductionDays}`);
           }
 
           return NextResponse.json({ success: true, data: newLeaveRequest });

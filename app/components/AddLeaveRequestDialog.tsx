@@ -470,20 +470,19 @@ export default function AddLeaveRequestDialog({
         )}
 
         {/* Success Animation */}
-        {successData && (
-          <LeaveRequestSuccessAnimation
-            isOpen={showSuccess}
-            onClose={() => {
-              setShowSuccess(false);
-              setSuccessData(null);
-            }}
-            leaveType={successData.leaveType}
-            startDate={successData.startDate}
-            endDate={successData.endDate}
-            totalDays={successData.totalDays}
-            isAutoApproved={successData.isAutoApproved}
-          />
-        )}
+        <LeaveRequestSuccessAnimation
+          isOpen={showSuccess}
+          onClose={() => {
+            setShowSuccess(false);
+            // Delay clearing successData to allow exit animation to complete
+            setTimeout(() => setSuccessData(null), 300);
+          }}
+          leaveType={successData?.leaveType ?? ""}
+          startDate={successData?.startDate ?? ""}
+          endDate={successData?.endDate ?? ""}
+          totalDays={successData?.totalDays ?? 0}
+          isAutoApproved={successData?.isAutoApproved ?? false}
+        />
 
         {/* Rule Override Confirmation Dialog */}
         <LeaveRuleOverrideDialog

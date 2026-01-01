@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plane, Calendar, Sun, Palmtree, Clock, ArrowRight } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -24,6 +24,13 @@ export default function LeaveRequestSuccessAnimation({
   totalDays,
   isAutoApproved = false,
 }: LeaveRequestSuccessAnimationProps) {
+  // Use ref to store onClose to avoid re-triggering effects when callback reference changes
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  
+  // Track if confetti has been fired for this open cycle
+  const confettiFiredRef = useRef(false);
+
   const fireConfetti = useCallback(() => {
     // Tropical/vacation themed confetti
     const colors = ["#06b6d4", "#0ea5e9", "#f59e0b", "#fbbf24", "#84cc16", "#22c55e"];
@@ -63,16 +70,22 @@ export default function LeaveRequestSuccessAnimation({
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !confettiFiredRef.current) {
+      confettiFiredRef.current = true;
       fireConfetti();
       
       // Auto dismiss after 5 seconds
-      const timer = setTimeout(onClose, 5000);
+      const timer = setTimeout(() => {
+        onCloseRef.current();
+      }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, fireConfetti, onClose]);
-
-  if (!isOpen) return null;
+    
+    // Reset confetti flag when closed
+    if (!isOpen) {
+      confettiFiredRef.current = false;
+    }
+  }, [isOpen, fireConfetti]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-NZ", {
@@ -91,63 +104,45 @@ export default function LeaveRequestSuccessAnimation({
 
   const LeaveIcon = getLeaveIcon();
 
+  // Use stable callback for click handler
+  const handleClose = useCallback(() => {
+    onCloseRef.current();
+  }, []);
+
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center"
-        onClick={onClose}
-      >
-        {/* Backdrop with gradient */}
+    <AnimatePresence mode="wait">
+      {isOpen && (
         <motion.div
+          key="leave-success-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="absolute inset-0 bg-gradient-to-br from-cyan-900/40 via-sky-900/50 to-teal-900/40 backdrop-blur-md"
-        />
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center"
+          onClick={handleClose}
+        >
+          {/* Backdrop with gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/40 via-sky-900/50 to-teal-900/40 backdrop-blur-md" />
 
-        {/* Floating decorative elements */}
-        <motion.div
-          animate={{
-            y: [0, -20, 0],
-            rotate: [0, 10, 0],
-          }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute top-20 left-[15%] text-amber-400/30"
-        >
-          <Sun className="w-16 h-16" />
-        </motion.div>
-        
-        <motion.div
-          animate={{
-            y: [0, 15, 0],
-            rotate: [0, -5, 0],
-          }}
-          transition={{
-            duration: 5,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 0.5,
-          }}
-          className="absolute bottom-32 right-[10%] text-emerald-400/25"
-        >
-          <Palmtree className="w-20 h-20" />
-        </motion.div>
+          {/* Floating decorative elements - using CSS animations for better performance */}
+          <div className="absolute top-20 left-[15%] text-amber-400/30 animate-float-slow">
+            <Sun className="w-16 h-16" />
+          </div>
+          
+          <div className="absolute bottom-32 right-[10%] text-emerald-400/25 animate-float-slower">
+            <Palmtree className="w-20 h-20" />
+          </div>
 
-        {/* Main card */}
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0, y: 40 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 20 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="relative w-full max-w-md mx-4 overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
+          {/* Main card */}
+          <motion.div
+            key="leave-success-card"
+            initial={{ scale: 0.8, opacity: 0, y: 40 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="relative w-full max-w-md mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
           {/* Card background with glassmorphism */}
           <div className="relative rounded-3xl bg-white/95 dark:bg-slate-900/95 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] backdrop-blur-xl border border-white/20 dark:border-white/10">
             {/* Decorative gradient bar */}
@@ -259,7 +254,7 @@ export default function LeaveRequestSuccessAnimation({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                onClick={onClose}
+                onClick={handleClose}
                 className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 text-white font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-xl hover:shadow-cyan-500/30 hover:from-cyan-600 hover:to-teal-600 transition-all duration-200"
               >
                 Done
@@ -268,6 +263,7 @@ export default function LeaveRequestSuccessAnimation({
           </div>
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plane, Calendar, Sun, Palmtree, Clock, ArrowRight } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -30,6 +31,14 @@ export default function LeaveRequestSuccessAnimation({
   
   // Track if confetti has been fired for this open cycle
   const confettiFiredRef = useRef(false);
+  
+  // Track if component is mounted (for portal)
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const fireConfetti = useCallback(() => {
     // Tropical/vacation themed confetti
@@ -109,7 +118,10 @@ export default function LeaveRequestSuccessAnimation({
     onCloseRef.current();
   }, []);
 
-  return (
+  // Don't render on server or before mount
+  if (!isMounted) return null;
+
+  const animationContent = (
     <AnimatePresence mode="wait">
       {isOpen && (
         <motion.div
@@ -118,8 +130,9 @@ export default function LeaveRequestSuccessAnimation({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center"
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
           onClick={handleClose}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         >
           {/* Backdrop with gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/40 via-sky-900/50 to-teal-900/40 backdrop-blur-md" />
@@ -266,6 +279,9 @@ export default function LeaveRequestSuccessAnimation({
       )}
     </AnimatePresence>
   );
+
+  // Render via portal to document.body to avoid stacking context issues
+  return createPortal(animationContent, document.body);
 }
 
 

@@ -37,7 +37,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
-import { LeaveRequestSuccessAnimation } from "@/components/animations";
+import { useLeaveSuccess } from "@/components/animations";
 import LeaveRuleOverrideDialog, { LeaveValidationWarning } from "@/components/leave/LeaveRuleOverrideDialog";
 
 interface SickLeaveData {
@@ -141,15 +141,8 @@ export default function AddLeaveRequestDialog({
   // Use provided sickLeaveData or fetch it
   const effectiveSickLeaveData = sickLeaveData ?? fetchedSickLeaveData;
   
-  // Success animation state
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [successData, setSuccessData] = useState<{
-    leaveType: string;
-    startDate: string;
-    endDate: string;
-    totalDays: number;
-    isAutoApproved: boolean;
-  } | null>(null);
+  // Use global success animation context
+  const { showSuccess } = useLeaveSuccess();
 
   // Rule override dialog state
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
@@ -387,8 +380,8 @@ export default function AddLeaveRequestDialog({
         return;
       }
 
-      // Store success data and show animation
-      setSuccessData({
+      // Show success animation via global context
+      showSuccess({
         leaveType: isOtherEntitlementBooking 
           ? (selectedEntitlement?.name ?? "Custom Entitlement")
           : isSickLeave 
@@ -400,7 +393,6 @@ export default function AddLeaveRequestDialog({
         isAutoApproved: isAdminOrManager || isOtherEntitlementBooking,
       });
       handleSetOpen(false);
-      setShowSuccess(true);
       
       // Reset form
       setType("");
@@ -468,21 +460,6 @@ export default function AddLeaveRequestDialog({
             Book Leave
           </Button>
         )}
-
-        {/* Success Animation */}
-        <LeaveRequestSuccessAnimation
-          isOpen={showSuccess}
-          onClose={() => {
-            setShowSuccess(false);
-            // Delay clearing successData to allow exit animation to complete
-            setTimeout(() => setSuccessData(null), 300);
-          }}
-          leaveType={successData?.leaveType ?? ""}
-          startDate={successData?.startDate ?? ""}
-          endDate={successData?.endDate ?? ""}
-          totalDays={successData?.totalDays ?? 0}
-          isAutoApproved={successData?.isAutoApproved ?? false}
-        />
 
         {/* Rule Override Confirmation Dialog */}
         <LeaveRuleOverrideDialog

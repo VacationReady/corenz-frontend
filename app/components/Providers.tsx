@@ -8,6 +8,7 @@ import { TenantThemeProvider } from "../lib/tenant-theme";
 import { TenantThemePalette } from "../lib/tenant-theme-config";
 import { CommandPaletteMount } from "./CommandPaletteMount";
 import { TenantBrandingProvider } from "./TenantBrandingProvider";
+import { LeaveSuccessProvider } from "./animations";
 import { Toaster } from "sonner";
 
 interface ProvidersProps {
@@ -30,7 +31,9 @@ export default function Providers({
           initialPalette={initialPalette}
         >
           <TenantBrandingProvider>
-            {children}
+            <LeaveSuccessProvider>
+              {children}
+            </LeaveSuccessProvider>
             <Toaster
               position="bottom-right"
               richColors

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { toast } from "sonner";
-import { format, differenceInDays, isPast, isFuture } from "date-fns";
+import { format, differenceInDays, isPast } from "date-fns";
 import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
@@ -35,8 +35,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  Filter,
-  SlidersHorizontal,
   Sparkles,
   FileWarning,
   LayoutGrid,
@@ -188,6 +186,9 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
   const [isReasonOpen, setIsReasonOpen] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+  
+  // Ref to prevent double submissions
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -314,8 +315,11 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
     setIsReasonOpen(true);
   };
 
-  const handleReasonSubmit = async (reasons: Record<string, string>) => {
-    if (!pendingFormData) return;
+  const handleReasonSubmit = useCallback(async (reasons: Record<string, string>) => {
+    // Guard against double submissions
+    if (isSubmittingRef.current || !pendingFormData) return;
+    isSubmittingRef.current = true;
+    
     try {
       setSubmitting(true);
       pendingFormData.append("reasons", JSON.stringify(reasons));
@@ -351,8 +355,9 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
       setIsReasonOpen(false);
       setPendingChanges([]);
       setPendingFormData(null);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [pendingFormData, editMode, selectedCheck?.id]);
 
   if (loading) {
     return (

@@ -56,7 +56,11 @@ export function DocumentAcknowledgmentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-[95vw] h-[95vh] p-0 gap-0 overflow-hidden flex flex-col bg-gray-50/50">
+      <DialogContent 
+        rawContent
+        className="max-w-6xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col bg-white rounded-2xl"
+        containerClassName="!pt-[2.5vh] items-center"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-3 bg-white border-b shrink-0">
           <div className="flex items-center gap-3">
@@ -92,7 +96,6 @@ export function DocumentAcknowledgmentModal({
               src={`${doc.url}#toolbar=0&navpanes=0&scrollbar=1`}
               className="w-full h-full border-0"
               title={doc.name}
-              style={{ minHeight: '100%' }}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">

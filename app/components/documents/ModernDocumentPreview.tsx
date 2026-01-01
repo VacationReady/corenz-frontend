@@ -36,6 +36,7 @@ interface ModernDocumentPreviewProps {
   onSign: (signature: SignatureCaptureValue) => void;
   signSubmitting: boolean;
   companyName?: string; // Multi-tenancy support
+  isViewingOwnDocuments?: boolean; // Whether the viewer is viewing their own documents
 }
 
 export default function ModernDocumentPreview({
@@ -50,6 +51,7 @@ export default function ModernDocumentPreview({
   onSign,
   signSubmitting,
   companyName,
+  isViewingOwnDocuments = true, // Default to true for backward compatibility
 }: ModernDocumentPreviewProps) {
   const [signatureValue, setSignatureValue] = useState<SignatureCaptureValue | null>(null);
 
@@ -138,10 +140,15 @@ export default function ModernDocumentPreview({
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         Acknowledged
                       </>
-                    ) : (
+                    ) : isViewingOwnDocuments ? (
                       <>
                         <Clock className="w-3.5 h-3.5 animate-pulse" />
                         Acknowledgment Required
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-3.5 h-3.5" />
+                        Pending Acknowledgment
                       </>
                     )}
                   </motion.div>
@@ -162,10 +169,15 @@ export default function ModernDocumentPreview({
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         Signed
                       </>
-                    ) : (
+                    ) : isViewingOwnDocuments ? (
                       <>
                         <Clock className="w-3.5 h-3.5 animate-pulse" />
                         Signature Required
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-3.5 h-3.5" />
+                        Pending Signature
                       </>
                     )}
                   </motion.div>
@@ -213,7 +225,7 @@ export default function ModernDocumentPreview({
                 </motion.div>
 
                 {/* Acknowledgment Section */}
-                {doc.requiresAck && !acknowledged && (
+                {doc.requiresAck && !acknowledged && isViewingOwnDocuments && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -251,6 +263,25 @@ export default function ModernDocumentPreview({
                   </motion.div>
                 )}
 
+                {/* Admin/Manager view - show pending status without action */}
+                {doc.requiresAck && !acknowledged && !isViewingOwnDocuments && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200"
+                  >
+                    <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-900">
+                        Awaiting employee acknowledgment
+                      </p>
+                      <p className="text-amber-700 text-xs mt-0.5">
+                        The employee has not yet acknowledged this document
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+
                 {doc.requiresAck && acknowledged && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -270,7 +301,7 @@ export default function ModernDocumentPreview({
                 )}
 
                 {/* Signature Section */}
-                {doc.requiresSignature && eligible && !signed && (
+                {doc.requiresSignature && eligible && !signed && isViewingOwnDocuments && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -295,6 +326,25 @@ export default function ModernDocumentPreview({
                     >
                       {signSubmitting ? "Submitting Signature..." : "Sign Document"}
                     </Button>
+                  </motion.div>
+                )}
+
+                {/* Admin/Manager view - show pending signature status without action */}
+                {doc.requiresSignature && !signed && !isViewingOwnDocuments && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-indigo-50 border border-indigo-200"
+                  >
+                    <Clock className="w-5 h-5 text-indigo-600 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-indigo-900">
+                        Awaiting employee signature
+                      </p>
+                      <p className="text-indigo-700 text-xs mt-0.5">
+                        The employee has not yet signed this document
+                      </p>
+                    </div>
                   </motion.div>
                 )}
 

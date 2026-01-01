@@ -10,11 +10,12 @@ import {
  * POST /api/documents/status
  * 
  * Batched endpoint to retrieve acknowledgement and signature status for multiple documents.
- * Accepts an array of document IDs and returns their status for the current user.
+ * Accepts an array of document IDs and returns their status.
  * 
  * Request body:
  * {
- *   documentIds: string[]
+ *   documentIds: string[],
+ *   employeeId?: string  // Optional: check status for a specific employee (for admin/manager viewing)
  * }
  * 
  * Response:
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Parse and validate request body
     const body = await req.json();
-    const { documentIds } = body;
+    const { documentIds, employeeId: targetEmployeeId } = body;
 
     if (!Array.isArray(documentIds)) {
       return NextResponse.json(
@@ -65,22 +66,42 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Get employee record for current user
-    const employee = await prisma.employee.findUnique({
+    const currentEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
       select: { id: true },
     });
 
-    if (!employee) {
+    if (!currentEmployee) {
       return NextResponse.json(
         { error: "Employee record not found" },
         { status: 404 }
       );
     }
 
+    // Determine which employee's status to check
+    // If targetEmployeeId is provided and different from current user, verify it belongs to same company
+    let checkEmployeeId = currentEmployee.id;
+    
+    if (targetEmployeeId && targetEmployeeId !== currentEmployee.id) {
+      // Verify the target employee belongs to the same company
+      const targetEmployee = await prisma.employee.findFirst({
+        where: {
+          id: targetEmployeeId,
+          companyId: session.user.companyId,
+        },
+        select: { id: true },
+      });
+      
+      if (targetEmployee) {
+        checkEmployeeId = targetEmployee.id;
+      }
+      // If target employee not found or not in same company, fall back to current user
+    }
+
     // 4. Check cache before database queries
     const cacheKey = generateDocumentStatusCacheKey(
       session.user.companyId,
-      employee.id,
+      checkEmployeeId,
       documentIds
     );
 
@@ -136,7 +157,7 @@ export async function POST(req: NextRequest) {
     const acknowledgements = await prisma.documentAcknowledgement.findMany({
       where: {
         documentId: { in: tenantDocumentIds },
-        employeeId: employee.id,
+        employeeId: checkEmployeeId,
       },
       select: {
         documentId: true,
@@ -151,7 +172,7 @@ export async function POST(req: NextRequest) {
     const signatures = await prisma.documentSignatureArtifact.findMany({
       where: {
         documentId: { in: tenantDocumentIds },
-        employeeId: employee.id,
+        employeeId: checkEmployeeId,
       },
       select: {
         documentId: true,

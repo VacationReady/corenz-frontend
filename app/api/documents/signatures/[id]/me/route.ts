@@ -14,15 +14,37 @@ export async function GET(
       return NextResponse.json({ signed: false, eligible: false });
     }
 
-    const employee = await prisma.employee.findFirst({
+    // Check for optional employeeId query param (for admin/manager viewing another employee's status)
+    const { searchParams } = new URL(req.url);
+    const targetEmployeeId = searchParams.get("employeeId");
+
+    const currentEmployee = await prisma.employee.findFirst({
       where: { userId: session.user.id, companyId: session.user.companyId },
       select: { id: true, departmentId: true, jobRoleId: true },
     });
-    if (!employee) return NextResponse.json({ signed: false, eligible: false });
+    if (!currentEmployee) return NextResponse.json({ signed: false, eligible: false });
+
+    // Determine which employee's signature status to check
+    let checkEmployee = currentEmployee;
+    
+    if (targetEmployeeId && targetEmployeeId !== currentEmployee.id) {
+      // Verify the target employee belongs to the same company
+      const targetEmployee = await prisma.employee.findFirst({
+        where: {
+          id: targetEmployeeId,
+          companyId: session.user.companyId,
+        },
+        select: { id: true, departmentId: true, jobRoleId: true },
+      });
+      
+      if (targetEmployee) {
+        checkEmployee = targetEmployee;
+      }
+    }
 
     const artifact = await prisma.documentSignatureArtifact.findUnique({
       where: {
-        documentId_employeeId: { documentId: id, employeeId: employee.id },
+        documentId_employeeId: { documentId: id, employeeId: checkEmployee.id },
       },
     });
     // Determine eligibility (mirror sign route logic)
@@ -41,7 +63,7 @@ export async function GET(
     let eligible = false;
     if (document?.requiresSignature) {
       if (document.employeeId) {
-        eligible = document.employeeId === employee.id;
+        eligible = document.employeeId === checkEmployee.id;
       } else {
         const explicitEmpIds = new Set(
           (document.SignatureEmployees || []).map((s) => s.employeeId),
@@ -49,14 +71,14 @@ export async function GET(
         const deptIds = new Set((document.SignatureDepartments || []).map((d) => d.departmentId));
         const roleIds = new Set((document.SignatureJobRoles || []).map((r) => r.jobRoleId));
         const hasAnyTarget = explicitEmpIds.size > 0 || deptIds.size > 0 || roleIds.size > 0;
-        if (explicitEmpIds.has(employee.id)) eligible = true;
-        if (employee.departmentId && deptIds.has(employee.departmentId)) eligible = true;
-        if (employee.jobRoleId && roleIds.has(employee.jobRoleId)) eligible = true;
+        if (explicitEmpIds.has(checkEmployee.id)) eligible = true;
+        if (checkEmployee.departmentId && deptIds.has(checkEmployee.departmentId)) eligible = true;
+        if (checkEmployee.jobRoleId && roleIds.has(checkEmployee.jobRoleId)) eligible = true;
         if (!hasAnyTarget) eligible = true;
       }
       if (!eligible) {
         const assignedField = await prisma.documentSignatureField.findFirst({
-          where: { documentId: id, assignedEmployeeId: employee.id },
+          where: { documentId: id, assignedEmployeeId: checkEmployee.id },
           select: { id: true },
         });
         if (assignedField) eligible = true;

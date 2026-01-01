@@ -410,6 +410,7 @@ function EmployeeDocumentsContent({
 
   const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN" | null>(null);
   const isAdminUser = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
+  const [isViewingOwnDocuments, setIsViewingOwnDocuments] = useState<boolean>(true);
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
 
@@ -455,6 +456,9 @@ function EmployeeDocumentsContent({
 
     const role = data?.viewer?.role || null;
     if (role) setUserRole(role);
+    if (data?.viewer?.isViewingOwnDocuments !== undefined) {
+      setIsViewingOwnDocuments(data.viewer.isViewingOwnDocuments);
+    }
     if (data?.company?.name) setCompanyName(data.company.name);
     if (data?.employee?.name) setEmployeeName(data.employee.name);
   }, [employeeId, tenantFetch]);
@@ -471,7 +475,10 @@ function EmployeeDocumentsContent({
         const res = await tenantFetch("/api/documents/status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ documentIds: ids }),
+          body: JSON.stringify({ 
+            documentIds: ids,
+            employeeId: employeeId, // Pass the employee ID to check their status
+          }),
         });
         if (!res.ok) return;
         const payload = await res.json();
@@ -482,7 +489,7 @@ function EmployeeDocumentsContent({
         // ignore
       }
     },
-    [tenantFetch],
+    [tenantFetch, employeeId],
   );
 
   useEffect(() => {
@@ -497,7 +504,7 @@ function EmployeeDocumentsContent({
         setAcknowledged(true);
         setAckDate(ackDateByDocumentId[docId]);
       } else if (status?.acknowledged) {
-        tenantFetch(`/api/documents/acknowledge/${docId}/me`)
+        tenantFetch(`/api/documents/acknowledge/${docId}/me?employeeId=${employeeId}`)
           .then((res) => res.json())
           .then((data) => {
             if (data?.acknowledged && data?.acknowledgedAt) {
@@ -533,7 +540,7 @@ function EmployeeDocumentsContent({
       } else if (docId in eligibleByDocumentId) {
         setEligible(!!eligibleByDocumentId[docId]);
       } else {
-        tenantFetch(`/api/documents/signatures/${docId}/me`)
+        tenantFetch(`/api/documents/signatures/${docId}/me?employeeId=${employeeId}`)
           .then((res) => res.json())
           .then((data) => {
             const elig = !!data?.eligible;
@@ -1012,6 +1019,7 @@ function EmployeeDocumentsContent({
                       <TableHead className="font-semibold">Name</TableHead>
                       <TableHead className="font-semibold">Category</TableHead>
                       <TableHead className="font-semibold">Access</TableHead>
+                      <TableHead className="font-semibold">Acknowledgment</TableHead>
                       <TableHead className="font-semibold">Signatures</TableHead>
                       <TableHead className="font-semibold">Date</TableHead>
                       <TableHead className="font-semibold">Size</TableHead>
@@ -1027,6 +1035,10 @@ function EmployeeDocumentsContent({
                       ].filter(Boolean);
 
                       const isSignedByEmployee = (doc as any).SignatureArtifacts?.some?.((a: any) => a.employeeId === params?.id) || signed;
+                      
+                      // Check acknowledgment status from the batched status data
+                      const docStatus = statusByDocumentId[doc.id];
+                      const isAcknowledgedByEmployee = docStatus?.acknowledged || (doc.ackCompletedCount && doc.ackCompletedCount > 0);
 
                       return (
                         <motion.tr
@@ -1054,6 +1066,17 @@ function EmployeeDocumentsContent({
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">{accessBadges}</div>
+                          </TableCell>
+                          <TableCell>
+                            {doc.requiresAck ? (
+                              isAcknowledgedByEmployee ? (
+                                <Badge className="bg-emerald-100 text-emerald-700 text-xs rounded-full">Acknowledged</Badge>
+                              ) : (
+                                <Badge className="bg-amber-100 text-amber-700 text-xs rounded-full">Pending</Badge>
+                              )
+                            ) : (
+                              <span className="text-slate-400 text-sm">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             {doc.requiresSignature ? (
@@ -1380,6 +1403,7 @@ function EmployeeDocumentsContent({
               onSign={handleSign}
               signSubmitting={signSubmitting}
               companyName={companyName}
+              isViewingOwnDocuments={isViewingOwnDocuments}
             />
           )}
 

@@ -848,7 +848,7 @@ export default function AddDocumentModal({
                 {/* Compliance Section - Compact */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span className="font-medium text-sm">Compliance Requirements</span>
                   </div>
                   <div className="space-y-2">

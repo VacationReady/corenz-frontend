@@ -219,7 +219,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       documents: withUrls,
-      viewer: { role: user.role },
+      viewer: { role: user.role, isViewingOwnDocuments },
       company: { name: company?.name || "" },
       employee: employeeId ? { id: employeeId, name: employeeName } : null,
     });
@@ -389,7 +389,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     documents: withUrls,
-    viewer: { role: user.role },
+    viewer: { role: user.role, isViewingOwnDocuments },
     company: { name: company?.name || "" },
     employee: employeeId ? { id: employeeId, name: employeeName } : null,
   });

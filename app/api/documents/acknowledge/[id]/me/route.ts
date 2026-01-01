@@ -13,19 +13,41 @@ export async function GET(
       return NextResponse.json({ acknowledged: false });
     }
 
+    // Check for optional employeeId query param (for admin/manager viewing another employee's status)
+    const { searchParams } = new URL(req.url);
+    const targetEmployeeId = searchParams.get("employeeId");
+
     // Find the employee record linked to the logged-in user
-    const employee = await prisma.employee.findUnique({
+    const currentEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
     });
 
-    if (!employee) {
+    if (!currentEmployee) {
       return NextResponse.json({ acknowledged: false });
+    }
+
+    // Determine which employee's acknowledgment to check
+    let checkEmployeeId = currentEmployee.id;
+    
+    if (targetEmployeeId && targetEmployeeId !== currentEmployee.id) {
+      // Verify the target employee belongs to the same company
+      const targetEmployee = await prisma.employee.findFirst({
+        where: {
+          id: targetEmployeeId,
+          companyId: currentEmployee.companyId,
+        },
+        select: { id: true },
+      });
+      
+      if (targetEmployee) {
+        checkEmployeeId = targetEmployee.id;
+      }
     }
 
     const document = await prisma.document.findFirst({
       where: {
         id,
-        companyId: employee.companyId,
+        companyId: currentEmployee.companyId,
       },
       select: { id: true },
     });
@@ -39,7 +61,7 @@ export async function GET(
       where: {
         documentId_employeeId: {
           documentId: id,
-          employeeId: employee.id,
+          employeeId: checkEmployeeId,
         },
       },
     });

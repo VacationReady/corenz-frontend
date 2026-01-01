@@ -17,6 +17,7 @@ export interface LeaveEventExtendedProps {
   sickReason?: string | null;
   paidStatus?: string | null;
   isSick?: boolean;
+  isOtherEntitlement?: boolean;
   categoryName?: string | null;
   categoryIconKey?: string | null;
   eventCategoryId?: string | null;
@@ -195,6 +196,9 @@ export function mapLeaveRequestToEvent(
     paidStatus?: string | null;
     leaveType?: string | null;
     isSick?: boolean;
+    isOtherEntitlement?: boolean;
+    categoryName?: string | null; // Pre-resolved category name (for other entitlements)
+    otherEntitlementName?: string | null;
     EventCategory?: { id: string; name: string; iconKey?: string | null } | null;
     eventCategory?: { id: string; name: string; iconKey?: string | null } | null;
     Employee?: {
@@ -215,7 +219,9 @@ export function mapLeaveRequestToEvent(
   } = {}
 ): EventInput {
   const category = leave.EventCategory ?? leave.eventCategory;
-  const categoryName = category?.name ?? "Leave";
+  // Use pre-resolved categoryName if available (for other entitlements), otherwise fall back to category name
+  const isOtherEntitlement = leave.isOtherEntitlement === true || leave.leaveType === "OTHER_ENTITLEMENT";
+  const categoryName = leave.categoryName ?? leave.otherEntitlementName ?? category?.name ?? "Leave";
   const categoryIconKey = category?.iconKey ?? null;
   const isSick = leave.isSick === true || leave.leaveType === "SICK" || categoryName.toLowerCase().includes("sick");
 
@@ -274,6 +280,7 @@ export function mapLeaveRequestToEvent(
       sickReason: leave.sickReason,
       paidStatus: leave.paidStatus,
       isSick,
+      isOtherEntitlement,
       categoryName,
       categoryIconKey,
       eventCategoryId: category?.id,

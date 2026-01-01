@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { CheckCircle, FileText, AlertCircle, X, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -56,9 +56,9 @@ export function DocumentAcknowledgmentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] p-0 gap-0 overflow-hidden flex flex-col bg-gray-50/50">
+      <DialogContent className="max-w-6xl w-[95vw] h-[95vh] p-0 gap-0 overflow-hidden flex flex-col bg-gray-50/50">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-b shrink-0">
+        <div className="flex items-center justify-between px-6 py-3 bg-white border-b shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
               <FileText className="w-5 h-5" />
@@ -85,13 +85,14 @@ export function DocumentAcknowledgmentModal({
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-hidden relative bg-gray-100">
+        {/* Content Area - Document Preview */}
+        <div className="flex-1 min-h-0 overflow-hidden relative bg-gray-100">
           {doc.url ? (
             <iframe
               src={`${doc.url}#toolbar=0&navpanes=0&scrollbar=1`}
-              className="w-full h-full"
+              className="w-full h-full border-0"
               title={doc.name}
+              style={{ minHeight: '100%' }}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -104,7 +105,7 @@ export function DocumentAcknowledgmentModal({
         </div>
 
         {/* Footer / Action Area */}
-        <div className="p-6 bg-white border-t shrink-0">
+        <div className="px-6 py-4 bg-white border-t shrink-0">
           <AnimatePresence mode="wait">
             {acknowledged ? (
               <motion.div
@@ -123,19 +124,19 @@ export function DocumentAcknowledgmentModal({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="max-w-2xl mx-auto space-y-6"
+                className="flex items-center justify-between gap-4"
               >
-                <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 border border-blue-100">
+                <div className="flex items-start gap-3 flex-1">
                   <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <div className="space-y-3">
-                    <p className="text-sm text-blue-900 font-medium">
+                  <div className="flex-1">
+                    <p className="text-sm text-blue-900 font-medium mb-1">
                       Acknowledgment Required
                     </p>
-                    <p className="text-sm text-blue-800 leading-relaxed">
-                      By acknowledging this document, you confirm that you have read, understood, and agree to the contents of <span className="font-semibold">{doc.name}</span>. This action is recorded in your employee file.
+                    <p className="text-sm text-blue-800 leading-relaxed mb-2">
+                      By acknowledging, you confirm you have read and agree to <span className="font-semibold">{doc.name}</span>.
                     </p>
                     
-                    <label className="flex items-center gap-3 cursor-pointer group">
+                    <label className="flex items-center gap-2 cursor-pointer group">
                       <div className="relative flex items-center">
                         <input
                           type="checkbox"
@@ -160,7 +161,7 @@ export function DocumentAcknowledgmentModal({
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   <Button variant="ghost" onClick={() => onOpenChange(false)}>
                     Cancel
                   </Button>
@@ -169,7 +170,7 @@ export function DocumentAcknowledgmentModal({
                     disabled={!hasRead || isSubmitting}
                     loading={isSubmitting}
                     className={`
-                      px-8 transition-all duration-300
+                      px-6 transition-all duration-300
                       ${hasRead 
                         ? 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl translate-y-0' 
                         : 'bg-gray-200 text-gray-400 shadow-none'

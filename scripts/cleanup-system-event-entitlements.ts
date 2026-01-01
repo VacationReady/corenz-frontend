@@ -1,18 +1,16 @@
 /**
- * Cleanup Script: Remove LeaveEntitlement records for system-defined event categories
- * that don't require balance tracking.
+ * Cleanup Script: Configure balance tracking for system-defined event categories
  * 
  * Background:
- * - System-defined event categories (Bereavement, Compassionate, Dentist Appointment, etc.)
- *   were seeded with LeaveEntitlement records for all employees
- * - These categories don't need balance tracking - they can be booked without limits
- * - Only Annual Leave and Sickness need balance tracking
- * - Other entitlements with balanceRequired=true go to the "Other Entitlements" card
+ * - Only Annual Leave and Sickness should show as balance cards on the leave page
+ * - Other system-defined categories (Bereavement, Compassionate, etc.) can be booked
+ *   without balance tracking
+ * - The UI doesn't allow toggling balanceRequired for system-defined categories
  * 
  * This script:
- * 1. Finds all system-defined event categories that are NOT Annual Leave or Sickness
- * 2. Deletes LeaveEntitlement records for those categories (where usedDays = 0)
- * 3. Preserves entitlements that have been used (usedDays > 0) for audit purposes
+ * 1. Sets balanceRequired = true for Annual Leave and Sickness
+ * 2. Sets balanceRequired = false for all other system-defined categories
+ * 3. Optionally deletes unused LeaveEntitlement records for non-balance categories
  * 
  * Usage:
  *   npx ts-node scripts/cleanup-system-event-entitlements.ts [--dry-run] [--company-id=xxx]
@@ -27,7 +25,7 @@ async function cleanupSystemEventEntitlements(
   targetCompanyId?: string
 ) {
   console.log("\n" + "═".repeat(70));
-  console.log("🧹 CLEANUP: System Event Category Entitlements");
+  console.log("🧹 CLEANUP: System Event Category Balance Settings");
   console.log("═".repeat(70));
   console.log(isDryRun ? "📝 DRY RUN MODE - No changes will be made\n" : "");
 
@@ -37,35 +35,88 @@ async function cleanupSystemEventEntitlements(
   // Build company filter
   const companyFilter = targetCompanyId ? { companyId: targetCompanyId } : {};
 
-  // Find system-defined categories that don't need balance tracking
-  const categoriesToClean = await prisma.eventCategory.findMany({
+  // ========== STEP 1: Enable balance for Annual Leave / Sickness ==========
+  console.log("STEP 1: Ensuring Annual Leave & Sickness have balanceRequired=true...\n");
+
+  const coreCategories = await prisma.eventCategory.findMany({
+    where: {
+      ...companyFilter,
+      name: { in: balanceTrackedCategories },
+      isActive: true,
+    },
+    select: { id: true, name: true, balanceRequired: true },
+  });
+
+  for (const cat of coreCategories) {
+    const status = cat.balanceRequired ? "✓ already true" : "⚠️  will set to true";
+    console.log(`  - ${cat.name}: ${status}`);
+  }
+
+  const coreNeedingUpdate = coreCategories.filter(c => !c.balanceRequired);
+  if (coreNeedingUpdate.length > 0 && !isDryRun) {
+    await prisma.eventCategory.updateMany({
+      where: { id: { in: coreNeedingUpdate.map(c => c.id) } },
+      data: { balanceRequired: true, updatedAt: new Date() },
+    });
+    console.log(`\n✅ Updated ${coreNeedingUpdate.length} core categories to balanceRequired=true`);
+  } else if (coreNeedingUpdate.length > 0) {
+    console.log(`\n📝 DRY RUN: Would update ${coreNeedingUpdate.length} core categories`);
+  }
+
+  // ========== STEP 2: Disable balance for other system categories ==========
+  console.log("\n" + "─".repeat(70));
+  console.log("STEP 2: Setting balanceRequired=false for other system categories...\n");
+
+  const otherCategories = await prisma.eventCategory.findMany({
     where: {
       ...companyFilter,
       systemDefined: true,
       isActive: true,
-      name: {
-        notIn: balanceTrackedCategories,
-      },
+      name: { notIn: balanceTrackedCategories },
     },
-    select: {
-      id: true,
-      name: true,
-      companyId: true,
-    },
+    select: { id: true, name: true, balanceRequired: true },
   });
 
-  console.log(`Found ${categoriesToClean.length} system categories to clean:\n`);
-  for (const cat of categoriesToClean) {
-    console.log(`  - ${cat.name} (${cat.id})`);
+  console.log(`Found ${otherCategories.length} other system categories:\n`);
+  for (const cat of otherCategories) {
+    const status = cat.balanceRequired ? "⚠️  balanceRequired=true (will fix)" : "✓ already false";
+    console.log(`  - ${cat.name}: ${status}`);
   }
-  console.log("");
 
-  if (categoriesToClean.length === 0) {
+  const othersNeedingUpdate = otherCategories.filter(c => c.balanceRequired);
+  
+  if (othersNeedingUpdate.length > 0 && !isDryRun) {
+    const updateResult = await prisma.eventCategory.updateMany({
+      where: { id: { in: othersNeedingUpdate.map(c => c.id) } },
+      data: {
+        balanceRequired: false,
+        defaultBalance: null,
+        balanceRefreshMonths: null,
+        updatedAt: new Date(),
+      },
+    });
+    console.log(`\n✅ Updated ${updateResult.count} categories to balanceRequired=false`);
+  } else if (othersNeedingUpdate.length > 0) {
+    console.log(`\n📝 DRY RUN: Would update ${othersNeedingUpdate.length} categories`);
+  } else {
+    console.log(`\n✅ All other system categories already have balanceRequired=false`);
+  }
+
+  // ========== STEP 3: Clean up LeaveEntitlement records (optional) ==========
+  console.log("\n" + "─".repeat(70));
+  console.log("STEP 3: Cleaning up unused LeaveEntitlement records...\n");
+
+  const categoryIds = otherCategories.map((c) => c.id);
+
+  if (categoryIds.length === 0) {
     console.log("✅ No categories to clean up.");
-    return { deletedCount: 0, preservedCount: 0 };
+    return { 
+      coreUpdated: isDryRun ? 0 : coreNeedingUpdate.length,
+      othersUpdated: isDryRun ? 0 : othersNeedingUpdate.length, 
+      entitlementsDeleted: 0, 
+      entitlementsPreserved: 0 
+    };
   }
-
-  const categoryIds = categoriesToClean.map((c) => c.id);
 
   // Find entitlements to delete (only those with 0 used days)
   const entitlementsToDelete = await prisma.leaveEntitlement.findMany({
@@ -75,7 +126,6 @@ async function cleanupSystemEventEntitlements(
     },
     include: {
       EventCategory: { select: { name: true } },
-      Employee: { select: { id: true } },
     },
   });
 
@@ -87,57 +137,60 @@ async function cleanupSystemEventEntitlements(
     },
     include: {
       EventCategory: { select: { name: true } },
-      Employee: { select: { id: true } },
     },
   });
 
-  console.log(`\n📊 Summary:`);
-  console.log(`   Entitlements to DELETE (unused): ${entitlementsToDelete.length}`);
-  console.log(`   Entitlements to PRESERVE (used): ${entitlementsToPreserve.length}`);
+  console.log(`📊 LeaveEntitlement Summary:`);
+  console.log(`   To DELETE (unused, usedDays=0): ${entitlementsToDelete.length}`);
+  console.log(`   To PRESERVE (has usage): ${entitlementsToPreserve.length}`);
 
   if (entitlementsToPreserve.length > 0) {
     console.log(`\n⚠️  Preserving ${entitlementsToPreserve.length} entitlements with usage:`);
-    for (const ent of entitlementsToPreserve.slice(0, 10)) {
-      console.log(`   - ${ent.EventCategory.name}: ${ent.usedDays} days used`);
+    const byCategory: Record<string, number> = {};
+    for (const ent of entitlementsToPreserve) {
+      byCategory[ent.EventCategory.name] = (byCategory[ent.EventCategory.name] || 0) + 1;
     }
-    if (entitlementsToPreserve.length > 10) {
-      console.log(`   ... and ${entitlementsToPreserve.length - 10} more`);
+    for (const [catName, count] of Object.entries(byCategory)) {
+      console.log(`   - ${catName}: ${count} entitlements`);
     }
   }
 
-  if (entitlementsToDelete.length === 0) {
-    console.log("\n✅ No unused entitlements to delete.");
-    return { deletedCount: 0, preservedCount: entitlementsToPreserve.length };
-  }
+  let deletedCount = 0;
+  if (entitlementsToDelete.length > 0) {
+    // Group by category for summary
+    const deleteByCat: Record<string, number> = {};
+    for (const ent of entitlementsToDelete) {
+      const catName = ent.EventCategory.name;
+      deleteByCat[catName] = (deleteByCat[catName] || 0) + 1;
+    }
 
-  // Group by category for summary
-  const deleteByCat: Record<string, number> = {};
-  for (const ent of entitlementsToDelete) {
-    const catName = ent.EventCategory.name;
-    deleteByCat[catName] = (deleteByCat[catName] || 0) + 1;
-  }
+    console.log(`\n🗑️  Entitlements to delete by category:`);
+    for (const [catName, count] of Object.entries(deleteByCat)) {
+      console.log(`   - ${catName}: ${count} entitlements`);
+    }
 
-  console.log(`\n🗑️  Entitlements to delete by category:`);
-  for (const [catName, count] of Object.entries(deleteByCat)) {
-    console.log(`   - ${catName}: ${count} entitlements`);
-  }
-
-  if (!isDryRun) {
-    console.log(`\n⏳ Deleting ${entitlementsToDelete.length} entitlements...`);
-
-    const result = await prisma.leaveEntitlement.deleteMany({
-      where: {
-        eventCategoryId: { in: categoryIds },
-        usedDays: 0,
-      },
-    });
-
-    console.log(`\n✅ Deleted ${result.count} LeaveEntitlement records.`);
-    return { deletedCount: result.count, preservedCount: entitlementsToPreserve.length };
+    if (!isDryRun) {
+      const result = await prisma.leaveEntitlement.deleteMany({
+        where: {
+          eventCategoryId: { in: categoryIds },
+          usedDays: 0,
+        },
+      });
+      deletedCount = result.count;
+      console.log(`\n✅ Deleted ${result.count} LeaveEntitlement records.`);
+    } else {
+      console.log(`\n📝 DRY RUN: Would delete ${entitlementsToDelete.length} entitlements.`);
+    }
   } else {
-    console.log(`\n📝 DRY RUN: Would delete ${entitlementsToDelete.length} entitlements.`);
-    return { deletedCount: 0, preservedCount: entitlementsToPreserve.length };
+    console.log("\n✅ No unused entitlements to delete.");
   }
+
+  return { 
+    coreUpdated: isDryRun ? 0 : coreNeedingUpdate.length,
+    othersUpdated: isDryRun ? 0 : othersNeedingUpdate.length, 
+    entitlementsDeleted: deletedCount, 
+    entitlementsPreserved: entitlementsToPreserve.length 
+  };
 }
 
 // Parse CLI args
@@ -150,8 +203,10 @@ cleanupSystemEventEntitlements(isDryRun, targetCompanyId)
   .then((result) => {
     console.log("\n" + "═".repeat(70));
     console.log("✨ Cleanup complete!");
-    console.log(`   Deleted: ${result.deletedCount}`);
-    console.log(`   Preserved: ${result.preservedCount}`);
+    console.log(`   Core categories (Annual/Sick) updated: ${result.coreUpdated}`);
+    console.log(`   Other categories updated: ${result.othersUpdated}`);
+    console.log(`   Entitlements deleted: ${result.entitlementsDeleted}`);
+    console.log(`   Entitlements preserved: ${result.entitlementsPreserved}`);
     console.log("═".repeat(70) + "\n");
     process.exit(0);
   })

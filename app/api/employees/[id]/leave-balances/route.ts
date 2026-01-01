@@ -82,10 +82,19 @@ export async function GET(
     }
 
     // 5. Fetch leave entitlements with category information
+    // Only fetch entitlements for categories that have balanceRequired=true
+    // OR are Annual Leave/Sickness (core leave types that always show)
     const entitlements = await prisma.leaveEntitlement.findMany({
       where: {
         employeeId,
         companyId: session.user.companyId,
+        EventCategory: {
+          isActive: true,
+          OR: [
+            { balanceRequired: true },
+            { name: { in: ["Annual Leave", "Sickness", "Sick Leave"] } },
+          ],
+        },
       },
       include: {
         EventCategory: {
@@ -93,6 +102,7 @@ export async function GET(
             id: true,
             name: true,
             iconKey: true,
+            balanceRequired: true,
           },
         },
       },
@@ -118,23 +128,22 @@ export async function GET(
       };
     };
 
-    // 5b. Get all balance-required category IDs to exclude from main balance cards
-    // These will only appear in the "Other Entitlements" section
-    const balanceRequiredCategoryIds = new Set(
-      (await (prisma.eventCategory.findMany as any)({
-        where: {
-          companyId: session.user.companyId,
-          isActive: true,
-          balanceRequired: true,
-        },
-        select: { id: true },
-      }) as Array<{ id: string }>).map((c) => c.id)
+    // 5b. Get category IDs that go to "Other Entitlements" section
+    // These are categories with balanceRequired=true that are NOT core leave types
+    const coreLeaveNames = ["annual leave", "sickness", "sick leave"];
+    const otherEntitlementCategoryIds = new Set(
+      entitlements
+        .filter((e) => {
+          const name = e.EventCategory.name.toLowerCase();
+          return (e.EventCategory as any).balanceRequired && !coreLeaveNames.includes(name);
+        })
+        .map((e) => e.eventCategoryId)
     );
 
-    // Filter out balance-required categories from main entitlements
-    // They will be shown in the "Other Entitlements" card instead
+    // Filter to only show core leave types as main balance cards
+    // Other balanceRequired categories go to "Other Entitlements"
     const filteredEntitlements = entitlements.filter(
-      (e) => !balanceRequiredCategoryIds.has(e.eventCategoryId)
+      (e) => !otherEntitlementCategoryIds.has(e.eventCategoryId)
     );
 
     // Map to unified type

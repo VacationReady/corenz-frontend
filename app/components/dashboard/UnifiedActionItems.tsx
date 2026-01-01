@@ -347,12 +347,26 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
               onAction: async () => {
                 // Open signature modal with document
                 if (metadata.documentId) {
-                  setPreviewDoc({ 
-                    id: metadata.documentId, 
-                    name: metadata.documentName || item.title, 
-                    requiresSignature: true, 
-                    requiresAck: false 
-                  });
+                  // Fetch the document URL for preview
+                  try {
+                    const docRes = await tenantFetch(`/api/documents/signed-url/${metadata.documentId}`);
+                    const docData = await docRes.json();
+                    setPreviewDoc({ 
+                      id: metadata.documentId, 
+                      name: metadata.documentName || item.title, 
+                      url: docData?.url || undefined,
+                      requiresSignature: true, 
+                      requiresAck: false 
+                    });
+                  } catch {
+                    // Fallback without URL if fetch fails
+                    setPreviewDoc({ 
+                      id: metadata.documentId, 
+                      name: metadata.documentName || item.title, 
+                      requiresSignature: true, 
+                      requiresAck: false 
+                    });
+                  }
                 } else {
                   toast.error('Document data not available');
                 }
@@ -372,12 +386,26 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
               onAction: async () => {
                 // Open acknowledgement modal with document
                 if (metadata.documentId) {
-                  setPreviewDoc({ 
-                    id: metadata.documentId, 
-                    name: metadata.documentName || item.title, 
-                    requiresSignature: metadata.requiresSignature || false, 
-                    requiresAck: true 
-                  });
+                  // Fetch the document URL for preview
+                  try {
+                    const docRes = await tenantFetch(`/api/documents/signed-url/${metadata.documentId}`);
+                    const docData = await docRes.json();
+                    setPreviewDoc({ 
+                      id: metadata.documentId, 
+                      name: metadata.documentName || item.title, 
+                      url: docData?.url || undefined,
+                      requiresSignature: metadata.requiresSignature || false, 
+                      requiresAck: true 
+                    });
+                  } catch {
+                    // Fallback without URL if fetch fails
+                    setPreviewDoc({ 
+                      id: metadata.documentId, 
+                      name: metadata.documentName || item.title, 
+                      requiresSignature: metadata.requiresSignature || false, 
+                      requiresAck: true 
+                    });
+                  }
                 } else {
                   toast.error('Document data not available');
                 }

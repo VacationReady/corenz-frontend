@@ -55,7 +55,7 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
-import { isAdminOrManager } from "@/lib/roles";
+import { isAdminOrManager, isAdmin } from "@/lib/roles";
 import EmployeeFormCard from "@/components/employees/EmployeeFormCard";
 import EmployeePageHeader from "@/components/employees/EmployeePageHeader";
 import { cn } from "@/lib/utils";
@@ -321,6 +321,7 @@ function LeavePageContent() {
   );
   const isBookingForSelf = Boolean(currentUserEmployeeId && currentUserEmployeeId === employeeId);
   const isPrivileged = isAdminOrManager(session);
+  const isAdminUser = isAdmin(session);
 
   // Fallback: some users may not have employeeId on the session; resolve via API
   useEffect(() => {
@@ -800,7 +801,7 @@ function LeavePageContent() {
               <OtherEntitlementsCard 
                 entitlements={otherEntitlements} 
                 onEdit={() => setEntitlementChoiceDialogOpen(true)}
-                canEdit={isPrivileged}
+                canEdit={isAdminUser}
               />
             </div>
           </EmployeeFormCard>

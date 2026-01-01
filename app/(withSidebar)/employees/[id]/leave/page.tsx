@@ -1147,7 +1147,6 @@ function LeavePageContent() {
           onClose={() => setOtherEntitlementsModalOpen(false)}
           employeeId={employeeId}
           onSuccess={refresh}
-          hideAddButton
         />
       )}
 

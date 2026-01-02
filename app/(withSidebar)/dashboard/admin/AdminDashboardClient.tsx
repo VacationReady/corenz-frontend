@@ -404,6 +404,7 @@ export default function AdminDashboardClient({
 }: AdminDashboardClientProps) {
   const router = useRouter();
   const { data: session } = useSession();
+  const tenantFetch = useTenantFetch();
   const visible = usePageVisibility();
   const [modalOpen, setModalOpen] = useState(false);
   const [addDocumentOpen, setAddDocumentOpen] = useState(false);

@@ -106,7 +106,8 @@ export async function GET(req: NextRequest) {
 
     const leaveWhere: any = {
       companyId,
-      approvalStatus: "APPROVED",
+      // Include both APPROVED and PENDING leave requests
+      approvalStatus: { in: ["APPROVED", "PENDING"] },
       ...(hasValidFrom || hasValidTo
         ? {
             AND: [

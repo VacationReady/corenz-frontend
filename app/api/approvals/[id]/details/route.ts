@@ -88,19 +88,49 @@ export async function GET(
     });
 
     // Calculate days for this request using working pattern
-    const startDate = new Date(leaveRequest.startDate);
-    const endDate = new Date(leaveRequest.endDate);
+    // Parse dates as local dates to avoid timezone shifts
+    // Prisma returns Date objects, but we need to treat them as local dates
+    const startDateRaw = leaveRequest.startDate;
+    const endDateRaw = leaveRequest.endDate;
+    
+    // Extract year, month, day from the stored dates and create local dates
+    const startDate = new Date(
+      startDateRaw.getFullYear(),
+      startDateRaw.getMonth(),
+      startDateRaw.getDate(),
+      12, 0, 0, 0 // Use noon to avoid DST issues
+    );
+    const endDate = new Date(
+      endDateRaw.getFullYear(),
+      endDateRaw.getMonth(),
+      endDateRaw.getDate(),
+      12, 0, 0, 0
+    );
+    
+    console.log(`[APPROVAL_DETAILS] Date calculation:`, {
+      startDateRaw: startDateRaw.toISOString(),
+      endDateRaw: endDateRaw.toISOString(),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      employeeId: employee.id,
+    });
     
     // Calculate working pattern deduction (end date is inclusive - last day away)
     let requestedDays = 0;
+    const dayDeductions: { date: string; deduction: number }[] = [];
     for (
       let time = startDate.getTime();
       time <= endDate.getTime();
       time += 24 * 60 * 60 * 1000
     ) {
       const currentDate = new Date(time);
-      requestedDays += await calculateLeaveDeduction(employee.id, currentDate);
+      const deduction = await calculateLeaveDeduction(employee.id, currentDate);
+      dayDeductions.push({ date: currentDate.toISOString(), deduction });
+      requestedDays += deduction;
     }
+    
+    console.log(`[APPROVAL_DETAILS] Day deductions:`, dayDeductions);
+    console.log(`[APPROVAL_DETAILS] Total requestedDays:`, requestedDays);
 
     // Calculate remaining days if approved
     const remainingDaysIfApproved = entitlement

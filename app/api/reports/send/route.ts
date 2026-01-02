@@ -302,10 +302,36 @@ async function fetchReportData(
 
     // Attach computed fields
     results = await attachComputedFields(results, fields, primary.model);
-    return results;
+    
+    // Flatten results to make nested values accessible by their full path
+    // This ensures PDF/CSV export can access values like "User.firstName" directly
+    const flattenedResults = results.map((row: any) => {
+      const flat: Record<string, any> = { ...row };
+      flattenObject(row, '', flat);
+      return flat;
+    });
+    
+    return flattenedResults;
   } catch (error) {
     console.error("Error fetching report data:", error);
     throw error;
+  }
+}
+
+// Helper to flatten nested objects into dot-notation keys
+function flattenObject(obj: any, prefix: string, result: Record<string, any>): void {
+  if (obj === null || obj === undefined) return;
+  
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    const newKey = prefix ? `${prefix}.${key}` : key;
+    
+    if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      // Recurse into nested objects
+      flattenObject(value, newKey, result);
+    } else {
+      result[newKey] = value;
+    }
   }
 }
 
@@ -316,13 +342,28 @@ async function generateAttachment(
   format: "PDF" | "EXCEL"
 ) {
   if (format === "PDF") {
-    // Generate PDF
+    // Generate PDF - extract values using both direct access and nested path
     const columns = fields.map((field) => ({
       header: field.split(".").pop() || field,
       accessorKey: field,
     }));
 
-    const blob = await exportTableToPdf(reportName, data, columns);
+    // Prepare data for PDF export - try direct access first, then nested path
+    const preparedData = data.map((row) => {
+      const prepared: Record<string, any> = {};
+      columns.forEach((col) => {
+        // Try direct access (for flattened data)
+        let value = row[col.accessorKey];
+        // If not found, try nested path
+        if (value === undefined) {
+          value = getNested(row, col.accessorKey);
+        }
+        prepared[col.accessorKey] = value ?? "";
+      });
+      return prepared;
+    });
+
+    const blob = await exportTableToPdf(reportName, preparedData, columns);
     const buffer = Buffer.from(await blob.arrayBuffer());
 
     return {
@@ -340,7 +381,12 @@ async function generateAttachment(
     const csvData = data.map((row) => {
       const obj: Record<string, any> = {};
       columns.forEach((col, idx) => {
-        obj[headers[idx]] = getNested(row, col.accessorKey) ?? "";
+        // Try direct access (for flattened data) first, then nested path
+        let value = row[col.accessorKey];
+        if (value === undefined) {
+          value = getNested(row, col.accessorKey);
+        }
+        obj[headers[idx]] = value ?? "";
       });
       return obj;
     });

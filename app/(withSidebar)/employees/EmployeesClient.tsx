@@ -455,8 +455,9 @@ function EmployeesContent(props: EmployeesClientProps) {
             if (isDirectReport || emp.userId === currentUserId) {
               // Direct reports and self are clickable
               return (
-                <a
+                <Link
                   href={targetUrl}
+                  onClick={(event) => handleEmployeeLinkClick(event, targetUrl)}
                   className="group flex items-center gap-3 py-1"
                 >
                   <div className="relative">
@@ -481,7 +482,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                     </div>
                     <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
                   </div>
-                </a>
+                </Link>
               );
             } else {
               // Department colleagues (not direct reports) are view-only
@@ -511,8 +512,9 @@ function EmployeesContent(props: EmployeesClientProps) {
           
           // Default behavior for admins and other roles
           return (
-            <a
+            <Link
               href={targetUrl}
+              onClick={(event) => handleEmployeeLinkClick(event, targetUrl)}
               className="group flex items-center gap-3 py-1"
             >
               <div className="relative">
@@ -529,7 +531,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 </span>
                 <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
               </div>
-            </a>
+            </Link>
           );
         },
       },

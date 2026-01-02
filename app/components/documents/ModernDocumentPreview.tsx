@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -23,7 +23,9 @@ interface ModernDocumentPreviewProps {
     id: string;
     name: string;
     category?: string | null;
+    path?: string | null;
     size: number;
+    type?: string | null;
     url: string;
     requiresAck?: boolean;
     requiresSignature?: boolean;
@@ -54,11 +56,68 @@ export default function ModernDocumentPreview({
   isViewingOwnDocuments = true, // Default to true for backward compatibility
 }: ModernDocumentPreviewProps) {
   const [signatureValue, setSignatureValue] = useState<SignatureCaptureValue | null>(null);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(doc.url ?? null);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [isResolvingUrl, setIsResolvingUrl] = useState(false);
 
   const formatFileSize = (size: number) =>
     size < 1024 * 1024
       ? `${(size / 1024).toFixed(1)} KB`
       : `${(size / 1024 / 1024).toFixed(1)} MB`;
+
+  const fileExtension = useMemo(() => {
+    const fromName = doc.name?.split(".").pop() || "";
+    const fromPath = doc.path?.split(".").pop() || "";
+    return (fromName || fromPath).toLowerCase();
+  }, [doc.name, doc.path]);
+
+  const fileMime = (doc.type || "").toLowerCase();
+  const mimeIsImage = fileMime.startsWith("image/");
+  const isPdf = fileExtension === "pdf" || fileMime === "application/pdf";
+  const isImage =
+    mimeIsImage ||
+    ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].includes(fileExtension);
+  const officeMimeTypes = new Set([
+    "application/msword",
+    "application/vnd.ms-excel",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ]);
+  const isOfficeDoc =
+    officeMimeTypes.has(fileMime) ||
+    ["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(fileExtension);
+
+  const refreshSignedUrl = useCallback(async () => {
+    if (!doc.id) return;
+    setIsResolvingUrl(true);
+    setUrlError(null);
+    try {
+      const response = await fetch(`/api/documents/signed-url/${doc.id}`);
+      if (!response.ok) {
+        throw new Error("Unable to generate a fresh link.");
+      }
+      const payload = await response.json();
+      setResolvedUrl(payload?.url ?? null);
+      if (!payload?.url) {
+        setUrlError("Document link is unavailable right now.");
+      }
+    } catch (error: any) {
+      setUrlError(error?.message || "Unable to load document link.");
+      setResolvedUrl(null);
+    } finally {
+      setIsResolvingUrl(false);
+    }
+  }, [doc.id]);
+
+  useEffect(() => {
+    setResolvedUrl(doc.url ?? null);
+    setUrlError(null);
+    if (isOpen && !doc.url) {
+      refreshSignedUrl();
+    }
+  }, [doc.url, isOpen, refreshSignedUrl]);
 
   if (!isOpen) return null;
 
@@ -188,18 +247,64 @@ export default function ModernDocumentPreview({
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-6">
-                {/* PDF Viewer */}
+                {/* Document Preview */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="rounded-xl overflow-hidden border-2 border-gray-200 shadow-inner bg-white flex-1"
                 >
-                  <iframe
-                    src={`${doc.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                    className="w-full h-full"
-                    style={{ minHeight: "calc(100vh - 350px)" }}
-                    title="Document Preview"
-                  />
+                  {!resolvedUrl ? (
+                    <div className="flex h-full min-h-[360px] items-center justify-center px-6 py-12 text-center text-sm text-gray-500">
+                      <div className="space-y-3">
+                        <AlertCircle className="mx-auto h-6 w-6 text-amber-500" />
+                        <p className="font-medium text-gray-700">Preview unavailable</p>
+                        <p className="text-xs text-gray-500">
+                          {urlError || "We couldn't generate a secure link for this document yet."}
+                        </p>
+                        <Button
+                          variant="outline"
+                          onClick={refreshSignedUrl}
+                          disabled={isResolvingUrl}
+                        >
+                          {isResolvingUrl ? "Generating link..." : "Generate new link"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : isPdf ? (
+                    <iframe
+                      src={`${resolvedUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                      className="w-full h-full"
+                      style={{ minHeight: "calc(100vh - 350px)" }}
+                      title="Document Preview"
+                    />
+                  ) : isImage ? (
+                    <div className="flex items-center justify-center bg-slate-50 p-6">
+                      <img
+                        src={resolvedUrl}
+                        alt={doc.name}
+                        className="max-h-[70vh] w-auto max-w-full rounded-lg shadow"
+                      />
+                    </div>
+                  ) : isOfficeDoc ? (
+                    <iframe
+                      src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
+                        resolvedUrl,
+                      )}`}
+                      className="w-full h-full"
+                      style={{ minHeight: "calc(100vh - 350px)" }}
+                      title="Document Preview"
+                    />
+                  ) : (
+                    <div className="flex h-full min-h-[360px] flex-col items-center justify-center px-6 py-12 text-center text-sm text-gray-500">
+                      <FileText className="h-8 w-8 text-indigo-500" />
+                      <p className="mt-3 font-medium text-gray-700">
+                        Preview not supported for this file type
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Download the file to view it locally.
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
 
                 {/* Download Button */}
@@ -211,13 +316,15 @@ export default function ModernDocumentPreview({
                   <Button
                     variant="outline"
                     onClick={() => {
+                      if (!resolvedUrl) return;
                       const a = document.createElement("a");
-                      a.href = doc.url;
+                      a.href = resolvedUrl;
                       a.download = doc.name;
                       a.target = "_blank";
                       a.click();
                     }}
                     className="w-full sm:w-auto"
+                    disabled={!resolvedUrl}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Download Document

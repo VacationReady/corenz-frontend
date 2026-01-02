@@ -42,7 +42,10 @@ import {
   Filter,
   Share2,
   Search,
-  X
+  X,
+  CheckCircle2,
+  AlertCircle,
+  XCircle
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -83,6 +86,7 @@ import {
   getHeatLevel,
   getHeatAlpha,
   getDayCellClassNames,
+  getStatusColorConfig,
   type DailyCounts,
   type DailyCategoryCounts,
 } from "@/lib/calendar/calendar-helpers";
@@ -928,17 +932,36 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
             </div>
           </div>
           <div className="p-4 space-y-3">
-            {categoryName ? (
-              <Badge className="!text-xs flex items-center gap-1.5 w-fit">
-                <Icon className="h-3.5 w-3.5" />{categoryName}
-              </Badge>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {categoryName ? (
+                <Badge className="!text-xs flex items-center gap-1.5 w-fit">
+                  <Icon className="h-3.5 w-3.5" />{categoryName}
+                </Badge>
+              ) : null}
+              {(() => {
+                const approvalStatus = content.event.extendedProps?.approvalStatus;
+                const statusConfig = getStatusColorConfig(approvalStatus);
+                if (!statusConfig) return null;
+                return (
+                  <div className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium", statusConfig.bgClass, statusConfig.textClass)}>
+                    {approvalStatus === "APPROVED" && <CheckCircle2 className="w-3 h-3" />}
+                    {approvalStatus === "PENDING" && <AlertCircle className="w-3 h-3" />}
+                    {approvalStatus === "DECLINED" && <XCircle className="w-3 h-3" />}
+                    <span>{statusConfig.label}</span>
+                  </div>
+                );
+              })()}
+            </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CalendarIcon className="h-4 w-4 text-primary" />
               <span>
-                {formatTenantDate(content.event.start!, tenantTimeSettings, "d MMM yyyy")} –{" "}
                 {formatTenantDate(
-                  (content.event.end as any) || content.event.start!,
+                  content.event.extendedProps?.startDateStr || content.event.start!,
+                  tenantTimeSettings,
+                  "d MMM yyyy"
+                )} –{" "}
+                {formatTenantDate(
+                  content.event.extendedProps?.endDateStr || content.event.extendedProps?.startDateStr || content.event.start!,
                   tenantTimeSettings,
                   "d MMM yyyy",
                 )}

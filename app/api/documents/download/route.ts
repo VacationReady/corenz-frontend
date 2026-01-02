@@ -24,14 +24,21 @@ export async function GET(req: Request) {
       path: searchParams.get("path"),
     });
 
-    // Fetch current user to evaluate department/job role restrictions
+    // Fetch current user with their employee ID to evaluate access restrictions
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { role: true, departmentId: true, jobRoleId: true },
+      select: {
+        role: true,
+        departmentId: true,
+        jobRoleId: true,
+        Employee: { select: { id: true } },
+      },
     });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    const viewerEmployeeId = user.Employee?.id;
 
     // Locate document by path and company
     const document = await prisma.document.findFirst({
@@ -39,10 +46,34 @@ export async function GET(req: Request) {
       include: {
         Department: { select: { id: true } },
         JobRole: { select: { id: true } },
+        // Include employee info for ownership check and manager verification
+        Employee: {
+          select: {
+            id: true,
+            User: { select: { managerId: true } },
+          },
+        },
       },
     });
     if (!document) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+
+    // ✅ SECURITY FIX: Check employee-specific document access
+    // If document is assigned to a specific employee, enforce ownership/manager access
+    if (document.employeeId) {
+      const isOwner = viewerEmployeeId === document.employeeId;
+      const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(user.role);
+      
+      // For managers, check if the document's employee is a direct report
+      const isManagerOfEmployee =
+        user.role === "MANAGER" &&
+        document.Employee?.User?.managerId === session.user.id;
+
+      if (!isOwner && !isAdmin && !isManagerOfEmployee) {
+        // User is trying to access another employee's document without authorization
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
     }
 
     const companyPrefix = `${session.user.companyId}/`;

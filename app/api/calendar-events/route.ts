@@ -140,31 +140,28 @@ export async function GET(req: NextRequest) {
         // Leave the Employee filter empty to get all company leave
       }
     } else if (isManager && selfEmployee) {
-      // Managers use the same employee scope PLUS always see direct reports
+      // SECURITY: Managers are NEVER allowed company-wide visibility
+      // They can only see: their own leave + direct reports + department colleagues (if scope allows)
+      // The COMPANY scope is reserved for admins only
       const employeeScope = visibilitySettings.calendarEmployeeScope;
       const allowedUserIds = [session.user.id, ...subordinateUserIds];
       
-      // Build the base visibility based on employee scope
+      // Build the base visibility - always include self and direct reports
       const scopeConditions: any[] = [
-        // Always include direct reports for managers
         { User: { id: { in: allowedUserIds } } },
       ];
       
-      if (employeeScope === "DEPARTMENT" && selfEmployee.departmentId) {
-        // Add department colleagues
+      // For DEPARTMENT or COMPANY scope, add department colleagues
+      // Note: COMPANY scope for managers is treated as DEPARTMENT for security
+      // Managers should never see employees outside their org scope
+      if ((employeeScope === "DEPARTMENT" || employeeScope === "COMPANY") && selfEmployee.departmentId) {
         scopeConditions.push({ departmentId: selfEmployee.departmentId });
-      } else if (employeeScope === "COMPANY") {
-        // Company-wide visibility - no additional filter needed
-        // Just use companyId filter which is already applied
-        leaveWhere.Employee = {};
       }
       
-      // Only apply OR filter if not company-wide
-      if (employeeScope !== "COMPANY") {
-        leaveWhere.Employee = {
-          OR: scopeConditions,
-        };
-      }
+      // Always apply the restricted filter for managers
+      leaveWhere.Employee = {
+        OR: scopeConditions,
+      };
     } else if (isAdmin) {
       // Admins: apply department/departmentId filters if provided, otherwise full visibility
       leaveWhere.Employee = {
@@ -256,7 +253,18 @@ export async function GET(req: NextRequest) {
         }
 
         // Use category color from database, fallback to blue if not set
-        const eventColor = req.EventCategory?.color || '#3B82F6';
+        const categoryColor = req.EventCategory?.color || '#3B82F6';
+        
+        // Determine color based on approval status
+        // Pending = amber, Approved = category color, Declined = red
+        let eventColor = categoryColor;
+        const status = (req.approvalStatus || '').toUpperCase();
+        if (status === 'PENDING') {
+          eventColor = '#f59e0b'; // Amber for pending
+        } else if (status === 'DECLINED') {
+          eventColor = '#ef4444'; // Red for declined
+        }
+        // APPROVED uses the category color (default)
         
         // FullCalendar uses exclusive end dates for all-day events
         // Format dates as YYYY-MM-DD for proper multi-day spanning

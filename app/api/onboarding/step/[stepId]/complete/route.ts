@@ -8,6 +8,8 @@ import { randomUUID } from "crypto";
 import { validateIRDNumber } from "@/lib/payroll/validators";
 import { isValidNzBankAccountNumber, normalizeBankAccountNumber } from "@/lib/utils";
 import { validatePhone, validateEmail } from "@/lib/validators";
+import { canAccessEmployee } from "@/lib/permissions";
+import { logStepChange } from "@/lib/onboarding/audit-logger";
 
 type CompletionPayload = Record<string, unknown>;
 
@@ -617,6 +619,9 @@ export async function POST(
                 User: true, // This gets you employee.user.companyId
               },
             },
+            OnboardingTemplate: {
+              select: { id: true },
+            },
           },
         },
         OnboardingStep: true,
@@ -638,13 +643,61 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const allowedRoles = new Set(["ADMIN", "MANAGER", "SUPER_ADMIN"]);
-
-    if (
-      session.user.id !== onboardingUser.id &&
-      !allowedRoles.has(session.user.role)
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Authorization check: determine if user can complete this step
+    const isOwnStep = session.user.id === onboardingUser.id;
+    const isAdminOrSuperAdmin = session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
+    
+    if (!isOwnStep) {
+      // For non-self completion, check proper authorization
+      if (isAdminOrSuperAdmin) {
+        // ADMIN/SUPER_ADMIN can complete for any employee in their company
+        // Log audit entry for admin override
+        try {
+          await logStepChange({
+            companyId: session.user.companyId,
+            templateId: stepInstance.OnboardingInstance?.OnboardingTemplate?.id || "unknown",
+            stepId: stepId,
+            stepLabel: stepInstance.OnboardingStep?.label || "Unknown Step",
+            changeType: "metadata_change",
+            fieldName: "admin_override_completion",
+            oldValue: { status: stepInstance.status },
+            newValue: { 
+              status: "completed", 
+              completedBy: session.user.id,
+              completedFor: onboardingUser.id,
+              overrideType: "admin_completion"
+            },
+            changedById: session.user.id,
+            reason: `Admin/Super Admin completed step on behalf of employee ${onboardingEmployee.id}`,
+          });
+        } catch (auditError) {
+          // Log but don't fail the operation if audit logging fails
+          console.error("[onboarding/complete] Failed to create audit log for admin override:", auditError);
+        }
+      } else if (session.user.role === "MANAGER") {
+        // MANAGER can only complete for their direct reports
+        const canAccess = await canAccessEmployee(
+          {
+            id: session.user.id,
+            role: session.user.role as "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN",
+            companyId: session.user.companyId,
+          },
+          onboardingEmployee.id
+        );
+        
+        if (!canAccess) {
+          return NextResponse.json(
+            { error: "Forbidden: You can only complete steps for employees you manage" },
+            { status: 403 }
+          );
+        }
+      } else {
+        // Regular employees cannot complete steps for others
+        return NextResponse.json(
+          { error: "Forbidden: You can only complete your own onboarding steps" },
+          { status: 403 }
+        );
+      }
     }
 
     // 2. Mark step as completed

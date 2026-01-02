@@ -58,11 +58,13 @@ async function callGet(req: NextRequest, context: any) {
 
 const originalEmployeeModel = prisma.employee;
 const originalInstanceModel = prisma.onboardingInstance;
+const originalUserModel = prisma.user;
 
 function resetMocks() {
   mockSession = null;
   (prisma as any).employee = originalEmployeeModel;
   (prisma as any).onboardingInstance = originalInstanceModel;
+  (prisma as any).user = originalUserModel;
 }
 
 test("Onboarding Instances API auth guards", async (t) => {
@@ -134,13 +136,15 @@ test("Onboarding Instances API auth guards", async (t) => {
 
   await run("returns 404 when no active instance exists for valid employee", async () => {
     mockSession = {
-      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+      user: { id: "user1", companyId: "company1", email: "test@example.com", role: "EMPLOYEE" },
     };
 
     (prisma as any).employee = {
       findUnique: async () => ({
         id: "emp1",
         companyId: "company1",
+        userId: "user1", // Same user - self access
+        User: { managerId: null },
       }),
     };
 
@@ -158,13 +162,15 @@ test("Onboarding Instances API auth guards", async (t) => {
 
   await run("successfully returns instance for valid tenant-scoped request", async () => {
     mockSession = {
-      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+      user: { id: "user1", companyId: "company1", email: "test@example.com", role: "EMPLOYEE" },
     };
 
     (prisma as any).employee = {
       findUnique: async () => ({
         id: "emp1",
         companyId: "company1",
+        userId: "user1", // Same user - self access
+        User: { managerId: null },
       }),
     };
 
@@ -222,13 +228,15 @@ test("Onboarding Instances API auth guards", async (t) => {
 
   await run("tenant scope prevents cross-tenant template access", async () => {
     mockSession = {
-      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+      user: { id: "user1", companyId: "company1", email: "test@example.com", role: "EMPLOYEE" },
     };
 
     (prisma as any).employee = {
       findUnique: async () => ({
         id: "emp1",
         companyId: "company1",
+        userId: "user1", // Same user - self access
+        User: { managerId: null },
       }),
     };
 
@@ -251,13 +259,15 @@ test("Onboarding Instances API auth guards", async (t) => {
 
   await run("correctly maps all step types from database enums to UI types", async () => {
     mockSession = {
-      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+      user: { id: "user1", companyId: "company1", email: "test@example.com", role: "EMPLOYEE" },
     };
 
     (prisma as any).employee = {
       findUnique: async () => ({
         id: "emp1",
         companyId: "company1",
+        userId: "user1", // Same user - self access
+        User: { managerId: null },
       }),
     };
 
@@ -397,13 +407,15 @@ test("Onboarding Instances API auth guards", async (t) => {
 
   await run("metadata is hydrated for all step types", async () => {
     mockSession = {
-      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+      user: { id: "user1", companyId: "company1", email: "test@example.com", role: "EMPLOYEE" },
     };
 
     (prisma as any).employee = {
       findUnique: async () => ({
         id: "emp1",
         companyId: "company1",
+        userId: "user1", // Same user - self access
+        User: { managerId: null },
       }),
     };
 
@@ -500,5 +512,292 @@ test("Onboarding Instances API auth guards", async (t) => {
       step.metadata.tenantScope.includes("company1"),
       "Tenant scope should include company1",
     );
+  });
+
+  // ============================================================
+  // Cross-Employee Access Control Tests
+  // ============================================================
+
+  await run("returns 403 when employee tries to view another employee's onboarding", async () => {
+    mockSession = {
+      user: { 
+        id: "user1", 
+        companyId: "company1", 
+        email: "employee@example.com",
+        role: "EMPLOYEE",
+      },
+    };
+
+    let employeeFindUniqueCalled = false;
+    let userFindUniqueCalled = false;
+
+    (prisma as any).employee = {
+      findUnique: async () => {
+        employeeFindUniqueCalled = true;
+        return {
+          id: "emp2",
+          companyId: "company1",
+          userId: "user2", // Different user
+          User: { managerId: "manager1" }, // Not managed by user1
+        };
+      },
+    };
+
+    (prisma as any).user = {
+      findUnique: async () => {
+        userFindUniqueCalled = true;
+        return {
+          id: "user1",
+          role: "EMPLOYEE",
+          PermissionProfile: null,
+        };
+      },
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp2");
+    const res = await callGet(req, { params: { employeeId: "emp2" } });
+    const data = await res.json();
+
+    assert.ok(employeeFindUniqueCalled, "employee.findUnique should have been called");
+    assert.ok(userFindUniqueCalled, "user.findUnique should have been called for permission check");
+    assert.equal(res.status, 403);
+    assert.ok(data.error.includes("do not have permission"));
+  });
+
+  await run("allows employee to view their own onboarding instance", async () => {
+    mockSession = {
+      user: { 
+        id: "user1", 
+        companyId: "company1", 
+        email: "employee@example.com",
+        role: "EMPLOYEE",
+      },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+        userId: "user1", // Same user
+        User: { managerId: "manager1" },
+      }),
+    };
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async () => ({
+        id: "inst1",
+        OnboardingStepInstance: [],
+        OnboardingTemplate: {
+          name: "My Onboarding",
+          OnboardingStep: [],
+        },
+      }),
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.template.name, "My Onboarding");
+  });
+
+  await run("allows manager to view their direct report's onboarding", async () => {
+    mockSession = {
+      user: { 
+        id: "manager1", 
+        companyId: "company1", 
+        email: "manager@example.com",
+        role: "MANAGER",
+      },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+        userId: "user1",
+        User: { managerId: "manager1" }, // Managed by the requesting user
+      }),
+    };
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async () => ({
+        id: "inst1",
+        OnboardingStepInstance: [],
+        OnboardingTemplate: {
+          name: "Report Onboarding",
+          OnboardingStep: [],
+        },
+      }),
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.template.name, "Report Onboarding");
+  });
+
+  await run("returns 403 when manager tries to view non-direct-report's onboarding", async () => {
+    mockSession = {
+      user: { 
+        id: "manager1", 
+        companyId: "company1", 
+        email: "manager@example.com",
+        role: "MANAGER",
+      },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+        userId: "user1",
+        User: { managerId: "manager2" }, // Different manager
+      }),
+    };
+
+    (prisma as any).user = {
+      findUnique: async () => ({
+        id: "manager1",
+        role: "MANAGER",
+        PermissionProfile: null,
+      }),
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 403);
+    assert.ok(data.error.includes("do not have permission"));
+  });
+
+  await run("allows admin to view any employee's onboarding in their company", async () => {
+    mockSession = {
+      user: { 
+        id: "admin1", 
+        companyId: "company1", 
+        email: "admin@example.com",
+        role: "ADMIN",
+      },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+        userId: "user1",
+        User: { managerId: "manager1" },
+      }),
+    };
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async () => ({
+        id: "inst1",
+        OnboardingStepInstance: [],
+        OnboardingTemplate: {
+          name: "Admin View Onboarding",
+          OnboardingStep: [],
+        },
+      }),
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.template.name, "Admin View Onboarding");
+  });
+
+  await run("allows super admin to view any employee's onboarding in their company", async () => {
+    mockSession = {
+      user: { 
+        id: "superadmin1", 
+        companyId: "company1", 
+        email: "superadmin@example.com",
+        role: "SUPER_ADMIN",
+      },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+        userId: "user1",
+        User: { managerId: "manager1" },
+      }),
+    };
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async () => ({
+        id: "inst1",
+        OnboardingStepInstance: [],
+        OnboardingTemplate: {
+          name: "Super Admin View",
+          OnboardingStep: [],
+        },
+      }),
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.template.name, "Super Admin View");
+  });
+
+  await run("allows user with explicit onboarding read permission to view any employee's onboarding", async () => {
+    mockSession = {
+      user: { 
+        id: "hruser1", 
+        companyId: "company1", 
+        email: "hr@example.com",
+        role: "EMPLOYEE", // Not admin or manager
+      },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+        userId: "user1",
+        User: { managerId: "manager1" },
+      }),
+    };
+
+    (prisma as any).user = {
+      findUnique: async () => ({
+        id: "hruser1",
+        role: "EMPLOYEE",
+        PermissionProfile: {
+          permissions: {
+            onboarding: ["read", "edit"],
+          },
+        },
+      }),
+    };
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async () => ({
+        id: "inst1",
+        OnboardingStepInstance: [],
+        OnboardingTemplate: {
+          name: "HR View Onboarding",
+          OnboardingStep: [],
+        },
+      }),
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.template.name, "HR View Onboarding");
   });
 });

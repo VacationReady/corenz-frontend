@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
 import { mapDbStepTypeToUi } from "@/lib/onboarding/mapStepType";
 import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
+import { canAccessEmployee, hasPermission } from "@/lib/permissions";
 
 export async function GET(
   req: NextRequest,
@@ -25,7 +26,11 @@ export async function GET(
   // 🔒 Tenant-scoped access control: Verify employee belongs to user's company
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
-    select: { companyId: true },
+    select: { 
+      companyId: true,
+      userId: true,
+      User: { select: { managerId: true } },
+    },
   });
 
   if (!employee) {
@@ -35,6 +40,35 @@ export async function GET(
   if (employee.companyId !== session.user.companyId) {
     return NextResponse.json(
       { error: "Forbidden: Cross-tenant access denied" },
+      { status: 403 },
+    );
+  }
+
+  // 🔒 Employee-level access control: Only allow self, manager, or admin access
+  // This prevents employees from viewing other employees' onboarding instances
+  const isSelf = employee.userId === session.user.id;
+  const isAdmin = session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
+  const isManager = employee.User?.managerId === session.user.id;
+
+  // Check explicit onboarding read permission for non-admin users
+  let hasOnboardingPermission = false;
+  if (!isAdmin && !isSelf && !isManager) {
+    const requestorUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { PermissionProfile: true },
+    });
+    if (requestorUser) {
+      hasOnboardingPermission = hasPermission(
+        { ...requestorUser, permissionProfile: requestorUser.PermissionProfile },
+        "onboarding",
+        "read"
+      );
+    }
+  }
+
+  if (!isSelf && !isAdmin && !isManager && !hasOnboardingPermission) {
+    return NextResponse.json(
+      { error: "Forbidden: You do not have permission to view this employee's onboarding" },
       { status: 403 },
     );
   }

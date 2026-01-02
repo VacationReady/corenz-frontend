@@ -55,7 +55,8 @@ export default function ModernDocumentPreview({
   companyName,
   isViewingOwnDocuments = true, // Default to true for backward compatibility
 }: ModernDocumentPreviewProps) {
-  const [signatureValue, setSignatureValue] = useState<SignatureCaptureValue | null>(null);
+  const [signatureValue, setSignatureValue] =
+    useState<SignatureCaptureValue | null>(null);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(doc.url ?? null);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [isResolvingUrl, setIsResolvingUrl] = useState(false);
@@ -257,9 +258,12 @@ export default function ModernDocumentPreview({
                     <div className="flex h-full min-h-[360px] items-center justify-center px-6 py-12 text-center text-sm text-gray-500">
                       <div className="space-y-3">
                         <AlertCircle className="mx-auto h-6 w-6 text-amber-500" />
-                        <p className="font-medium text-gray-700">Preview unavailable</p>
+                        <p className="font-medium text-gray-700">
+                          Preview unavailable
+                        </p>
                         <p className="text-xs text-gray-500">
-                          {urlError || "We couldn't generate a secure link for this document yet."}
+                          {urlError ||
+                            "We couldn't generate a secure link for this document yet."}
                         </p>
                         <Button
                           variant="outline"
@@ -353,8 +357,8 @@ export default function ModernDocumentPreview({
                         <div className="flex items-start gap-2 text-xs text-gray-600 bg-white/50 rounded-lg p-2 mt-3 mb-4">
                           <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-600" />
                           <p>
-                            Your acknowledgment is recorded and complies with NZ employment law
-                            and the Privacy Act 2020.
+                            Your acknowledgment is recorded and complies with NZ
+                            employment law and the Privacy Act 2020.
                           </p>
                         </div>
                         <Button
@@ -408,33 +412,38 @@ export default function ModernDocumentPreview({
                 )}
 
                 {/* Signature Section */}
-                {doc.requiresSignature && eligible && !signed && isViewingOwnDocuments && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="p-6 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200"
-                  >
-                    <h3 className="font-semibold text-gray-900 mb-4 text-lg flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-indigo-600" />
-                      Sign Document
-                    </h3>
-                    <ModernSignatureCapture
-                      value={signatureValue}
-                      onChange={setSignatureValue}
-                      companyName={companyName}
-                    />
-                    <Button
-                      disabled={!signatureValue || signSubmitting}
-                      loading={signSubmitting}
-                      onClick={() => signatureValue && onSign(signatureValue)}
-                      size="lg"
-                      className="w-full mt-6 shadow-lg hover:shadow-xl transition-shadow"
+                {doc.requiresSignature &&
+                  eligible &&
+                  !signed &&
+                  isViewingOwnDocuments && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="p-6 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200"
                     >
-                      {signSubmitting ? "Submitting Signature..." : "Sign Document"}
-                    </Button>
-                  </motion.div>
-                )}
+                      <h3 className="font-semibold text-gray-900 mb-4 text-lg flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-indigo-600" />
+                        Sign Document
+                      </h3>
+                      <ModernSignatureCapture
+                        value={signatureValue}
+                        onChange={setSignatureValue}
+                        companyName={companyName}
+                      />
+                      <Button
+                        disabled={!signatureValue || signSubmitting}
+                        loading={signSubmitting}
+                        onClick={() => signatureValue && onSign(signatureValue)}
+                        size="lg"
+                        className="w-full mt-6 shadow-lg hover:shadow-xl transition-shadow"
+                      >
+                        {signSubmitting
+                          ? "Submitting Signature..."
+                          : "Sign Document"}
+                      </Button>
+                    </motion.div>
+                  )}
 
                 {/* Admin/Manager view - show pending signature status without action */}
                 {doc.requiresSignature && !signed && !isViewingOwnDocuments && (

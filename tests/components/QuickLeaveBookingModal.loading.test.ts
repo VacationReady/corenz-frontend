@@ -49,6 +49,23 @@ const originalFetch = global.fetch;
 const toastCalls: Array<{ type: "success" | "error"; message: string }> = [];
 
 (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
+  if (request === "next-auth/react") {
+    return {
+      useSession: () => ({
+        data: {
+          user: {
+            id: "user1",
+            companyId: "company1",
+            role: "MANAGER",
+            employeeId: "emp1",
+          },
+        },
+        status: "authenticated",
+      }),
+      SessionProvider: ({ children }: any) => children,
+    };
+  }
+
   if (request === "sonner") {
     return {
       toast: {

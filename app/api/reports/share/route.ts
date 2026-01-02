@@ -45,10 +45,12 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Report ID required" }, { status: 400 });
     }
 
-    // Verify user has access to this report
+    const parsedReportId = parseInt(reportId, 10);
+
+    // Verify report exists in company
     const report = await prisma.savedReport.findFirst({
       where: {
-        id: parseInt(reportId, 10),
+        id: parsedReportId,
         companyId: session.user.companyId,
       },
     });
@@ -57,9 +59,39 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Report not found" }, { status: 404 });
     }
 
+    // Security: Verify requester is owner or has a share granting access
+    const isOwner = report.createdBy === session.user.id;
+    
+    if (!isOwner) {
+      // Check if user has any share granting them access to this report
+      const userShare = await prisma.reportShare.findFirst({
+        where: {
+          reportId: parsedReportId,
+          companyId: session.user.companyId,
+          OR: [
+            // Direct user share
+            { userId: session.user.id },
+            // Department share (if user has a department)
+            ...(session.user.departmentId 
+              ? [{ departmentId: session.user.departmentId }] 
+              : []),
+            // Company-wide share
+            { shareType: "company" },
+          ],
+        },
+      });
+
+      if (!userShare) {
+        return NextResponse.json(
+          { error: "You don't have permission to view shares for this report" },
+          { status: 403 }
+        );
+      }
+    }
+
     const shares = await prisma.reportShare.findMany({
       where: {
-        reportId: parseInt(reportId, 10),
+        reportId: parsedReportId,
         companyId: session.user.companyId,
       },
       include: {

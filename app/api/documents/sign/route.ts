@@ -36,22 +36,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Allow signing with just fieldValues (name/job fields) without actual signature data
-    const hasFieldValues = fieldValues && Object.keys(fieldValues).length > 0;
-    
-    if (method === "TYPED" && (!typedText || !typedText.trim()) && !hasFieldValues) {
-      return NextResponse.json(
-        { error: "typedText is required for typed signature" },
-        { status: 400 },
-      );
-    }
-    if (method === "DRAWN" && (!drawnDataUrl || !drawnDataUrl.startsWith("data:image")) && !hasFieldValues) {
-      return NextResponse.json(
-        { error: "drawnDataUrl must be a base64 image data URL" },
-        { status: 400 },
-      );
-    }
-
     const userId = session.user.id;
     const companyId = session.user.companyId;
 
@@ -81,6 +65,41 @@ export async function POST(req: NextRequest) {
     if (!document.requiresSignature) {
       return NextResponse.json(
         { error: "This document does not require a signature" },
+        { status: 400 },
+      );
+    }
+
+    // Check if document has signature fields (fields that are not name/job fields)
+    const signatureFields = (document.SignatureFields || []).filter((f) => {
+      const label = (f.label || "").toLowerCase();
+      return !label.includes("name") && !label.includes("job");
+    });
+    const hasSignatureFields = signatureFields.length > 0;
+
+    // Validate signature data is provided when document has signature fields
+    const hasValidTypedSignature = typedText && typedText.trim().length > 0;
+    const hasValidDrawnSignature = drawnDataUrl && drawnDataUrl.startsWith("data:image");
+    const hasSignatureData = hasValidTypedSignature || hasValidDrawnSignature;
+
+    // CRITICAL: If document has signature fields, actual signature data is REQUIRED
+    // Field values alone (name/job) are NOT sufficient for legal/audit integrity
+    if (hasSignatureFields && !hasSignatureData) {
+      return NextResponse.json(
+        { error: "Signature is required. Please provide a typed or drawn signature." },
+        { status: 400 },
+      );
+    }
+
+    // Validate signature method matches provided data
+    if (method === "TYPED" && !hasValidTypedSignature && hasSignatureFields) {
+      return NextResponse.json(
+        { error: "typedText is required for typed signature" },
+        { status: 400 },
+      );
+    }
+    if (method === "DRAWN" && !hasValidDrawnSignature && hasSignatureFields) {
+      return NextResponse.json(
+        { error: "drawnDataUrl must be a base64 image data URL" },
         { status: 400 },
       );
     }

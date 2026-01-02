@@ -88,8 +88,10 @@ type Document = {
   id: string;
   name: string;
   category: string | null;
+  path?: string | null;
   createdAt: string;
   size: number;
+  type?: string | null;
   url: string;
   canViewAdmin: boolean;
   canViewManager: boolean;

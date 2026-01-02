@@ -34,6 +34,7 @@ import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import LeaveRuleOverrideDialog, { LeaveValidationWarning } from "@/components/leave/LeaveRuleOverrideDialog";
+import { useSession } from "next-auth/react";
 
 interface Employee {
   id: string;
@@ -118,6 +119,17 @@ export default function QuickLeaveBookingModal({
   
   // Discard confirmation dialog state
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const { data: session } = useSession();
+  const role = (session?.user as any)?.role as
+    | "ADMIN"
+    | "SUPER_ADMIN"
+    | "MANAGER"
+    | "EMPLOYEE"
+    | undefined;
+  const employeeScope =
+    role === "ADMIN" || role === "SUPER_ADMIN" || role === "MANAGER"
+      ? "directory"
+      : "direct";
   
   // Track previous open state to detect close transitions
   // Initialize to false so first open triggers fetchData
@@ -183,7 +195,7 @@ export default function QuickLeaveBookingModal({
       let iterations = 0;
 
       while (hasMore && iterations < 20) {
-        const url: string = `/api/employees?scope=direct&limit=100${
+        const url: string = `/api/employees?scope=${employeeScope}&limit=100${
           cursor ? `&cursor=${cursor}` : ""
         }`;
         const empRes: Response = await fetch(url, { cache: "no-store" });

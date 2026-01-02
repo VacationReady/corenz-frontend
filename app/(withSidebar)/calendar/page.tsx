@@ -248,6 +248,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
   const [holidayDefaultDate, setHolidayDefaultDate] = useState<Date | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const hasRefreshedForDepartments = useRef(false);
   const { data: session } = useSession();
   const role = (session?.user as any)?.role as
     | "ADMIN"
@@ -303,6 +304,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     };
     loadInitialData();
   }, []);
+
 
   useEffect(() => {
     (async () => {
@@ -562,6 +564,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       filters.categories.join(","),
       filters.locations.join(","),
       filters.search,
+      departments,
     ],
   );
 
@@ -1030,7 +1033,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     }
   };
 
-  const refreshCalendar = () => {
+  const refreshCalendar = useCallback(() => {
     console.log("Refreshing calendar events...");
     eventsCacheRef.current = null;
     const api = calendarRef.current?.getApi();
@@ -1039,7 +1042,15 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       setCurrentCalendarDate(currentDate);
       api.refetchEvents();
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!departments.length) return;
+    if (filters.departments.length === 0 || filters.departments.includes("all")) return;
+    if (hasRefreshedForDepartments.current) return;
+    hasRefreshedForDepartments.current = true;
+    refreshCalendar();
+  }, [departments.length, filters.departments.join(","), refreshCalendar]);
 
   const deleteBlackoutForDate = async (date: Date) => {
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(

@@ -396,8 +396,6 @@ export default function AddEmployeeModal({
     workingPatternId: undefined as string | undefined,
     entitlementDays: "",
     // NZ leave entitlements
-    sickLeaveDays: "10",
-    alternativeHolidayDays: "0",
     publicHolidayEntitlement: "11",
     // NZ-specific onboarding fields
     irdNumber: "",
@@ -756,7 +754,7 @@ export default function AddEmployeeModal({
     let value = e.target.value;
     
     // For entitlement fields, enforce 2 decimal places (NZ HRIS requirement)
-    const entitlementFields = ['entitlementDays', 'sickLeaveDays', 'alternativeHolidayDays'];
+    const entitlementFields = ['entitlementDays'];
     if (entitlementFields.includes(e.target.name) && value !== '') {
       const num = parseFloat(value);
       if (!isNaN(num)) {
@@ -1202,9 +1200,7 @@ export default function AddEmployeeModal({
         sendInviteNow,
         // Round all entitlement values to 2 decimal places (NZ HRIS requirement)
         entitlementDays: roundToTwoDecimals(parseFloat(formData.entitlementDays)),
-        // NZ leave entitlements (rounded to 2 decimal places)
-        sickLeaveDays: roundToTwoDecimals(parseFloat(formData.sickLeaveDays || "10")),
-        alternativeHolidayDays: roundToTwoDecimals(parseFloat(formData.alternativeHolidayDays || "0")),
+        // NZ leave entitlements
         publicHolidayEntitlement: parseFloat(formData.publicHolidayEntitlement || "11"),
         // Convert undefined values to empty strings for backend
         departmentId: formData.departmentId || "",
@@ -1298,8 +1294,6 @@ export default function AddEmployeeModal({
         holidayYear: undefined,
         workingPatternId: undefined,
         entitlementDays: "",
-        sickLeaveDays: "10",
-        alternativeHolidayDays: "0",
         publicHolidayEntitlement: "11",
         // NZ-specific fields
         irdNumber: "",
@@ -2804,6 +2798,14 @@ export default function AddEmployeeModal({
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground">NZ: 4 weeks (20 days) after 12 months. Prorated before anniversary.</p>
+                      </div>
+
+                      {/* Sick Leave Info */}
+                      <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-800/30">
+                        <HelpCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                          Sick leave will start at 0 and automatically become 10 days after 6 months from the start date.
+                        </p>
                       </div>
 
                       {/* Public Holiday Leave Booking */}

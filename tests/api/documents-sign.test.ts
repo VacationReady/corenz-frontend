@@ -293,7 +293,7 @@ test("Document Sign Validation Tests", async (t) => {
     assert.ok(body.error.includes("Signature is required") || body.error.includes("drawnDataUrl"));
   });
 
-  await t.test("Allows fieldValues only when document has NO signature fields (only name/job fields)", async () => {
+  await t.test("Rejects fieldValues only - signature always required when document requiresSignature", async () => {
     resetMocks();
     setupBasicMocks();
 
@@ -327,10 +327,10 @@ test("Document Sign Validation Tests", async (t) => {
     });
     const res = await POST(req);
 
-    // Should succeed because there are no actual signature fields
-    assert.equal(res.status, 200);
+    // Should REJECT - signature is always required when requiresSignature is true
+    assert.equal(res.status, 400);
     const body = await res.json();
-    assert.equal(body.ok, true);
+    assert.ok(body.error.includes("Signature is required"));
   });
 
   await t.test("Rejects request without documentId", async () => {

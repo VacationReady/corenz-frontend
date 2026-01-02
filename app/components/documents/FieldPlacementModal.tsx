@@ -28,6 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 interface Field {
   pageNumber: number;
@@ -362,6 +363,17 @@ export default function FieldPlacementModal({
   };
 
   const save = async () => {
+    // Validate that at least one signature field is placed
+    const hasSignatureField = fields.some((f) => {
+      const label = (f.label || "").toLowerCase();
+      return !label.includes("name") && !label.includes("job");
+    });
+    
+    if (!hasSignatureField) {
+      toast.error("Please add at least one signature field. Name and Job Role fields alone are not sufficient.");
+      return;
+    }
+    
     if (saveMode === "local" && onSaveFields) {
       onSaveFields(fields);
       setIsDirty(false);

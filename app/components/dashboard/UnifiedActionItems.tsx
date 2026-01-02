@@ -171,12 +171,13 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
         return false;
       }
     }
-    // Check signature if there's a signature field
-    if (hasSignatureField && !signatureValue) {
+    // Signature is ALWAYS required when document requiresSignature (not just when signature field exists)
+    if (previewDoc?.requiresSignature && !signatureValue) {
       return false;
     }
-    return documentFields.length > 0;
-  }, [documentFields, fieldValues, hasSignatureField, signatureValue]);
+    // Allow submission if document requires signature (even without placed fields)
+    return previewDoc?.requiresSignature || documentFields.length > 0;
+  }, [documentFields, fieldValues, previewDoc?.requiresSignature, signatureValue]);
 
   const isLoadingSession = status === "loading";
 
@@ -1108,14 +1109,14 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
                           </div>
                         ))}
 
-                        {/* Signature Fields */}
-                        {hasSignatureField && (
+                        {/* Signature Fields - Always show when document requires signature */}
+                        {previewDoc?.requiresSignature && (
                           <div className="space-y-2">
                             <Label className="flex items-center gap-2">
                               <span className={`flex items-center justify-center w-5 h-5 rounded-full ${fieldThemes.signature.iconBg}`}>
                                 <PenLine className="w-3 h-3" />
                               </span>
-                              Signature
+                              Signature <span className="text-red-500">*</span>
                             </Label>
                             <ModernSignatureCapture
                               value={signatureValue}

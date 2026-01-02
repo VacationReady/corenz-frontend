@@ -69,21 +69,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if document has signature fields (fields that are not name/job fields)
-    const signatureFields = (document.SignatureFields || []).filter((f) => {
-      const label = (f.label || "").toLowerCase();
-      return !label.includes("name") && !label.includes("job");
-    });
-    const hasSignatureFields = signatureFields.length > 0;
-
-    // Validate signature data is provided when document has signature fields
+    // Validate signature data is provided
     const hasValidTypedSignature = typedText && typedText.trim().length > 0;
     const hasValidDrawnSignature = drawnDataUrl && drawnDataUrl.startsWith("data:image");
     const hasSignatureData = hasValidTypedSignature || hasValidDrawnSignature;
 
-    // CRITICAL: If document has signature fields, actual signature data is REQUIRED
+    // CRITICAL: If document requires signature, actual signature data is REQUIRED
     // Field values alone (name/job) are NOT sufficient for legal/audit integrity
-    if (hasSignatureFields && !hasSignatureData) {
+    // The requiresSignature flag is the source of truth - not whether signature fields were placed
+    if (!hasSignatureData) {
       return NextResponse.json(
         { error: "Signature is required. Please provide a typed or drawn signature." },
         { status: 400 },
@@ -91,13 +85,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate signature method matches provided data
-    if (method === "TYPED" && !hasValidTypedSignature && hasSignatureFields) {
+    if (method === "TYPED" && !hasValidTypedSignature) {
       return NextResponse.json(
         { error: "typedText is required for typed signature" },
         { status: 400 },
       );
     }
-    if (method === "DRAWN" && !hasValidDrawnSignature && hasSignatureFields) {
+    if (method === "DRAWN" && !hasValidDrawnSignature) {
       return NextResponse.json(
         { error: "drawnDataUrl must be a base64 image data URL" },
         { status: 400 },

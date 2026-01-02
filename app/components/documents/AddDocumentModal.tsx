@@ -883,7 +883,7 @@ export default function AddDocumentModal({
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="pt-3 border-t border-muted/30"
+                        className="pt-3 border-t border-muted/30 space-y-3"
                       >
                         <div className="space-y-1.5">
                           <Label className="text-xs font-medium text-foreground/80 flex items-center gap-1">
@@ -897,6 +897,22 @@ export default function AddDocumentModal({
                             className="h-9 rounded-lg border-muted/50 bg-white/50 dark:bg-white/5 text-sm"
                           />
                         </div>
+                        
+                        {/* Warning: Signature fields required */}
+                        {file && !pendingFields?.some((f: any) => {
+                          const label = (f.label || "").toLowerCase();
+                          return !label.includes("name") && !label.includes("job");
+                        }) && (
+                          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                            <div className="text-xs">
+                              <p className="font-medium text-amber-800 dark:text-amber-200">Signature field required</p>
+                              <p className="text-amber-700 dark:text-amber-300 mt-0.5">
+                                Click "Preview & Place Fields" below to add at least one signature field before uploading.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -996,28 +1012,52 @@ export default function AddDocumentModal({
                       <Eye className="w-4 h-4 mr-2" />
                       Preview & Place Fields
                     </Button>
-                    <Button
-                      type="button"
-                      onClick={() => uploadWithPending(pendingFields)}
-                      disabled={loading || !title || !hasAnyAudience}
-                      className="h-9 px-5 rounded-lg bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
-                    >
-                      {loading ? (
-                        <>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
-                          />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4 mr-2" />
-                          Upload Document
-                        </>
-                      )}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                // Validate that at least one signature field has been placed
+                                const hasSignatureField = pendingFields?.some((f: any) => {
+                                  const label = (f.label || "").toLowerCase();
+                                  return !label.includes("name") && !label.includes("job");
+                                });
+                                if (!hasSignatureField) {
+                                  toast.error("Please place at least one signature field before uploading. Click 'Preview & Place Fields' to add signature fields.");
+                                  return;
+                                }
+                                uploadWithPending(pendingFields);
+                              }}
+                              disabled={loading || !title || !hasAnyAudience || !pendingFields?.length}
+                              className="h-9 px-5 rounded-lg bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+                            >
+                              {loading ? (
+                                <>
+                                  <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
+                                  />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="w-4 h-4 mr-2" />
+                                  Upload Document
+                                </>
+                              )}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {!pendingFields?.length && (
+                          <TooltipContent>
+                            <p>Please place signature fields first</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   </>
                 ) : (
                   <Button 

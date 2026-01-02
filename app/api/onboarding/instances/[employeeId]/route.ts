@@ -44,21 +44,25 @@ export async function GET(
     );
   }
 
-  // 🔒 Employee-level access control: Only allow self, manager, or admin access
+  // 🔒 Employee-level access control: Only allow self, manager, admin, or users with explicit elevated permissions
   // This prevents employees from viewing other employees' onboarding instances
   const isSelf = employee.userId === session.user.id;
   const isAdmin = session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
   const isManager = employee.User?.managerId === session.user.id;
 
-  // Check explicit onboarding read permission for non-admin users
-  let hasOnboardingPermission = false;
+  // Check for explicit elevated onboarding permission via custom permission profile
+  // Note: Default role-based onboarding:read only grants access to self/direct reports
+  // Only custom permission profiles with onboarding:read grant broader access (e.g., HR users)
+  let hasElevatedOnboardingPermission = false;
   if (!isAdmin && !isSelf && !isManager) {
     const requestorUser = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { PermissionProfile: true },
     });
-    if (requestorUser) {
-      hasOnboardingPermission = hasPermission(
+    if (requestorUser?.PermissionProfile) {
+      // Only check custom permission profile - not default role permissions
+      // This ensures HR users with explicit onboarding permission can view any employee
+      hasElevatedOnboardingPermission = hasPermission(
         { ...requestorUser, permissionProfile: requestorUser.PermissionProfile },
         "onboarding",
         "read"
@@ -66,7 +70,7 @@ export async function GET(
     }
   }
 
-  if (!isSelf && !isAdmin && !isManager && !hasOnboardingPermission) {
+  if (!isSelf && !isAdmin && !isManager && !hasElevatedOnboardingPermission) {
     return NextResponse.json(
       { error: "Forbidden: You do not have permission to view this employee's onboarding" },
       { status: 403 },

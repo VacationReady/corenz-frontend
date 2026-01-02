@@ -457,6 +457,11 @@ function LeavePageContent() {
     })();
   }, [employeeId, sessionStatus, refreshToken]);
 
+  // Clear events cache when employeeId changes to prevent stale data across employees
+  useEffect(() => {
+    eventsCacheRef.current = null;
+  }, [employeeId]);
+
   // Fetch leave events for calendar
   const fetchLeaveEvents = useCallback(
     async (
@@ -465,7 +470,7 @@ function LeavePageContent() {
       failureCallback: (error: any) => void
     ) => {
       try {
-        const cacheKey = `${fetchInfo.startStr}|${fetchInfo.endStr}|${typeFilter}`;
+        const cacheKey = `${employeeId}|${fetchInfo.startStr}|${fetchInfo.endStr}|${typeFilter}`;
 
         // Check cache
         if (eventsCacheRef.current?.key === cacheKey) {

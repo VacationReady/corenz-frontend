@@ -16,9 +16,10 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   LeaveEntitlement: {
     "_computed.remainingEntitlement": (item) => {
+      // Note: daysAllocated is NOT added here because it's already included in totalDays
+      // (see csv-import and other-entitlements routes where daysAllocated = totalDays)
       const total =
         (item.totalDays || 0) +
-        (item.daysAllocated || 0) +
         (item.carryoverDays || 0);
       return subtractWithPrecision(roundToTwoDecimals(total), roundToTwoDecimals(item.usedDays || 0));
     },

@@ -244,8 +244,9 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
         const totalDays = round2(record.totalDays);
         const usedDays = round2(record.usedDays);
         const carryoverDays = round2(record.carryoverDays);
-        const daysAllocated = round2(record.daysAllocated);
-        const total = totalDays + carryoverDays + daysAllocated;
+        // Note: daysAllocated is NOT added here because it's already included in totalDays
+        // (see csv-import and other-entitlements routes where daysAllocated = totalDays)
+        const total = totalDays + carryoverDays;
         const remainingEntitlement = round2(total - usedDays);
         const jobRoleName = record.Employee?.JobRole?.name ?? null;
         const departmentName = record.Employee?.Department?.name ?? null;

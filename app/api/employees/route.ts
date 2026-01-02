@@ -1016,30 +1016,80 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ✅ Optional onboarding trigger
+    // ✅ Optional onboarding trigger with retry logic
+    let onboardingStarted = false;
+    let onboardingError: string | null = null;
+    
     if (normalizedTemplateId) {
-      try {
-        const startRes = await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL}/api/onboarding/start`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              cookie: req.headers.get("cookie") ?? "",
+      const maxRetries = 3;
+      const baseDelay = 500; // 500ms base delay
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const startRes = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL}/api/onboarding/start`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                cookie: req.headers.get("cookie") ?? "",
+              },
+              body: JSON.stringify({
+                employeeId: employee.id,
+                templateId: normalizedTemplateId,
+                sendEmail: false,
+              }),
             },
-            body: JSON.stringify({
-              employeeId: employee.id,
-              templateId: normalizedTemplateId,
-              sendEmail: false,
-            }),
-          },
-        );
+          );
 
-        if (!startRes.ok) {
-          console.warn("Onboarding start failed:", await startRes.text());
+          if (startRes.ok) {
+            onboardingStarted = true;
+            console.log(`[employees/POST] Onboarding started for employee ${employee.id} (attempt ${attempt})`);
+            break;
+          } else {
+            const errorText = await startRes.text();
+            onboardingError = `Onboarding start failed (attempt ${attempt}): ${errorText}`;
+            console.warn(onboardingError);
+            
+            // Don't retry on 409 (already in progress) or 400 (bad request)
+            if (startRes.status === 409 || startRes.status === 400) {
+              break;
+            }
+          }
+        } catch (e) {
+          onboardingError = `Onboarding start error (attempt ${attempt}): ${e}`;
+          console.warn(onboardingError);
         }
-      } catch (e) {
-        console.warn("Onboarding start error:", e);
+        
+        // Exponential backoff before retry
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, attempt - 1)));
+        }
+      }
+      
+      // If onboarding failed after all retries, create an action item for manual intervention
+      if (!onboardingStarted && onboardingError) {
+        console.error(`[employees/POST] Onboarding failed for employee ${employee.id} after ${maxRetries} attempts. Manual intervention required.`);
+        
+        // Try to create an action item for HR to follow up
+        try {
+          await prisma.actionItem.create({
+            data: {
+              id: crypto.randomUUID(),
+              title: `Onboarding failed for ${firstName} ${lastName}`,
+              description: `Automatic onboarding initialization failed. Please manually start onboarding for this employee. Error: ${onboardingError}`,
+              type: "ONBOARDING_FAILED",
+              status: "PENDING",
+              priority: "HIGH",
+              relatedEmployeeId: employee.id,
+              companyId,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
+        } catch (actionItemError) {
+          console.warn("Failed to create action item for onboarding failure:", actionItemError);
+        }
       }
     }
 

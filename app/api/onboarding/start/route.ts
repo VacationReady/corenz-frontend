@@ -76,14 +76,66 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Prevent duplicate onboarding
-    const active = await prisma.onboardingInstance.findFirst({
-      where: { employeeId, status: { in: ["active", "in_progress"] } },
+    // Enhanced duplicate onboarding prevention
+    // Check for any non-terminal onboarding instances (active, in_progress, or paused)
+    const existingInstance = await prisma.onboardingInstance.findFirst({
+      where: { 
+        employeeId, 
+        status: { in: ["active", "in_progress", "paused"] } 
+      },
+      select: {
+        id: true,
+        status: true,
+        startedAt: true,
+      },
     });
-    if (active) {
+    
+    if (existingInstance) {
       return NextResponse.json(
-        { error: "Onboarding already in progress" },
+        { 
+          error: "Onboarding already in progress",
+          existingInstanceId: existingInstance.id,
+          existingStatus: existingInstance.status,
+          startedAt: existingInstance.startedAt,
+        },
         { status: 409 },
+      );
+    }
+
+    // Check for recently completed onboarding (within 30 days)
+    const recentlyCompleted = await prisma.onboardingInstance.findFirst({
+      where: {
+        employeeId,
+        status: "completed",
+        completedAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+        },
+      },
+      select: {
+        id: true,
+        completedAt: true,
+      },
+    });
+
+    if (recentlyCompleted) {
+      // Allow re-onboarding but log a warning
+      console.warn(`[onboarding/start] Re-onboarding employee ${employeeId} who completed onboarding on ${recentlyCompleted.completedAt}`);
+    }
+
+    // Rate limiting: Prevent rapid re-triggering (5 second cooldown)
+    const recentAttempt = await prisma.onboardingInstance.findFirst({
+      where: {
+        employeeId,
+        startedAt: {
+          gte: new Date(Date.now() - 5000), // 5 seconds ago
+        },
+      },
+    });
+
+    if (recentAttempt) {
+      return NextResponse.json(
+        { error: "Please wait before starting another onboarding" },
+        { status: 429 },
       );
     }
 

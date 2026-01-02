@@ -5,8 +5,31 @@ import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { validateIRDNumber } from "@/lib/payroll/validators";
+import { isValidNzBankAccountNumber, normalizeBankAccountNumber } from "@/lib/utils";
+import { validatePhone, validateEmail } from "@/lib/validators";
 
 type CompletionPayload = Record<string, unknown>;
+
+// Allowed file types for document uploads
+const ALLOWED_FILE_TYPES = [
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+/**
+ * Validation errors for form data sync
+ */
+interface FormDataValidationResult {
+  isValid: boolean;
+  errors: { field: string; message: string }[];
+  sanitizedData: Record<string, any>;
+}
 
 /**
  * Maps common form field IDs to their canonical names for syncing.
@@ -109,15 +132,185 @@ const FIELD_ALIASES: Record<string, string> = {
 };
 
 /**
+ * Sanitizes a string to prevent XSS attacks
+ */
+function sanitizeString(input: string): string {
+  return input
+    .replace(/[<>]/g, '') // Remove angle brackets
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .trim()
+    .slice(0, 500); // Limit length
+}
+
+/**
+ * Validates and sanitizes form data before syncing to employee profile.
+ * Returns validation errors and sanitized data.
+ */
+function validateFormDataForSync(
+  normalizedData: Record<string, any>
+): FormDataValidationResult {
+  const errors: { field: string; message: string }[] = [];
+  const sanitizedData: Record<string, any> = {};
+
+  // Validate phone number
+  if (normalizedData.phone) {
+    const phoneValidation = validatePhone(String(normalizedData.phone));
+    if (!phoneValidation.isValid) {
+      errors.push({ field: 'phone', message: phoneValidation.error || 'Invalid phone number' });
+    } else {
+      sanitizedData.phone = sanitizeString(String(normalizedData.phone));
+    }
+  }
+
+  // Validate emergency contact phone
+  if (normalizedData.emergencyContactPhone) {
+    const phoneValidation = validatePhone(String(normalizedData.emergencyContactPhone));
+    if (!phoneValidation.isValid) {
+      errors.push({ field: 'emergencyContactPhone', message: phoneValidation.error || 'Invalid emergency contact phone' });
+    } else {
+      sanitizedData.emergencyContactPhone = sanitizeString(String(normalizedData.emergencyContactPhone));
+    }
+  }
+
+  // Validate emergency contact email
+  if (normalizedData.emergencyContactEmail) {
+    const emailValidation = validateEmail(String(normalizedData.emergencyContactEmail));
+    if (!emailValidation.isValid) {
+      errors.push({ field: 'emergencyContactEmail', message: emailValidation.error || 'Invalid emergency contact email' });
+    } else {
+      sanitizedData.emergencyContactEmail = sanitizeString(String(normalizedData.emergencyContactEmail));
+    }
+  }
+
+  // Validate IRD number
+  if (normalizedData.irdNumber) {
+    const irdValidation = validateIRDNumber(String(normalizedData.irdNumber));
+    if (!irdValidation.isValid) {
+      errors.push({ field: 'irdNumber', message: irdValidation.error || 'Invalid IRD number' });
+    } else {
+      sanitizedData.irdNumber = irdValidation.formatted || String(normalizedData.irdNumber).replace(/[\s-]/g, '');
+    }
+  }
+
+  // Validate bank account number
+  if (normalizedData.bankAccountNumber) {
+    const normalized = normalizeBankAccountNumber(String(normalizedData.bankAccountNumber));
+    if (!isValidNzBankAccountNumber(normalized)) {
+      errors.push({ field: 'bankAccountNumber', message: 'Invalid NZ bank account number (must be 15-16 digits)' });
+    } else {
+      sanitizedData.bankAccountNumber = normalized;
+    }
+  }
+
+  // Validate tax code
+  if (normalizedData.taxCode) {
+    const validTaxCodes = ['M', 'ME', 'M SL', 'ME SL', 'SB', 'SB SL', 'S', 'S SL', 'SH', 'SH SL', 'ST', 'ST SL', 'SA', 'SA SL', 'SL', 'CAE', 'EDW', 'ND', 'NS', 'STC', 'WT', 'P'];
+    const taxCode = String(normalizedData.taxCode).toUpperCase().trim();
+    if (!validTaxCodes.includes(taxCode)) {
+      errors.push({ field: 'taxCode', message: `Invalid tax code: ${taxCode}` });
+    } else {
+      sanitizedData.taxCode = taxCode;
+    }
+  }
+
+  // Sanitize text fields
+  const textFields = [
+    'addressStreet', 'addressCity', 'addressPostcode', 'addressCountry',
+    'nationalId', 'pronouns', 'emergencyContactName', 'emergencyContactRelationship'
+  ];
+  for (const field of textFields) {
+    if (normalizedData[field]) {
+      sanitizedData[field] = sanitizeString(String(normalizedData[field]));
+    }
+  }
+
+  // Copy through validated numeric fields
+  const numericFields = ['salaryAmount', 'hourlyRate', 'kiwiSaverEmployeeRate', 'kiwiSaverEmployerRate', 'kiwiSaverContribution'];
+  for (const field of numericFields) {
+    if (normalizedData[field] !== undefined) {
+      const num = parseFloat(normalizedData[field]);
+      if (!isNaN(num) && num >= 0) {
+        sanitizedData[field] = num;
+      }
+    }
+  }
+
+  // Copy through other validated fields
+  if (normalizedData.dateOfBirth) {
+    const dob = new Date(normalizedData.dateOfBirth);
+    if (!isNaN(dob.getTime())) {
+      sanitizedData.dateOfBirth = dob;
+    }
+  }
+
+  if (normalizedData.gender) {
+    sanitizedData.gender = String(normalizedData.gender).trim();
+  }
+
+  if (normalizedData.kiwiSaverStatus !== undefined) {
+    sanitizedData.kiwiSaverStatus = normalizedData.kiwiSaverStatus;
+  }
+
+  if (normalizedData.kiwiSaverEnrolled !== undefined) {
+    sanitizedData.kiwiSaverEnrolled = normalizedData.kiwiSaverEnrolled;
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    sanitizedData,
+  };
+}
+
+/**
+ * Checks if all onboarding steps are completed and updates instance status accordingly.
+ * This ensures the OnboardingInstance is marked as "completed" when all steps are done.
+ */
+async function checkAndUpdateOnboardingCompletion(
+  onboardingInstanceId: string
+): Promise<{ completed: boolean; completedAt?: Date }> {
+  // Get all step instances for this onboarding
+  const stepInstances = await prisma.onboardingStepInstance.findMany({
+    where: { onboardingInstanceId },
+    select: { status: true },
+  });
+
+  // Check if all steps are completed
+  const allCompleted = stepInstances.length > 0 && 
+    stepInstances.every(step => step.status === 'completed');
+
+  if (allCompleted) {
+    const completedAt = new Date();
+    
+    // Update the onboarding instance to completed
+    await prisma.onboardingInstance.update({
+      where: { id: onboardingInstanceId },
+      data: {
+        status: 'completed',
+        completedAt,
+      },
+    });
+
+    console.log(`[onboarding/complete] Onboarding instance ${onboardingInstanceId} marked as completed`);
+    
+    return { completed: true, completedAt };
+  }
+
+  return { completed: false };
+}
+
+/**
  * Syncs form data to the employee's profile (User, Employee, and EmergencyContact records).
  * This enables onboarding forms to populate real profile data, eliminating double-entry.
+ * Now includes validation and sanitization of all fields.
  */
 async function syncFormDataToProfile(
   formData: Record<string, any>,
   employeeId: string,
   userId: string,
   companyId: string
-): Promise<void> {
+): Promise<{ success: boolean; errors?: { field: string; message: string }[] }> {
   // Normalize field names using aliases
   const normalizedData: Record<string, any> = {};
   for (const [key, value] of Object.entries(formData)) {
@@ -126,47 +319,54 @@ async function syncFormDataToProfile(
     normalizedData[canonicalKey] = value;
   }
 
+  // Validate and sanitize all data
+  const validation = validateFormDataForSync(normalizedData);
+  
+  if (!validation.isValid) {
+    console.warn(`[onboarding/sync] Validation failed for employee ${employeeId}:`, validation.errors);
+    return { success: false, errors: validation.errors };
+  }
+
+  const sanitized = validation.sanitizedData;
+
   // Prepare update objects for each model
   const userUpdate: Record<string, any> = {};
   const employeeUpdate: Record<string, any> = {};
   let emergencyContactData: Record<string, any> | null = null;
 
   // ========== USER FIELDS ==========
-  if (normalizedData.phone) {
-    userUpdate.phone = String(normalizedData.phone).trim();
+  if (sanitized.phone) {
+    userUpdate.phone = sanitized.phone;
   }
   
-  if (normalizedData.dateOfBirth) {
-    const dob = new Date(normalizedData.dateOfBirth);
-    if (!isNaN(dob.getTime())) {
-      userUpdate.dateOfBirth = dob;
-      employeeUpdate.dateOfBirth = dob; // Also on Employee model
-    }
+  if (sanitized.dateOfBirth) {
+    userUpdate.dateOfBirth = sanitized.dateOfBirth;
+    employeeUpdate.dateOfBirth = sanitized.dateOfBirth;
   }
   
-  if (normalizedData.addressStreet) {
-    userUpdate.addressStreet = String(normalizedData.addressStreet).trim();
+  if (sanitized.addressStreet) {
+    userUpdate.addressStreet = sanitized.addressStreet;
   }
-  if (normalizedData.addressCity) {
-    userUpdate.addressCity = String(normalizedData.addressCity).trim();
+  if (sanitized.addressCity) {
+    userUpdate.addressCity = sanitized.addressCity;
   }
-  if (normalizedData.addressPostcode) {
-    userUpdate.addressPostcode = String(normalizedData.addressPostcode).trim();
+  if (sanitized.addressPostcode) {
+    userUpdate.addressPostcode = sanitized.addressPostcode;
   }
-  if (normalizedData.addressCountry) {
-    userUpdate.addressCountry = String(normalizedData.addressCountry).trim();
+  if (sanitized.addressCountry) {
+    userUpdate.addressCountry = sanitized.addressCountry;
   }
   
-  if (normalizedData.nationalId) {
-    userUpdate.nationalId = String(normalizedData.nationalId).trim();
+  if (sanitized.nationalId) {
+    userUpdate.nationalId = sanitized.nationalId;
   }
-  if (normalizedData.pronouns) {
-    userUpdate.pronouns = String(normalizedData.pronouns).trim();
+  if (sanitized.pronouns) {
+    userUpdate.pronouns = sanitized.pronouns;
   }
   
   // Handle gender - could be a genderOptionId or a text value that needs lookup
-  if (normalizedData.gender) {
-    const genderValue = String(normalizedData.gender).trim();
+  if (sanitized.gender) {
+    const genderValue = String(sanitized.gender).trim();
     // Check if it's already a UUID (genderOptionId)
     if (genderValue.includes("-") && genderValue.length > 30) {
       userUpdate.genderOptionId = genderValue;
@@ -189,12 +389,12 @@ async function syncFormDataToProfile(
 
   // ========== EMERGENCY CONTACT ==========
   // If emergency contact fields provided, create/update EmergencyContact record
-  if (normalizedData.emergencyContactName) {
+  if (sanitized.emergencyContactName) {
     emergencyContactData = {
-      name: String(normalizedData.emergencyContactName).trim(),
-      phone: normalizedData.emergencyContactPhone ? String(normalizedData.emergencyContactPhone).trim() : null,
-      relationship: normalizedData.emergencyContactRelationship ? String(normalizedData.emergencyContactRelationship).trim() : null,
-      email: normalizedData.emergencyContactEmail ? String(normalizedData.emergencyContactEmail).trim() : null,
+      name: sanitized.emergencyContactName,
+      phone: sanitized.emergencyContactPhone || null,
+      relationship: sanitized.emergencyContactRelationship || null,
+      email: sanitized.emergencyContactEmail || null,
     };
     
     // Also store on User model for quick access
@@ -204,59 +404,44 @@ async function syncFormDataToProfile(
   }
 
   // ========== EMPLOYEE/PAYROLL FIELDS ==========
-  if (normalizedData.bankAccountNumber) {
-    employeeUpdate.bankAccountNumber = String(normalizedData.bankAccountNumber).trim();
+  if (sanitized.bankAccountNumber) {
+    employeeUpdate.bankAccountNumber = sanitized.bankAccountNumber;
   }
-  if (normalizedData.irdNumber) {
-    employeeUpdate.irdNumber = String(normalizedData.irdNumber).trim();
+  if (sanitized.irdNumber) {
+    employeeUpdate.irdNumber = sanitized.irdNumber;
   }
-  if (normalizedData.taxCode) {
-    employeeUpdate.taxCode = String(normalizedData.taxCode).trim().toUpperCase();
+  if (sanitized.taxCode) {
+    employeeUpdate.taxCode = sanitized.taxCode;
   }
   
   // KiwiSaver handling
-  if (normalizedData.kiwiSaverStatus) {
-    const status = String(normalizedData.kiwiSaverStatus).toLowerCase();
+  if (sanitized.kiwiSaverStatus) {
+    const status = String(sanitized.kiwiSaverStatus).toLowerCase();
     employeeUpdate.kiwiSaverEnrolled = status === "enrolled" || status === "yes" || status === "true";
   }
-  if (normalizedData.kiwiSaverEnrolled !== undefined) {
+  if (sanitized.kiwiSaverEnrolled !== undefined) {
     employeeUpdate.kiwiSaverEnrolled = 
-      normalizedData.kiwiSaverEnrolled === true || 
-      normalizedData.kiwiSaverEnrolled === "true" || 
-      normalizedData.kiwiSaverEnrolled === "yes" ||
-      normalizedData.kiwiSaverEnrolled === "enrolled";
+      sanitized.kiwiSaverEnrolled === true || 
+      sanitized.kiwiSaverEnrolled === "true" || 
+      sanitized.kiwiSaverEnrolled === "yes" ||
+      sanitized.kiwiSaverEnrolled === "enrolled";
   }
-  if (normalizedData.kiwiSaverEmployeeRate) {
-    const rate = parseFloat(normalizedData.kiwiSaverEmployeeRate);
-    if (!isNaN(rate)) {
-      employeeUpdate.kiwiSaverEmployeeRate = rate;
-    }
+  if (sanitized.kiwiSaverEmployeeRate !== undefined) {
+    employeeUpdate.kiwiSaverEmployeeRate = sanitized.kiwiSaverEmployeeRate;
   }
-  if (normalizedData.kiwiSaverEmployerRate) {
-    const rate = parseFloat(normalizedData.kiwiSaverEmployerRate);
-    if (!isNaN(rate)) {
-      employeeUpdate.kiwiSaverEmployerRate = rate;
-    }
+  if (sanitized.kiwiSaverEmployerRate !== undefined) {
+    employeeUpdate.kiwiSaverEmployerRate = sanitized.kiwiSaverEmployerRate;
   }
-  if (normalizedData.kiwiSaverContribution) {
-    const contribution = parseInt(normalizedData.kiwiSaverContribution, 10);
-    if (!isNaN(contribution)) {
-      employeeUpdate.kiwiSaverContribution = contribution;
-    }
+  if (sanitized.kiwiSaverContribution !== undefined) {
+    employeeUpdate.kiwiSaverContribution = sanitized.kiwiSaverContribution;
   }
   
   // Salary fields
-  if (normalizedData.salaryAmount) {
-    const salary = parseFloat(normalizedData.salaryAmount);
-    if (!isNaN(salary)) {
-      employeeUpdate.salaryAmount = salary;
-    }
+  if (sanitized.salaryAmount !== undefined) {
+    employeeUpdate.salaryAmount = sanitized.salaryAmount;
   }
-  if (normalizedData.hourlyRate) {
-    const rate = parseFloat(normalizedData.hourlyRate);
-    if (!isNaN(rate)) {
-      employeeUpdate.hourlyRate = rate;
-    }
+  if (sanitized.hourlyRate !== undefined) {
+    employeeUpdate.hourlyRate = sanitized.hourlyRate;
   }
 
   // ========== EXECUTE UPDATES ==========
@@ -300,6 +485,50 @@ async function syncFormDataToProfile(
       });
     }
   }
+
+  // Log audit entry for sensitive field updates
+  const sensitiveFields = ['irdNumber', 'bankAccountNumber', 'taxCode'];
+  const updatedSensitiveFields = sensitiveFields.filter(f => sanitized[f]);
+  if (updatedSensitiveFields.length > 0) {
+    console.log(`[onboarding/sync] Sensitive fields updated for employee ${employeeId}: ${updatedSensitiveFields.join(', ')}`);
+  }
+
+  return { success: true };
+}
+
+/**
+ * Validates uploaded file for document upload steps
+ */
+function validateUploadedFile(body: any): { isValid: boolean; error?: string } {
+  if (!body.fileUrl) {
+    return { isValid: false, error: 'File URL is required' };
+  }
+
+  // Validate file type if provided
+  if (body.fileType && !ALLOWED_FILE_TYPES.includes(body.fileType)) {
+    return { 
+      isValid: false, 
+      error: `Invalid file type: ${body.fileType}. Allowed types: PDF, PNG, JPG, DOCX` 
+    };
+  }
+
+  // Validate file size if provided
+  if (body.fileSize && body.fileSize > MAX_FILE_SIZE) {
+    return { 
+      isValid: false, 
+      error: `File too large: ${Math.round(body.fileSize / 1024 / 1024)}MB. Maximum size: 10MB` 
+    };
+  }
+
+  // Validate file name
+  if (body.fileName) {
+    const sanitizedName = body.fileName.replace(/[<>:"/\\|?*]/g, '');
+    if (sanitizedName.length > 255) {
+      return { isValid: false, error: 'File name too long (max 255 characters)' };
+    }
+  }
+
+  return { isValid: true };
 }
 
 function extractCompletionPayload(body: any, stepType?: string): CompletionPayload | null {
@@ -449,42 +678,91 @@ export async function POST(
       (completionPayload?.payrollValues as Record<string, any>) ||
       null;
 
+    let syncResult: { success: boolean; errors?: { field: string; message: string }[] } | null = null;
     if (formDataToSync && typeof formDataToSync === "object") {
       try {
-        await syncFormDataToProfile(
+        syncResult = await syncFormDataToProfile(
           formDataToSync,
           onboardingEmployee.id,
           onboardingUser.id,
           session.user.companyId
         );
+        
+        if (!syncResult.success && syncResult.errors) {
+          console.warn(`[onboarding/complete] Form data validation errors for step ${stepId}:`, syncResult.errors);
+          // Don't fail the step completion, but log the validation errors
+        }
       } catch (syncError) {
         // Log but don't fail the step completion if sync fails
         console.error("Error syncing form data to profile:", syncError);
       }
     }
 
-    // 4. (Optional) Handle uploaded file - link to Document table if you have fileUrl
+    // 4. Handle uploaded file - validate and link to Document table
     if (body.fileUrl) {
-      // You already have Document model; insert a new document and associate it to this step
-      await prisma.document.create({
+      // Validate the uploaded file
+      const fileValidation = validateUploadedFile(body);
+      if (!fileValidation.isValid) {
+        return NextResponse.json({ 
+          error: fileValidation.error,
+          code: 'INVALID_FILE'
+        }, { status: 400 });
+      }
+
+      // Sanitize file name
+      const sanitizedFileName = (body.fileName || "Uploaded Document")
+        .replace(/[<>:"/\\|?*]/g, '')
+        .slice(0, 255);
+
+      // Create document and link to onboarding step
+      const document = await prisma.document.create({
         data: {
           id: `document_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          name: body.fileName || "Uploaded Document",
+          name: sanitizedFileName,
           url: body.fileUrl,
           path: body.filePath || body.fileUrl,
           size: body.fileSize || 0,
           type: body.fileType || "other",
           employeeId: onboardingEmployee.id,
           uploaderId: session.user.id,
-          companyId: session.user.companyId, // use validated tenant context
-          // ...other fields
+          companyId: session.user.companyId,
         },
       });
+
+      // Store document reference in step response for traceability
+      await prisma.onboardingStepResponse.create({
+        data: {
+          id: `doc_response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          onboardingStepInstanceId: stepId,
+          response: {
+            documentId: document.id,
+            documentName: sanitizedFileName,
+            uploadedAt: new Date().toISOString(),
+            fileType: body.fileType || "other",
+            fileSize: body.fileSize || 0,
+          } as any,
+        },
+      });
+
+      console.log(`[onboarding/complete] Document ${document.id} uploaded and linked to step ${stepId}`);
     }
 
-    // 5. (Optional) Log to audit table here
+    // 5. Check if all steps are completed and update onboarding instance status
+    const onboardingInstanceId = stepInstance.OnboardingInstance?.id;
+    let onboardingCompleted = false;
+    if (onboardingInstanceId) {
+      const completionResult = await checkAndUpdateOnboardingCompletion(onboardingInstanceId);
+      onboardingCompleted = completionResult.completed;
+    }
 
-    return NextResponse.json({ ok: true });
+    // 6. Log audit entry
+    console.log(`[onboarding/complete] Step ${stepId} completed by user ${session.user.id}`);
+
+    return NextResponse.json({ 
+      ok: true,
+      onboardingCompleted,
+      syncErrors: syncResult?.errors || null,
+    });
   } catch (err: any) {
     console.error("Error completing onboarding step:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

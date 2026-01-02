@@ -21,6 +21,9 @@ export interface LeaveEventExtendedProps {
   categoryName?: string | null;
   categoryIconKey?: string | null;
   eventCategoryId?: string | null;
+  // Original dates for display (YYYY-MM-DD format)
+  startDateStr?: string;
+  endDateStr?: string;
   employee?: {
     id: string;
     name?: string | null;
@@ -264,11 +267,29 @@ export function mapLeaveRequestToEvent(
     }
   }
 
+  // Parse dates and format for FullCalendar
+  // FullCalendar uses EXCLUSIVE end dates for all-day events
+  // So if leave is 25th-27th, we need to pass end as 28th
+  const startDate = typeof leave.startDate === "string" ? new Date(leave.startDate) : leave.startDate;
+  const endDate = typeof leave.endDate === "string" ? new Date(leave.endDate) : leave.endDate;
+  
+  // Format date as YYYY-MM-DD to avoid timezone issues
+  const formatDateLocal = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  // Add 1 day for exclusive end (FullCalendar convention for all-day events)
+  const exclusiveEndDate = new Date(endDate);
+  exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
+
   return {
     id: leave.id,
     title: employeeInfo?.name || categoryName,
-    start: typeof leave.startDate === "string" ? leave.startDate : leave.startDate.toISOString(),
-    end: typeof leave.endDate === "string" ? leave.endDate : leave.endDate.toISOString(),
+    start: formatDateLocal(startDate),
+    end: formatDateLocal(exclusiveEndDate),
     allDay: true,
     backgroundColor,
     borderColor,
@@ -285,6 +306,9 @@ export function mapLeaveRequestToEvent(
       categoryIconKey,
       eventCategoryId: category?.id,
       employee: employeeInfo,
+      // Store original dates for display in detail views
+      startDateStr: formatDateLocal(startDate),
+      endDateStr: formatDateLocal(endDate),
     } satisfies LeaveEventExtendedProps,
   };
 }

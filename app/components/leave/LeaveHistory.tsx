@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import SectionHeading from "@/components/ui/SectionHeading";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface LeaveRequest {
   id: string;
@@ -14,12 +15,13 @@ interface LeaveRequest {
 }
 
 export default function LeaveHistory() {
+  const tenantFetch = useTenantFetch();
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchRequests = () => {
-    fetch("/api/leave-request")
+    tenantFetch("/api/leave-request")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load leave requests");
         return res.json();
@@ -45,7 +47,7 @@ export default function LeaveHistory() {
 
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/leave-request/${id}`, {
+      const res = await tenantFetch(`/api/leave-request/${id}`, {
         method: "DELETE",
       });
 

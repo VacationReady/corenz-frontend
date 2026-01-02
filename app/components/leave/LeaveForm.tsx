@@ -14,12 +14,14 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { CalendarDays, Calendar, Sparkles, AlertCircle } from "lucide-react";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface LeaveFormProps {
   onSuccess?: () => void;
 }
 
 export default function LeaveForm({ onSuccess }: LeaveFormProps) {
+  const tenantFetch = useTenantFetch();
   const [type, setType] = useState("ANNUAL");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -32,7 +34,7 @@ export default function LeaveForm({ onSuccess }: LeaveFormProps) {
     setError("");
 
     try {
-      const res = await fetch("/api/leave-request", {
+      const res = await tenantFetch("/api/leave-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, startDate, endDate }),

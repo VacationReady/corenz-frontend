@@ -90,3 +90,39 @@ export function subtractWithPrecision(a: number, b: number): number {
   return roundToTwoDecimals(a - b);
 }
 
+/**
+ * Rounds a leave balance value to the nearest 0.25 increment with max 2 decimal places.
+ * This ensures leave values are always in quarter-day increments (0, 0.25, 0.5, 0.75, 1, etc.)
+ * 
+ * @param value - The leave balance value to round
+ * @returns The value rounded to nearest 0.25 increment
+ * 
+ * @example
+ * roundLeaveBalance(3.6999999) // 3.75
+ * roundLeaveBalance(3.1) // 3.0
+ * roundLeaveBalance(3.13) // 3.25
+ * roundLeaveBalance(3.37) // 3.25
+ * roundLeaveBalance(3.38) // 3.5
+ */
+export function roundLeaveBalance(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(value * 4) / 4;
+}
+
+/**
+ * Formats a leave balance for display - rounds to 2 decimal places max.
+ * Use this for displaying leave values in the UI.
+ * 
+ * @param value - The leave balance value to format
+ * @returns The value rounded to 2 decimal places
+ * 
+ * @example
+ * formatLeaveBalance(3.6999999) // 3.7
+ * formatLeaveBalance(12.5) // 12.5
+ * formatLeaveBalance(10.123) // 10.12
+ */
+export function formatLeaveBalance(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return roundToTwoDecimals(value);
+}
+

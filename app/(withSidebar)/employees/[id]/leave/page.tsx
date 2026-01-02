@@ -692,7 +692,7 @@ function LeavePageContent() {
     }
 
     try {
-      const res = await fetch(`/api/leave-request/${selectedEvent.leaveRequestId}`, {
+      const res = await tenantFetch(`/api/leave-request/${selectedEvent.leaveRequestId}`, {
         method: "DELETE",
       });
 
@@ -1068,6 +1068,55 @@ function LeavePageContent() {
                   );
                 })()}
               </div>
+
+              {/* Dates */}
+              {selectedEvent.startDateStr && (
+                <div className="p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CalendarDays className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">Date Range</span>
+                  </div>
+                  {(() => {
+                    const startDate = new Date(selectedEvent.startDateStr + 'T00:00:00');
+                    const endDate = selectedEvent.endDateStr 
+                      ? new Date(selectedEvent.endDateStr + 'T00:00:00')
+                      : startDate;
+                    const isSingleDay = selectedEvent.startDateStr === selectedEvent.endDateStr;
+                    
+                    // Calculate duration
+                    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    const duration = selectedEvent.dayType === "HALF_DAY_AM" || selectedEvent.dayType === "HALF_DAY_PM"
+                      ? "0.5 day"
+                      : `${diffDays} day${diffDays === 1 ? "" : "s"}`;
+                    
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            {isSingleDay ? "Date" : "From"}
+                          </span>
+                          <span className="font-medium">
+                            {format(startDate, "EEE, d MMM yyyy")}
+                          </span>
+                        </div>
+                        {!isSingleDay && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">To</span>
+                            <span className="font-medium">
+                              {format(endDate, "EEE, d MMM yyyy")}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between pt-2 border-t border-muted/30">
+                          <span className="text-sm text-muted-foreground">Duration</span>
+                          <span className="font-semibold text-primary">{duration}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
 
               {/* Day Type */}
               {selectedEvent.dayType && (

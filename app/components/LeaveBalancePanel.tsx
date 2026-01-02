@@ -14,7 +14,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Info } from "lucide-react";
-import { roundToTwoDecimals } from "@/lib/decimalPrecision";
+import { roundToTwoDecimals, subtractWithPrecision } from "@/lib/decimalPrecision";
 
 interface LeaveEntitlement extends PrismaEntitlement {
   eventCategory: EventCategory;
@@ -76,9 +76,9 @@ export default function LeaveBalancePanel({
         {entitlements && entitlements.length > 0 ? (
           entitlements.map((entitlement) => {
             // Round to 2 decimal places for display (NZ HRIS requirement)
-            const remainingDays = roundToTwoDecimals(entitlement.totalDays - entitlement.usedDays);
+            const remainingDays = roundToTwoDecimals(subtractWithPrecision(entitlement.totalDays, entitlement.usedDays));
             const carryoverDays = roundToTwoDecimals(entitlement.carryoverDays ?? 0);
-            const standardEntitlement = roundToTwoDecimals(entitlement.totalDays - carryoverDays);
+            const standardEntitlement = roundToTwoDecimals(subtractWithPrecision(entitlement.totalDays, carryoverDays));
             const usedDays = roundToTwoDecimals(entitlement.usedDays);
 
             return (

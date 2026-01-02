@@ -39,6 +39,7 @@ import {
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { useLeaveSuccess } from "@/components/animations";
 import LeaveRuleOverrideDialog, { LeaveValidationWarning } from "@/components/leave/LeaveRuleOverrideDialog";
+import { formatLeaveBalance } from "@/lib/decimalPrecision";
 
 interface SickLeaveData {
   availableDays: number;
@@ -434,7 +435,7 @@ export default function AddLeaveRequestDialog({
     setValidationWarnings([]);
   };
 
-  const totalDeducted = Math.max(0, deduction).toFixed(1);
+  const totalDeducted = formatLeaveBalance(Math.max(0, deduction));
   const selectedCategory = categories.find((cat) => cat.id === type);
   
   // Determine if submit should be disabled

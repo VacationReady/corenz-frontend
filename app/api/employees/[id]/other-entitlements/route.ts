@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { isAdminOrManager } from "@/lib/roles";
+import { formatLeaveBalance, subtractWithPrecision } from "@/lib/decimalPrecision";
 
 export const runtime = "nodejs";
 
@@ -133,7 +134,7 @@ export async function GET(
         });
       }
 
-      const remaining = Math.max(0, entitlement.totalDays - entitlement.usedDays);
+      const remaining = formatLeaveBalance(Math.max(0, subtractWithPrecision(entitlement.totalDays, entitlement.usedDays)));
       categoryEntitlements.push({
         id: entitlement.id,
         name: category.name,
@@ -143,8 +144,8 @@ export async function GET(
         // Mark as category-based so UI can distinguish
         isEventCategory: true,
         eventCategoryId: category.id,
-        totalDays: entitlement.totalDays,
-        usedDays: entitlement.usedDays,
+        totalDays: formatLeaveBalance(entitlement.totalDays),
+        usedDays: formatLeaveBalance(entitlement.usedDays),
       });
     }
 
@@ -493,7 +494,7 @@ export async function PUT(
 
     const updatedCategoryEntitlements = balanceRequiredCategories.map((category) => {
       const entitlement = entitlementByCategory.get(category.id);
-      const remaining = entitlement ? Math.max(0, entitlement.totalDays - entitlement.usedDays) : 0;
+      const remaining = entitlement ? formatLeaveBalance(Math.max(0, subtractWithPrecision(entitlement.totalDays, entitlement.usedDays))) : 0;
       return {
         id: entitlement?.id ?? category.id,
         name: category.name,
@@ -502,8 +503,8 @@ export async function PUT(
         notes: null,
         isEventCategory: true,
         eventCategoryId: category.id,
-        totalDays: entitlement?.totalDays ?? 0,
-        usedDays: entitlement?.usedDays ?? 0,
+        totalDays: formatLeaveBalance(entitlement?.totalDays ?? 0),
+        usedDays: formatLeaveBalance(entitlement?.usedDays ?? 0),
       };
     });
 

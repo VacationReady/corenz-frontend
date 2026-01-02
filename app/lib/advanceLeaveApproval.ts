@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ApprovalStatus, ApprovalStageMode } from "@prisma/client";
 import { notifyApproversForStage, notifyRequesterStatusChange } from "./approvalNotifications";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
-import { roundToTwoDecimals, addWithPrecision } from "@/lib/decimalPrecision";
+import { roundToTwoDecimals, addWithPrecision, subtractWithPrecision, formatLeaveBalance } from "@/lib/decimalPrecision";
 import { recordSickLeaveUsage, applySickLeaveGrants, daysToHours } from "@/lib/leave/nz-sick-leave-ledger";
 
 async function _activateNextApproverSequential(stageId: string) {
@@ -286,7 +286,7 @@ export async function processDecision({
           },
         });
 
-        if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
+        if (!entitlement || subtractWithPrecision(entitlement.totalDays, entitlement.usedDays) < totalDeduction) {
           throw new Error("Insufficient leave balance.");
         }
 

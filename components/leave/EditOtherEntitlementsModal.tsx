@@ -231,7 +231,7 @@ export default function EditOtherEntitlementsModal({
                             </Label>
                             <Input
                               type="number"
-                              step="0.5"
+                              step="0.25"
                               min="0"
                               value={entitlement.balance}
                               onChange={(e) =>

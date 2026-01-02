@@ -7,6 +7,7 @@ import { CalendarCheck2 } from "lucide-react";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 import { useSession } from "next-auth/react";
 import { isAdminOrManager as isAdminOrManagerHelper } from "@/lib/roles";
+import { formatLeaveBalance, subtractWithPrecision } from "@/lib/decimalPrecision";
 
 type LeaveEntitlement = {
   id: string;
@@ -33,9 +34,9 @@ export default function LeaveSummaryCard({
   const [modalOpen, setModalOpen] = useState(false);
   const isAdminOrManager = isAdminOrManagerHelper(session);
 
-  const totalAllowance = entitlements.reduce((acc, e) => acc + e.totalDays, 0);
-  const totalTaken = entitlements.reduce((acc, e) => acc + e.usedDays, 0);
-  const totalRemaining = totalAllowance - totalTaken;
+  const totalAllowance = formatLeaveBalance(entitlements.reduce((acc, e) => acc + e.totalDays, 0));
+  const totalTaken = formatLeaveBalance(entitlements.reduce((acc, e) => acc + e.usedDays, 0));
+  const totalRemaining = formatLeaveBalance(subtractWithPrecision(totalAllowance, totalTaken));
 
   return (
     <Card>

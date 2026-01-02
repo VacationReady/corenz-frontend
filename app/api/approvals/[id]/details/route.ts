@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
+import { formatLeaveBalance, subtractWithPrecision } from "@/lib/decimalPrecision";
 
 export const runtime = "nodejs";
 
@@ -128,13 +129,15 @@ export async function GET(
       dayDeductions.push({ date: currentDate.toISOString(), deduction });
       requestedDays += deduction;
     }
+    // Format requestedDays to avoid floating point precision issues
+    requestedDays = formatLeaveBalance(requestedDays);
     
     console.log(`[APPROVAL_DETAILS] Day deductions:`, dayDeductions);
     console.log(`[APPROVAL_DETAILS] Total requestedDays:`, requestedDays);
 
     // Calculate remaining days if approved
     const remainingDaysIfApproved = entitlement
-      ? entitlement.totalDays - entitlement.usedDays - requestedDays
+      ? subtractWithPrecision(subtractWithPrecision(entitlement.totalDays, entitlement.usedDays), requestedDays)
       : null;
 
     // Find other employees in the same department who are off during these dates
@@ -251,10 +254,10 @@ export async function GET(
       },
       balance: entitlement
         ? {
-            totalDays: entitlement.totalDays,
-            usedDays: entitlement.usedDays,
-            remainingDays: entitlement.totalDays - entitlement.usedDays,
-            remainingAfterApproval: remainingDaysIfApproved,
+            totalDays: formatLeaveBalance(entitlement.totalDays),
+            usedDays: formatLeaveBalance(entitlement.usedDays),
+            remainingDays: formatLeaveBalance(subtractWithPrecision(entitlement.totalDays, entitlement.usedDays)),
+            remainingAfterApproval: formatLeaveBalance(remainingDaysIfApproved ?? 0),
           }
         : null,
       departmentColleagues: departmentColleagues.map((colleague) => ({

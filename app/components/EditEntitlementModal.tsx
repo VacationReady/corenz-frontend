@@ -133,10 +133,10 @@ export default function EditEntitlementModal({
               <Input
                 type="number"
                 min={0}
-                step={0.01}
+                step={0.25}
                 value={entitlements[category.id] ?? ""}
                 onChange={(e) => handleChange(category.id, e.target.value)}
-                title="Maximum 2 decimal places allowed"
+                title="Leave values should be in 0.25 day increments"
               />
             </label>
           ))}

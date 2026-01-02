@@ -75,6 +75,7 @@ import {
   formatTenantDate,
   type TenantTimeSettings,
 } from "@/lib/calendar/timezone";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 import {
   dateKey,
   utcDateKey,
@@ -206,6 +207,7 @@ function StatCard({ icon, label, value, subtext, gradient, iconBg, delay = 0 }: 
 }
 
 function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
+  const tenantFetch = useTenantFetch();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
@@ -847,7 +849,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                   e.stopPropagation();
                   if (confirm("Delete this leave request? This action cannot be undone.")) {
                     try {
-                      const res = await fetch(`/api/leave-request/${leaveRequestId}`, {
+                      const res = await tenantFetch(`/api/leave-request/${leaveRequestId}`, {
                         method: "DELETE",
                       });
                       if (!res.ok) {
@@ -905,7 +907,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                     e.stopPropagation();
                     if (confirm("Delete this leave request? This action cannot be undone.")) {
                       try {
-                        const res = await fetch(`/api/leave-request/${leaveRequestId}`, {
+                        const res = await tenantFetch(`/api/leave-request/${leaveRequestId}`, {
                           method: "DELETE",
                         });
                         if (!res.ok) {
@@ -1572,7 +1574,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                           onClick={async () => {
                             if (confirm("Delete this leave request? This action cannot be undone.")) {
                               try {
-                                const res = await fetch(`/api/leave-request/${ev.id}`, {
+                                const res = await tenantFetch(`/api/leave-request/${ev.id}`, {
                                   method: "DELETE",
                                 });
                                 if (!res.ok) {

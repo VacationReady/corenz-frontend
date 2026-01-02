@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import LeaveBalanceClientWidget from "./LeaveBalanceClientWidget";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { CalendarCheck2 } from "lucide-react";
+import { formatLeaveBalance } from "@/lib/decimalPrecision";
 
 interface LeaveBalanceWidgetProps {
   employeeId: string;
@@ -37,9 +38,9 @@ export default async function LeaveBalanceWidget({
   const serializedEntitlements = employee.LeaveEntitlement.map(
     (entitlement) => ({
       id: entitlement.id,
-      totalDays: entitlement.totalDays,
-      usedDays: entitlement.usedDays,
-      carryoverDays: entitlement.carryoverDays ?? 0,
+      totalDays: formatLeaveBalance(entitlement.totalDays),
+      usedDays: formatLeaveBalance(entitlement.usedDays),
+      carryoverDays: formatLeaveBalance(entitlement.carryoverDays ?? 0),
       eventCategory: {
         id: entitlement.EventCategory.id,
         name: entitlement.EventCategory.name,

@@ -456,7 +456,7 @@ export default function AdminDashboardClient({
     if (!currentDetail) return;
 
     try {
-      await fetch(`/api/leave-request/${currentDetail.id}`, {
+      await tenantFetch(`/api/leave-request/${currentDetail.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(

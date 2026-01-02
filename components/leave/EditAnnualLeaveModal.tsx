@@ -24,6 +24,7 @@ import Button from '@/components/ui/Button';
 import { useToast } from '@/hooks/use-toast';
 import { useTenantFetch } from '@/hooks/useTenantFetch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { formatLeaveBalance } from '@/lib/decimalPrecision';
 
 interface EditAnnualLeaveModalProps {
   isOpen: boolean;
@@ -50,7 +51,7 @@ export default function EditAnnualLeaveModal({
   // Initialize balance when modal opens
   useEffect(() => {
     if (isOpen) {
-      setBalanceDays(currentBalance.toFixed(1));
+      setBalanceDays(formatLeaveBalance(currentBalance).toString());
       setReason('');
       setError(null);
     }
@@ -142,11 +143,11 @@ export default function EditAnnualLeaveModal({
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Current balance: <strong>{currentBalance.toFixed(1)} days</strong>
+              Current balance: <strong>{formatLeaveBalance(currentBalance)} days</strong>
               {hasChanges && (
                 <span className={balanceChange > 0 ? 'text-green-600' : 'text-red-600'}>
-                  {' '}→ {balanceDays ? parseFloat(balanceDays).toFixed(1) : '0.0'} days
-                  {' '}({balanceChange > 0 ? '+' : ''}{balanceChange.toFixed(1)} days)
+                  {' '}→ {balanceDays ? formatLeaveBalance(parseFloat(balanceDays)) : '0'} days
+                  {' '}({balanceChange > 0 ? '+' : ''}{formatLeaveBalance(balanceChange)} days)
                 </span>
               )}
             </AlertDescription>
@@ -160,7 +161,7 @@ export default function EditAnnualLeaveModal({
             <Input
               id="balance"
               type="number"
-              step="0.5"
+              step="0.25"
               min="0"
               max="200"
               value={balanceDays}
@@ -169,7 +170,7 @@ export default function EditAnnualLeaveModal({
               disabled={loading}
             />
             <p className="text-xs text-muted-foreground">
-              Enter the new balance in days (e.g., 15.0 for 15 days)
+              Enter the new balance in days (in 0.25 day increments)
             </p>
           </div>
 

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
+import { formatLeaveBalance } from "@/lib/decimalPrecision";
 
 interface HolidayApprovalModalProps {
   decisionId: string | null;
@@ -281,12 +282,12 @@ export function HolidayApprovalModal({
                   </div>
                   <div className="grid grid-cols-4 gap-2">
                     {[
-                      { label: "Allowance", value: details.balance.totalDays, color: "text-slate-700 dark:text-slate-200" },
-                      { label: "Used", value: details.balance.usedDays, color: "text-slate-700 dark:text-slate-200" },
-                      { label: "Current", value: details.balance.remainingDays, color: "text-sky-600 dark:text-sky-400" },
+                      { label: "Allowance", value: formatLeaveBalance(details.balance.totalDays), color: "text-slate-700 dark:text-slate-200" },
+                      { label: "Used", value: formatLeaveBalance(details.balance.usedDays), color: "text-slate-700 dark:text-slate-200" },
+                      { label: "Current", value: formatLeaveBalance(details.balance.remainingDays), color: "text-sky-600 dark:text-sky-400" },
                       { 
                         label: "After", 
-                        value: details.balance.remainingAfterApproval, 
+                        value: formatLeaveBalance(details.balance.remainingAfterApproval), 
                         color: details.balance.remainingAfterApproval < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
                       },
                     ].map((item) => (
@@ -307,7 +308,7 @@ export function HolidayApprovalModal({
                       </div>
                       <p className="text-xs text-rose-700 dark:text-rose-300 leading-relaxed">
                         <strong className="font-semibold">Negative balance warning:</strong> Approving will result in{" "}
-                        <span className="font-bold">{Math.abs(details.balance.remainingAfterApproval)}</span> days deficit.
+                        <span className="font-bold">{formatLeaveBalance(Math.abs(details.balance.remainingAfterApproval))}</span> days deficit.
                       </p>
                     </div>
                   )}

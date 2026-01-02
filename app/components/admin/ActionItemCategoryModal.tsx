@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { getIconConfigFromType } from "@/lib/action-item-icons";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface ActionItemWithDetails {
   id: string;
@@ -123,6 +124,7 @@ export function ActionItemCategoryModal({
   onRefresh,
 }: ActionItemCategoryModalProps) {
   const router = useRouter();
+  const tenantFetch = useTenantFetch();
   const [items, setItems] = useState<ActionItemWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -164,7 +166,7 @@ export function ActionItemCategoryModal({
       if (item.type.includes("LEAVE")) {
         const leaveRequestId = item.metadata?.leaveRequestId;
         if (leaveRequestId) {
-          const response = await fetch(`/api/leave-request/${leaveRequestId}`, {
+          const response = await tenantFetch(`/api/leave-request/${leaveRequestId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "approve" }),
@@ -172,7 +174,7 @@ export function ActionItemCategoryModal({
           
           if (response.ok) {
             // Mark action item as completed
-            await fetch(`/api/action-items/${item.id}/complete`, {
+            await tenantFetch(`/api/action-items/${item.id}/complete`, {
               method: "POST",
             });
             toast.success("Leave request approved");
@@ -184,7 +186,7 @@ export function ActionItemCategoryModal({
         }
       } else {
         // Generic approval endpoint
-        const response = await fetch(`/api/action-items/${item.id}/approve`, {
+        const response = await tenantFetch(`/api/action-items/${item.id}/approve`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "approve" }),
@@ -221,7 +223,7 @@ export function ActionItemCategoryModal({
       if (item.type.includes("LEAVE")) {
         const leaveRequestId = item.metadata?.leaveRequestId;
         if (leaveRequestId) {
-          const response = await fetch(`/api/leave-request/${leaveRequestId}`, {
+          const response = await tenantFetch(`/api/leave-request/${leaveRequestId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "decline", reason: declineReason }),
@@ -229,7 +231,7 @@ export function ActionItemCategoryModal({
           
           if (response.ok) {
             // Mark action item as completed
-            await fetch(`/api/action-items/${item.id}/complete`, {
+            await tenantFetch(`/api/action-items/${item.id}/complete`, {
               method: "POST",
             });
             toast.success("Leave request declined");
@@ -241,7 +243,7 @@ export function ActionItemCategoryModal({
         }
       } else {
         // Generic decline endpoint
-        const response = await fetch(`/api/action-items/${item.id}/decline`, {
+        const response = await tenantFetch(`/api/action-items/${item.id}/decline`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ reason: declineReason }),

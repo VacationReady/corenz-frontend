@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
+import { formatLeaveBalance } from "@/lib/decimalPrecision";
 
 export async function GET(
   req: NextRequest,
@@ -30,5 +31,6 @@ export async function GET(
     deduction += await calculateLeaveDeduction(employeeId, currentDate);
   }
 
-  return NextResponse.json({ deduction });
+  // Format to 2 decimal places to avoid floating point precision issues
+  return NextResponse.json({ deduction: formatLeaveBalance(deduction) });
 }

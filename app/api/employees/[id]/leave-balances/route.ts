@@ -5,6 +5,7 @@ import {
   canAccessLeaveRequests,
   createAuthContext,
 } from "@/lib/authz";
+import { formatLeaveBalance, subtractWithPrecision } from "@/lib/decimalPrecision";
 
 export const runtime = "nodejs";
 
@@ -197,7 +198,7 @@ export async function GET(
 
     // Add entitlements from LeaveEntitlement table (including auto-created ones)
     for (const ent of allEntitlements) {
-      const remaining = Math.max(0, ent.totalDays - ent.usedDays);
+      const remaining = formatLeaveBalance(Math.max(0, subtractWithPrecision(ent.totalDays, ent.usedDays)));
       balances.push({
         id: ent.id,
         type: "entitlement",
@@ -205,10 +206,10 @@ export async function GET(
         categoryName: ent.EventCategory.name,
         categoryIconKey: ent.EventCategory.iconKey ?? null,
         remaining,
-        used: ent.usedDays,
-        total: ent.totalDays,
+        used: formatLeaveBalance(ent.usedDays),
+        total: formatLeaveBalance(ent.totalDays),
         pending: pendingCountMap.get(ent.eventCategoryId) ?? 0,
-        carryover: ent.carryoverDays,
+        carryover: formatLeaveBalance(ent.carryoverDays),
         carryoverExpiry: (ent as any).carryoverExpiry?.toISOString() ?? null,
       });
     }
@@ -222,7 +223,7 @@ export async function GET(
     if (!hasSickEntitlement && employee.sickLeaveBalance !== null) {
       const sickBalance = Number(employee.sickLeaveBalance);
       // Convert hours to days (8 hours per day per NZ standard)
-      const sickDays = sickBalance / 8;
+      const sickDays = formatLeaveBalance(sickBalance / 8);
       
       // Calculate used sick leave from ledger USAGE entries
       const sickLeaveUsage = await prisma.leaveBalanceLedger.aggregate({
@@ -237,7 +238,7 @@ export async function GET(
       });
       // deltaHours is negative for usage, so we negate to get positive used value
       const usedHours = Math.abs(Number(sickLeaveUsage._sum.deltaHours || 0));
-      const usedDays = usedHours / 8;
+      const usedDays = formatLeaveBalance(usedHours / 8);
       
       // Count pending sick leave requests
       const pendingSickCount = await prisma.leaveRequest.count({
@@ -273,7 +274,7 @@ export async function GET(
     if (!hasAnnualEntitlement && employee.annualLeaveBalance !== null) {
       const annualBalance = Number(employee.annualLeaveBalance);
       // Convert hours to days (8 hours per day per NZ standard)
-      const annualDays = annualBalance / 8;
+      const annualDays = formatLeaveBalance(annualBalance / 8);
       balances.push({
         id: `stored-annual-${employeeId}`,
         type: "stored",

@@ -181,6 +181,8 @@ model Company {
   publicHolidayRegion                 String?
   // Calendar visibility settings
   calendarEmployeeScope               CalendarEmployeeScope                 @default(DEPARTMENT)
+  // Custom document categories (JSON array of strings)
+  documentCategories                  Json?
   ApprovalWorkflow                    ApprovalWorkflow[]
   AutomationExecution                 AutomationExecution[]
   AutomationJob                       AutomationJob[]

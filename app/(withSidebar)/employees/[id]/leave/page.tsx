@@ -127,6 +127,17 @@ function SickLeaveCard({
 }: {
   sickLeaveStatus: SickLeaveStatus;
 }) {
+  // Format date for display (e.g., "15 Jul 2025")
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" });
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -142,15 +153,16 @@ function SickLeaveCard({
       </div>
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div>
-          <span className="text-muted-foreground text-xs">Available</span>
+          <span className="text-muted-foreground text-xs">Remaining</span>
           <p className="font-semibold text-lg text-red-600 dark:text-red-400">{sickLeaveStatus.availableDays}</p>
         </div>
         <div>
-          <span className="text-muted-foreground text-xs">Cap</span>
-          <p className="font-medium">{sickLeaveStatus.capDays}</p>
+          <span className="text-muted-foreground text-xs">Used</span>
+          <p className="font-medium">{sickLeaveStatus.capDays - sickLeaveStatus.availableDays}</p>
         </div>
       </div>
-      <div className="mt-2 pt-2 border-t border-red-200/20 dark:border-red-800/20">
+      {/* Sick leave renewal/eligibility info */}
+      <div className="mt-2 pt-2 border-t border-red-200/20 dark:border-red-800/20 space-y-1">
         <div className="flex items-center gap-2 text-xs">
           {sickLeaveStatus.isEligibleToday ? (
             <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
@@ -159,12 +171,24 @@ function SickLeaveCard({
             </span>
           ) : sickLeaveStatus.eligibleFrom ? (
             <span className="text-amber-600 dark:text-amber-400">
-              Eligible from {sickLeaveStatus.eligibleFrom}
+              Eligible from {formatDate(sickLeaveStatus.eligibleFrom)}
             </span>
           ) : (
             <span className="text-muted-foreground">Not eligible</span>
           )}
         </div>
+        {/* Show next grant date when eligible */}
+        {sickLeaveStatus.isEligibleToday && sickLeaveStatus.nextGrantDate && (
+          <p className="text-xs text-muted-foreground">
+            Renews {formatDate(sickLeaveStatus.nextGrantDate)}
+          </p>
+        )}
+        {/* Show when 10 days will be granted for not-yet-eligible employees */}
+        {!sickLeaveStatus.isEligibleToday && sickLeaveStatus.eligibleFrom && (
+          <p className="text-xs text-muted-foreground">
+            10 days granted on {formatDate(sickLeaveStatus.eligibleFrom)}
+          </p>
+        )}
       </div>
     </motion.div>
   );
@@ -237,14 +261,28 @@ function BalanceCard({
   balance,
   index,
   onEdit,
+  sickLeaveStatus,
 }: {
   balance: BalanceItem;
   index: number;
   onEdit?: () => void;
+  sickLeaveStatus?: SickLeaveStatus | null;
 }) {
   const Icon = getEventCategoryIcon(balance.categoryIconKey);
   const hasTotal = balance.total !== null;
   const isAnnualLeave = balance.categoryName.toLowerCase().includes('annual');
+  const isSickLeave = balance.categoryName.toLowerCase().includes('sick');
+  
+  // Format date for display (e.g., "15 Jul 2025")
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" });
+    } catch {
+      return null;
+    }
+  };
   
   return (
     <motion.div
@@ -290,8 +328,27 @@ function BalanceCard({
           </div>
         )}
       </div>
-      {balance.pending > 0 && (
+      {/* Sick leave renewal/eligibility info */}
+      {isSickLeave && sickLeaveStatus && (
         <div className="mt-2 pt-2 border-t border-muted/30">
+          {sickLeaveStatus.isEligibleToday ? (
+            sickLeaveStatus.nextGrantDate && (
+              <p className="text-xs text-muted-foreground">
+                Renews {formatDate(sickLeaveStatus.nextGrantDate)}
+              </p>
+            )
+          ) : sickLeaveStatus.eligibleFrom ? (
+            <p className="text-xs text-muted-foreground">
+              10 days granted on {formatDate(sickLeaveStatus.eligibleFrom)}
+            </p>
+          ) : null}
+        </div>
+      )}
+      {balance.pending > 0 && (
+        <div className={cn(
+          "mt-2 pt-2 border-t border-muted/30",
+          isSickLeave && sickLeaveStatus && (sickLeaveStatus.isEligibleToday || sickLeaveStatus.eligibleFrom) && "mt-1 pt-1 border-t-0"
+        )}>
           <span className="text-xs text-amber-600 dark:text-amber-400">
             {balance.pending} pending request{balance.pending > 1 ? "s" : ""}
           </span>
@@ -801,6 +858,7 @@ function LeavePageContent() {
                   balance={balance} 
                   index={index} 
                   onEdit={balance.categoryName.toLowerCase().includes('annual') ? handleEditAnnualLeave : undefined}
+                  sickLeaveStatus={balance.categoryName.toLowerCase().includes('sick') ? sickLeaveStatus : undefined}
                 />
               ))}
               <OtherEntitlementsCard 

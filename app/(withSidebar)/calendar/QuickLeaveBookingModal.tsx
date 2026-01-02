@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,7 @@ import {
   ChevronDown,
   Building2,
   Info,
+  AlertTriangle,
 } from "lucide-react";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
@@ -114,9 +115,48 @@ export default function QuickLeaveBookingModal({
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
   const [validationWarnings, setValidationWarnings] = useState<LeaveValidationWarning[]>([]);
   const [isOverrideLoading, setIsOverrideLoading] = useState(false);
+  
+  // Discard confirmation dialog state
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  
+  // Track previous open state to detect close transitions
+  const prevOpenRef = useRef(open);
+
+  // Check if form has any user-entered data (dirty state)
+  const hasUnsavedChanges = useCallback(() => {
+    return !!(selectedEmployee || selectedCategory || reason || sickReason);
+  }, [selectedEmployee, selectedCategory, reason, sickReason]);
+
+  // Handle close with confirmation if form has data
+  const handleClose = useCallback(() => {
+    if (loading) return;
+    
+    if (hasUnsavedChanges()) {
+      setShowDiscardDialog(true);
+    } else {
+      setOpen(false);
+    }
+  }, [loading, hasUnsavedChanges, setOpen]);
+
+  // Confirm discard and close
+  const handleConfirmDiscard = useCallback(() => {
+    setShowDiscardDialog(false);
+    setOpen(false);
+  }, [setOpen]);
 
   useEffect(() => {
-    if (open) {
+    // Detect when modal transitions from open to closed
+    if (prevOpenRef.current && !open) {
+      // Modal is closing - reset all form state
+      resetForm();
+      setEmployeeSearchOpen(false);
+      setShowSuccess(false);
+      setShowDiscardDialog(false);
+      setValidationWarnings([]);
+    }
+    
+    if (open && !prevOpenRef.current) {
+      // Modal is opening - fetch data and apply default dates
       fetchData();
       if (defaultStartDate) {
         setStartDate(defaultStartDate.toISOString().split("T")[0]);
@@ -124,12 +164,9 @@ export default function QuickLeaveBookingModal({
       if (defaultEndDate) {
         setEndDate(defaultEndDate.toISOString().split("T")[0]);
       }
-    } else {
-      // Reset state when closing
-      setEmployeeSearchOpen(false);
-      setEmployeeSearch("");
-      setShowSuccess(false);
     }
+    
+    prevOpenRef.current = open;
   }, [open, defaultStartDate, defaultEndDate]);
 
   const fetchData = async () => {
@@ -403,6 +440,63 @@ export default function QuickLeaveBookingModal({
         isLoading={isOverrideLoading}
       />
       
+      {/* Discard Changes Confirmation Dialog */}
+      <AnimatePresence>
+        {showDiscardDialog && (
+          <motion.div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDiscardDialog(false)}
+            />
+            <motion.div
+              className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Discard changes?
+                </h3>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                You have unsaved changes. Are you sure you want to close without saving?
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowDiscardDialog(false)}
+                  className="flex-1 h-10 rounded-xl border-2 border-slate-200 dark:border-slate-700"
+                >
+                  Keep editing
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmDiscard}
+                  className="flex-1 h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
+                >
+                  Discard
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       <AnimatePresence>
       {open && (
         <motion.div
@@ -417,7 +511,7 @@ export default function QuickLeaveBookingModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => !loading && setOpen(false)}
+            onClick={handleClose}
           />
 
           {/* Modal */}
@@ -506,7 +600,7 @@ export default function QuickLeaveBookingModal({
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 }}
-                    onClick={() => !loading && setOpen(false)}
+                    onClick={handleClose}
                     disabled={loading}
                     className="p-2.5 hover:bg-white/20 rounded-xl transition-all duration-200 disabled:opacity-50"
                     aria-label="Close"
@@ -942,7 +1036,7 @@ export default function QuickLeaveBookingModal({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setOpen(false)}
+                  onClick={handleClose}
                   disabled={loading}
                   className="flex-1 h-12 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold transition-all duration-200"
                 >

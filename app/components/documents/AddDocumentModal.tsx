@@ -1114,7 +1114,10 @@ export default function AddDocumentModal({
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ name: c }),
                           });
-                          if (!res.ok) throw new Error("Failed to delete category");
+                          if (!res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            throw new Error(data.error || "Failed to delete category");
+                          }
                           setCategoriesList((prev) => prev.filter((x) => x !== c));
                           if (category === c) setCategory("");
                         } catch (e: any) {
@@ -1149,7 +1152,10 @@ export default function AddDocumentModal({
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ name }),
                       });
-                      if (!res.ok) throw new Error("Failed to add category");
+                      if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        throw new Error(data.error || "Failed to add category");
+                      }
                       setCategoriesList((prev) => (prev.includes(name) ? prev : [...prev, name]));
                       setCategory(name);
                       setNewCategoryName("");

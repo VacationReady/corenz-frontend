@@ -333,14 +333,14 @@ const EmptyState = ({
           repeat: Infinity,
           ease: "easeInOut"
         }}
-        className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 flex items-center justify-center shadow-xl shadow-emerald-500/10"
+        className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center shadow-xl shadow-blue-500/10"
       >
-        <FolderOpen className="w-12 h-12 text-emerald-500 dark:text-emerald-400" />
+        <FolderOpen className="w-12 h-12 text-blue-500 dark:text-blue-400" />
       </motion.div>
       <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
-        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg"
+        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg"
       >
         <User className="w-4 h-4 text-white" />
       </motion.div>
@@ -363,7 +363,7 @@ const EmptyState = ({
         <Button
           onClick={onUpload}
           size="lg"
-          className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/25"
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25"
         >
           <Upload className="w-5 h-5 mr-2" />
           Upload First Document
@@ -846,7 +846,7 @@ function EmployeeDocumentsContent({
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button 
               onClick={() => setIsUploadModalOpen(true)}
-              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/25"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25"
             >
               <Upload className="w-4 h-4 mr-2" />
               Add Document
@@ -865,7 +865,7 @@ function EmployeeDocumentsContent({
                 value={stats.totalDocs}
                 subtitle="In employee file"
                 icon={FileText}
-                gradient="from-emerald-500 to-teal-500"
+                gradient="from-blue-500 to-indigo-500"
                 delay={0}
               />
               <StatsCard
@@ -873,7 +873,7 @@ function EmployeeDocumentsContent({
                 value={stats.pendingAck}
                 subtitle="Needs review"
                 icon={CheckCircle2}
-                gradient="from-amber-500 to-orange-500"
+                gradient="from-blue-500 to-indigo-500"
                 delay={0.1}
               />
               <StatsCard
@@ -889,7 +889,7 @@ function EmployeeDocumentsContent({
                 value={stats.thisMonth}
                 subtitle="Recently added"
                 icon={TrendingUp}
-                gradient="from-violet-500 to-purple-500"
+                gradient="from-blue-500 to-indigo-500"
                 delay={0.3}
               />
             </div>
@@ -1143,7 +1143,7 @@ function EmployeeDocumentsContent({
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                      className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30"
+                      className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30"
                     >
                       <FileUp className="w-5 h-5 text-white" />
                     </motion.div>
@@ -1365,7 +1365,7 @@ function EmployeeDocumentsContent({
                     <Button
                       type="submit"
                       disabled={uploading || !file || !name || !category}
-                      className="h-10 px-5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold shadow-lg shadow-emerald-500/25"
+                      className="h-10 px-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/25"
                     >
                       {uploading ? (
                         <>

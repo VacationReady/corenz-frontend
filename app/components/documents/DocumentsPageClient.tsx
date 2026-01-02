@@ -1749,7 +1749,10 @@ function DocumentsContent() {
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ name: opt.value }),
                             });
-                            if (!res.ok) throw new Error("Failed to delete category");
+                            if (!res.ok) {
+                              const data = await res.json().catch(() => ({}));
+                              throw new Error(data.error || "Failed to delete category");
+                            }
                             setCategoriesList((prev) => prev.filter((x) => x !== opt.value));
                             if (category === opt.value) setCategory("");
                           } catch (e: any) {
@@ -1784,7 +1787,10 @@ function DocumentsContent() {
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ name: catName }),
                         });
-                        if (!res.ok) throw new Error("Failed to add category");
+                        if (!res.ok) {
+                          const data = await res.json().catch(() => ({}));
+                          throw new Error(data.error || "Failed to add category");
+                        }
                         setCategoriesList((prev) => (prev.includes(catName) ? prev : [...prev, catName]));
                         setCategory(catName);
                         setNewCategoryName("");

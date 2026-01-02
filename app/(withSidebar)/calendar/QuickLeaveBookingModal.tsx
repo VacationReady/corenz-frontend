@@ -134,6 +134,7 @@ export default function QuickLeaveBookingModal({
   // Track previous open state to detect close transitions
   // Initialize to false so first open triggers fetchData
   const prevOpenRef = useRef(false);
+  const lastScopeRef = useRef<string | null>(null);
 
   // Check if form has any user-entered data (dirty state)
   const hasUnsavedChanges = useCallback(() => {
@@ -171,6 +172,7 @@ export default function QuickLeaveBookingModal({
     if (open && !prevOpenRef.current) {
       // Modal is opening - fetch data and apply default dates
       fetchData();
+      lastScopeRef.current = employeeScope;
       if (defaultStartDate) {
         setStartDate(defaultStartDate.toISOString().split("T")[0]);
       }
@@ -181,6 +183,13 @@ export default function QuickLeaveBookingModal({
     
     prevOpenRef.current = open;
   }, [open, defaultStartDate, defaultEndDate]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (lastScopeRef.current === employeeScope) return;
+    lastScopeRef.current = employeeScope;
+    fetchData();
+  }, [employeeScope, open]);
 
   const fetchData = async () => {
     setIsFetchingData(true);

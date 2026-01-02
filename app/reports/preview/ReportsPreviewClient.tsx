@@ -300,6 +300,7 @@ function ReportsPreviewClientInner() {
   });
   const [showPIIModal, setShowPIIModal] = useState(false);
   const [piiAcknowledged, setPiiAcknowledged] = useState(false);
+  const [pendingExport, setPendingExport] = useState<"csv" | "pdf" | "full" | null>(null);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
@@ -1072,6 +1073,7 @@ function ReportsPreviewClientInner() {
 
   const handleDownloadClick = () => {
     if (hasPIISelected && !piiAcknowledged) {
+      setPendingExport("csv");
       setShowPIIModal(true);
       return;
     }
@@ -1107,6 +1109,7 @@ function ReportsPreviewClientInner() {
 
   const handlePdfClick = () => {
     if (hasPIISelected && !piiAcknowledged) {
+      setPendingExport("pdf");
       setShowPIIModal(true);
       return;
     }
@@ -1116,18 +1119,40 @@ function ReportsPreviewClientInner() {
   const handleConfirmPIIExport = () => {
     setShowPIIModal(false);
     setPiiAcknowledged(true);
-    performDownload();
+    
+    // Route to the correct export action based on pendingExport
+    const action = pendingExport;
+    setPendingExport(null);
+    
+    switch (action) {
+      case "pdf":
+        void performPdfDownload();
+        break;
+      case "full":
+        void performFullExportInternal();
+        break;
+      case "csv":
+      default:
+        performDownload();
+        break;
+    }
   };
 
   const handleCancelPIIExport = () => {
     setShowPIIModal(false);
+    setPendingExport(null);
   };
 
   const handleFullExport = async () => {
     if (hasPIISelected && !piiAcknowledged) {
+      setPendingExport("full");
       setShowPIIModal(true);
       return;
     }
+    await performFullExportInternal();
+  };
+
+  const performFullExportInternal = async () => {
     if (exportingFull || tableLoading) return;
     
     // Create abort controller for export

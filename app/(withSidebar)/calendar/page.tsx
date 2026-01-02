@@ -40,7 +40,9 @@ import {
   Eye,
   Plus,
   Filter,
-  Share2
+  Share2,
+  Search,
+  X
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -57,6 +59,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Lock, Clock as ClockIcon } from "lucide-react";
 import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
 import { FilterBar } from "@/components/ui/FilterBar";
+import { Input } from "@/components/ui/Input";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import {
   Sheet,
   SheetContent,
@@ -439,8 +443,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       _failureCallback: (error: any) => void,
     ) => {
       try {
-        const departmentFilter = filters.departments[0] || "";
-        const cacheKey = `${fetchInfo.startStr}|${fetchInfo.endStr}|${departmentFilter || "all"}`;
+        const departmentFilters = filters.departments.join(",");
+        const cacheKey = `${fetchInfo.startStr}|${fetchInfo.endStr}|${departmentFilters || "all"}`;
 
         let baseData: any[];
         if (eventsCacheRef.current && eventsCacheRef.current.key === cacheKey) {
@@ -450,7 +454,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
             from: fetchInfo.startStr,
             to: fetchInfo.endStr,
           });
-          if (departmentFilter) params.set("department", departmentFilter);
+          // Fetch all data and filter client-side for multiple departments
           const res = await fetch(`/api/calendar-events?${params.toString()}`);
           if (!res.ok) {
             console.warn("Leave events fetch non-OK status", res.status);
@@ -462,6 +466,23 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         }
 
         let data = baseData;
+
+        // Department filter (client-side for multi-select support)
+        const hasDepartmentFilter =
+          filters.departments.length > 0 && !filters.departments.includes("all");
+        if (hasDepartmentFilter) {
+          // Map department IDs to names for filtering
+          const selectedDeptIds = new Set(filters.departments);
+          const selectedDeptNames = new Set(
+            departments
+              .filter((d) => selectedDeptIds.has(d.id))
+              .map((d) => d.name)
+          );
+          data = (data as any[]).filter((e) => {
+            const employeeDept = e.employee?.department as string | undefined;
+            return employeeDept ? selectedDeptNames.has(employeeDept) : false;
+          });
+        }
 
         const hasCategoryFilter =
           filters.categories.length > 0 && !filters.categories.includes("all");
@@ -1269,19 +1290,85 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                       transition={{ duration: 0.2 }}
                       className="relative z-50"
                     >
-                      <div className="pt-3 border-t border-border/30 overflow-visible">
-                        <FilterBar
-                          config={{
-                            searchPlaceholder: "Search people or leave...",
-                            showDepartmentFilter: false,
-                            showCategoryFilter: categoryOptions.length > 0,
-                            showLocationFilter: locationOptions.length > 0,
-                            advancedFiltersLabel: "More Filters",
-                          }}
-                          departmentOptions={departments.map((dept) => ({ label: dept.name, value: dept.name }))}
-                          categoryOptions={categoryOptions}
-                          locationOptions={locationOptions}
-                        />
+                      <div className="pt-3 border-t border-border/30 overflow-visible space-y-3">
+                        {/* Search Bar */}
+                        <div className="relative flex-1 min-w-0">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                          <Input
+                            placeholder="Search people or leave..."
+                            value={filters.search}
+                            onChange={(e) => updateFilter("search", e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                        
+                        {/* Filter Dropdowns - All visible immediately */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {/* Location Filter */}
+                          {locationOptions.length > 0 && (
+                            <div>
+                              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                                Location
+                              </label>
+                              <MultiSelect
+                                options={locationOptions}
+                                selected={filters.locations}
+                                onChange={(values) => updateFilter("locations", values)}
+                                placeholder="Select locations..."
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Department Filter */}
+                          {departments.length > 0 && (
+                            <div>
+                              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                                Department
+                              </label>
+                              <MultiSelect
+                                options={departments.map((dept) => ({ label: dept.name, value: dept.id }))}
+                                selected={filters.departments}
+                                onChange={(values) => updateFilter("departments", values)}
+                                placeholder="Select departments..."
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Category Filter */}
+                          {categoryOptions.length > 0 && (
+                            <div>
+                              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                                Category
+                              </label>
+                              <MultiSelect
+                                options={categoryOptions}
+                                selected={filters.categories}
+                                onChange={(values) => updateFilter("categories", values)}
+                                placeholder="Select categories..."
+                              />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Clear Filters */}
+                        {(filters.search || filters.locations.length > 0 || filters.departments.length > 0 || filters.categories.length > 0) && (
+                          <div className="flex justify-end">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                updateFilter("search", "");
+                                updateFilter("locations", []);
+                                updateFilter("departments", []);
+                                updateFilter("categories", []);
+                              }}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="w-3 h-3 mr-1" />
+                              Clear all filters
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}

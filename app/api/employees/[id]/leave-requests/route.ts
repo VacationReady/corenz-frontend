@@ -175,12 +175,13 @@ export async function GET(
       }
     }
 
-    // Build status filter
-    let statusFilter: string | undefined;
+    // Build status filter - supports comma-separated values (e.g., "APPROVED,PENDING")
+    let statusFilter: string[] | undefined;
     if (statusParam) {
-      const normalizedStatus = statusParam.toUpperCase();
-      if (["PENDING", "APPROVED", "DECLINED"].includes(normalizedStatus)) {
-        statusFilter = normalizedStatus;
+      const statuses = statusParam.split(",").map(s => s.trim().toUpperCase());
+      const validStatuses = statuses.filter(s => ["PENDING", "APPROVED", "DECLINED"].includes(s));
+      if (validStatuses.length > 0) {
+        statusFilter = validStatuses;
       }
     }
 
@@ -191,7 +192,7 @@ export async function GET(
       Employee: { companyId: session.user.companyId },
       // Default to APPROVED if no status filter and using legacy upcoming mode
       ...(statusFilter
-        ? { approvalStatus: statusFilter }
+        ? { approvalStatus: { in: statusFilter } }
         : !fromParam && !toParam
           ? { approvalStatus: "APPROVED" }
           : {}),

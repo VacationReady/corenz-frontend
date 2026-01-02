@@ -488,7 +488,7 @@ function LeavePageContent() {
         });
 
         // Add status filter - fetch APPROVED + PENDING
-        params.set("status", "APPROVED");
+        params.set("status", "APPROVED,PENDING");
         
         // Add type filter
         if (typeFilter === "sick") {

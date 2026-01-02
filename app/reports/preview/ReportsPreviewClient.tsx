@@ -300,7 +300,7 @@ function ReportsPreviewClientInner() {
   });
   const [showPIIModal, setShowPIIModal] = useState(false);
   const [piiAcknowledged, setPiiAcknowledged] = useState(false);
-  const [pendingExport, setPendingExport] = useState<"csv" | "pdf" | "full" | null>(null);
+  const [pendingExport, setPendingExport] = useState<"csv" | "pdf" | "full" | "email" | null>(null);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
@@ -1131,6 +1131,9 @@ function ReportsPreviewClientInner() {
       case "full":
         void performFullExportInternal();
         break;
+      case "email":
+        setShowSendModal(true);
+        break;
       case "csv":
       default:
         performDownload();
@@ -1587,7 +1590,14 @@ function ReportsPreviewClientInner() {
             <>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button 
-                  onClick={() => setShowSendModal(true)}
+                  onClick={() => {
+                    if (hasPIISelected && !piiAcknowledged) {
+                      setPendingExport("email");
+                      setShowPIIModal(true);
+                      return;
+                    }
+                    setShowSendModal(true);
+                  }}
                   variant="outline"
                   className="glass-subtle border-white/30 rounded-xl h-10 px-5"
                 >

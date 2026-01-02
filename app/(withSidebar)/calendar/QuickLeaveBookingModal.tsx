@@ -120,7 +120,8 @@ export default function QuickLeaveBookingModal({
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   
   // Track previous open state to detect close transitions
-  const prevOpenRef = useRef(open);
+  // Initialize to false so first open triggers fetchData
+  const prevOpenRef = useRef(false);
 
   // Check if form has any user-entered data (dirty state)
   const hasUnsavedChanges = useCallback(() => {

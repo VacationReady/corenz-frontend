@@ -103,7 +103,6 @@ test("Report Share Access Security Tests", async (t) => {
         id: "shared-user",
         companyId: "company-1",
         role: "EMPLOYEE",
-        departmentId: "dept-1",
       },
     };
 
@@ -113,6 +112,9 @@ test("Report Share Access Security Tests", async (t) => {
         companyId: "company-1",
         createdBy: "other-user", // User is NOT the owner
       }),
+    };
+    mockPrismaRef.current.user = {
+      findUnique: async () => ({ departmentId: "dept-1" }),
     };
     mockPrismaRef.current.reportShare = {
       findFirst: async (args: any) => {
@@ -157,7 +159,6 @@ test("Report Share Access Security Tests", async (t) => {
         id: "dept-user",
         companyId: "company-1",
         role: "EMPLOYEE",
-        departmentId: "dept-1",
       },
     };
 
@@ -167,6 +168,9 @@ test("Report Share Access Security Tests", async (t) => {
         companyId: "company-1",
         createdBy: "other-user", // User is NOT the owner
       }),
+    };
+    mockPrismaRef.current.user = {
+      findUnique: async () => ({ departmentId: "dept-1" }),
     };
     mockPrismaRef.current.reportShare = {
       findFirst: async (args: any) => {
@@ -222,6 +226,9 @@ test("Report Share Access Security Tests", async (t) => {
         createdBy: "other-user", // User is NOT the owner
       }),
     };
+    mockPrismaRef.current.user = {
+      findUnique: async () => ({ departmentId: null }),
+    };
     mockPrismaRef.current.reportShare = {
       findFirst: async (args: any) => {
         // Company-wide share exists
@@ -264,7 +271,6 @@ test("Report Share Access Security Tests", async (t) => {
         id: "unauthorized-user",
         companyId: "company-1",
         role: "EMPLOYEE",
-        departmentId: "dept-2", // Different department
       },
     };
 
@@ -274,6 +280,9 @@ test("Report Share Access Security Tests", async (t) => {
         companyId: "company-1",
         createdBy: "other-user", // User is NOT the owner
       }),
+    };
+    mockPrismaRef.current.user = {
+      findUnique: async () => ({ departmentId: "dept-2" }), // Different department
     };
     mockPrismaRef.current.reportShare = {
       findFirst: async () => null, // No share exists for this user
@@ -363,6 +372,9 @@ test("Report Share Access Security Tests", async (t) => {
         companyId: "company-1",
         createdBy: "victim-user", // Different owner
       }),
+    };
+    mockPrismaRef.current.user = {
+      findUnique: async () => ({ departmentId: null }),
     };
     mockPrismaRef.current.reportShare = {
       findFirst: async () => null, // No share for attacker

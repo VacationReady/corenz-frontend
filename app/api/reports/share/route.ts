@@ -63,6 +63,12 @@ export async function GET(req: Request) {
     const isOwner = report.createdBy === session.user.id;
     
     if (!isOwner) {
+      // Fetch user's departmentId from database (not available in session)
+      const currentUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { departmentId: true },
+      });
+
       // Check if user has any share granting them access to this report
       const userShare = await prisma.reportShare.findFirst({
         where: {
@@ -72,8 +78,8 @@ export async function GET(req: Request) {
             // Direct user share
             { userId: session.user.id },
             // Department share (if user has a department)
-            ...(session.user.departmentId 
-              ? [{ departmentId: session.user.departmentId }] 
+            ...(currentUser?.departmentId 
+              ? [{ departmentId: currentUser.departmentId }] 
               : []),
             // Company-wide share
             { shareType: "company" },

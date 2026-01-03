@@ -20,6 +20,11 @@ import { prisma } from "@/lib/prisma";
 import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
 import EmployeesPageClient from "./EmployeesClient";
 import type { Prisma } from "@prisma/client";
+import { 
+  hasPermission, 
+  EMPLOYEE_PROFILE_SCREENS, 
+  UserWithProfile 
+} from "@/lib/permissions";
 
 /**
  * Iteratively collect all subordinates (direct and indirect reports)
@@ -58,6 +63,25 @@ async function getAllSubordinatesIterative(
 export const dynamic = "force-dynamic";
 
 /**
+ * Checks if a user has permission to access the employee list via their permission profile
+ */
+function hasEmployeeListPermissionViaProfile(user: UserWithProfile): boolean {
+  // Check if user has "employees" read permission via profile
+  if (hasPermission(user, "employees", "read")) {
+    return true;
+  }
+  
+  // Check if user has ANY employee-* screen read permission
+  for (const screen of EMPLOYEE_PROFILE_SCREENS) {
+    if (hasPermission(user, screen, "read")) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Fetch initial employee data server-side
  * Directly queries database instead of API route to avoid auth issues
  */
@@ -71,6 +95,20 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
   try {
     const limit = 50;
     
+    // Fetch user with permission profile to check custom permissions
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { PermissionProfile: true },
+    });
+    
+    const userWithProfile: UserWithProfile = {
+      ...currentUser!,
+      permissionProfile: currentUser?.PermissionProfile,
+    };
+    
+    // Check if user has permission via their permission profile
+    const hasPermissionViaProfile = hasEmployeeListPermissionViaProfile(userWithProfile);
+    
     // Build where condition based on status
     const whereCondition: Prisma.EmployeeWhereInput = { companyId: session.user.companyId };
     if (status === "active") whereCondition.isActive = true;
@@ -80,7 +118,12 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     // This must match the logic in /api/employees/route.ts
     const userRole = session.user.role;
     
-    if (userRole === "MANAGER") {
+    // If user has permission via profile, they get full access (like ADMIN)
+    if (hasPermissionViaProfile) {
+      // User has permission via profile - no additional filtering needed
+    } else if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
+      // Full access for admins
+    } else if (userRole === "MANAGER") {
       // Managers see only their direct and indirect reports
       const allSubordinateUserIds = await getAllSubordinatesIterative(
         session.user.id,
@@ -110,7 +153,6 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
 
       whereCondition.OR = orConditions;
     }
-    // ADMIN and SUPER_ADMIN see all employees (no additional filtering)
 
     // Fetch employees with role-based filtering applied
     const employees = await prisma.employee.findMany({
@@ -161,8 +203,12 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     // Count with same role-based filtering for accurate counts
     const baseCountWhere: Prisma.EmployeeWhereInput = { companyId: session.user.companyId };
     
-    // Apply same role-based filtering to counts
-    if (userRole === "MANAGER") {
+    // Apply same role-based filtering to counts (respecting permission profiles)
+    if (hasPermissionViaProfile) {
+      // User has permission via profile - no additional filtering needed
+    } else if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
+      // Full access for admins
+    } else if (userRole === "MANAGER") {
       const allSubordinateUserIds = await getAllSubordinatesIterative(
         session.user.id,
         session.user.companyId,
@@ -259,32 +305,42 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       );
     };
 
-    const formattedEmployees = results.map((emp) => ({
-      // Only include the fields the client actually needs - avoid spreading ...emp which includes Decimal fields
-      id: emp.id,
-      userId: emp.userId,
-      isActive: emp.isActive,
-      departmentId: emp.departmentId,
-      jobRoleId: emp.jobRoleId,
-      locationId: emp.locationId,
-      onboardingStatus: emp.onboardingStatus,
-      offboardingStatus: emp.offboardingStatus,
-      lastWorkingDate: toISOString(emp.lastWorkingDate),
-      startDate: toISOString(emp.startDate),
-      contractType: emp.contractType,
-      // Flatten User fields to top level for backward compatibility
-      firstName: emp.User.firstName,
-      lastName: emp.User.lastName,
-      email: emp.User.email,
-      phone: emp.User.phone,
-      role: emp.User.role,
-      isActivated: emp.User.isActivated,
-      profileImageUrl: signedProfileMap.get(emp.User.id) || emp.User.profileImageUrl,
-      // Flatten department and job role names for table filters
-      departmentName: emp.Department?.name,
-      jobRoleName: emp.JobRole?.name,
-      user: {
-        id: emp.User.id,
+    const formattedEmployees = results.map((emp) => {
+      // Determine if current user can access this employee's profile
+      // Access rules:
+      // - ADMIN/SUPER_ADMIN can access all
+      // - User with permission via profile can access all
+      // - MANAGER can access their direct/indirect reports
+      // - EMPLOYEE can only access themselves
+      let canAccess = false;
+      
+      if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
+        canAccess = true;
+      } else if (hasPermissionViaProfile) {
+        canAccess = true;
+      } else if (userRole === "MANAGER") {
+        // For managers, they can access their direct/indirect reports
+        // The whereCondition already filtered to only show subordinates
+        canAccess = true;
+      } else if (userRole === "EMPLOYEE") {
+        // Employees can only access their own profile
+        canAccess = emp.userId === session.user.id;
+      }
+      
+      return {
+        // Only include the fields the client actually needs - avoid spreading ...emp which includes Decimal fields
+        id: emp.id,
+        userId: emp.userId,
+        isActive: emp.isActive,
+        departmentId: emp.departmentId,
+        jobRoleId: emp.jobRoleId,
+        locationId: emp.locationId,
+        onboardingStatus: emp.onboardingStatus,
+        offboardingStatus: emp.offboardingStatus,
+        lastWorkingDate: toISOString(emp.lastWorkingDate),
+        startDate: toISOString(emp.startDate),
+        contractType: emp.contractType,
+        // Flatten User fields to top level for backward compatibility
         firstName: emp.User.firstName,
         lastName: emp.User.lastName,
         email: emp.User.email,
@@ -292,18 +348,35 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
         role: emp.User.role,
         isActivated: emp.User.isActivated,
         profileImageUrl: signedProfileMap.get(emp.User.id) || emp.User.profileImageUrl,
-      },
-      department: emp.Department ? { id: emp.Department.id, name: emp.Department.name } : null,
-      jobRole: emp.JobRole ? { id: emp.JobRole.id, name: emp.JobRole.name } : null,
-      location: emp.Location ? { id: emp.Location.id, name: emp.Location.name } : null,
-      offboarding: serializeOffboardingRecord(emp.EmployeeOffboarding),
-      offboardingRecord: serializeOffboardingRecord(emp.EmployeeOffboarding),
-      // Normalize any Decimal fields we may need later; keep numbers primitive for client safety
-      sickLeaveDaysPerYear: toNumber((emp as any).sickLeaveDaysPerYear),
-      alternativeHolidayBalance: toNumber((emp as any).alternativeHolidayBalance),
-      publicHolidaysPerYear: toNumber((emp as any).publicHolidaysPerYear),
-      employmentStartDate: toISOString((emp as any).employmentStartDate),
-    }));
+        // Flatten department and job role names for table filters
+        departmentName: emp.Department?.name,
+        jobRoleName: emp.JobRole?.name,
+        user: {
+          id: emp.User.id,
+          firstName: emp.User.firstName,
+          lastName: emp.User.lastName,
+          email: emp.User.email,
+          phone: emp.User.phone,
+          role: emp.User.role,
+          isActivated: emp.User.isActivated,
+          profileImageUrl: signedProfileMap.get(emp.User.id) || emp.User.profileImageUrl,
+        },
+        department: emp.Department ? { id: emp.Department.id, name: emp.Department.name } : null,
+        jobRole: emp.JobRole ? { id: emp.JobRole.id, name: emp.JobRole.name } : null,
+        location: emp.Location ? { id: emp.Location.id, name: emp.Location.name } : null,
+        offboarding: serializeOffboardingRecord(emp.EmployeeOffboarding),
+        offboardingRecord: serializeOffboardingRecord(emp.EmployeeOffboarding),
+        // Normalize any Decimal fields we may need later; keep numbers primitive for client safety
+        sickLeaveDaysPerYear: toNumber((emp as any).sickLeaveDaysPerYear),
+        alternativeHolidayBalance: toNumber((emp as any).alternativeHolidayBalance),
+        publicHolidaysPerYear: toNumber((emp as any).publicHolidaysPerYear),
+        employmentStartDate: toISOString((emp as any).employmentStartDate),
+        // Permission-based access flag for client component
+        canAccess,
+        // Include managerId for manager view
+        managerUserId: emp.User.managerId,
+      };
+    });
 
     // Fetch departments and job roles
     const [departments, jobRoles] = await Promise.all([

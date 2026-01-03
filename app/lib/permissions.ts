@@ -9,6 +9,292 @@ export type UserWithProfile = User & {
   permissionProfile?: PermissionProfile | null;
 };
 
+/**
+ * Screen metadata interface for UI display and tooltips
+ * Used to provide clarity about what each permission controls
+ */
+export interface ScreenMetadata {
+  key: string;
+  label: string;
+  displayLabel: string; // For UI (e.g., "Other Employees' Documents")
+  description: string;  // Tooltip text
+  category: 'system' | 'employee-profile';
+  affectsOthers: boolean; // true for employee-* screens
+}
+
+/**
+ * Comprehensive screen metadata for all permission screens
+ * This is the single source of truth for screen definitions
+ */
+export const SCREEN_METADATA: ScreenMetadata[] = [
+  // System-wide screens
+  {
+    key: 'dashboard',
+    label: 'Dashboard',
+    displayLabel: 'Dashboard',
+    description: 'Access to the main dashboard and overview',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'approvals',
+    label: 'Approvals',
+    displayLabel: 'Approvals',
+    description: 'Access to view and manage approval requests',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'employees',
+    label: 'Employees',
+    displayLabel: 'Employee Directory',
+    description: 'Access to view and manage the employee directory',
+    category: 'system',
+    affectsOthers: true,
+  },
+  {
+    key: 'calendar',
+    label: 'Calendar',
+    displayLabel: 'Calendar',
+    description: 'Access to the company calendar and events',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'documents',
+    label: 'Documents',
+    displayLabel: 'Company Documents',
+    description: 'Access to company-wide documents and files',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'reports',
+    label: 'Reports',
+    displayLabel: 'Reports',
+    description: 'Access to generate and view reports',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'org-chart',
+    label: 'Organisation Chart',
+    displayLabel: 'Organisation Chart',
+    description: 'Access to view the organisation structure',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'news',
+    label: 'News',
+    displayLabel: 'News',
+    description: 'Access to company news and announcements',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'bulk-actions',
+    label: 'Bulk Actions',
+    displayLabel: 'Bulk Actions',
+    description: 'Access to perform bulk operations on employee data',
+    category: 'system',
+    affectsOthers: true,
+  },
+  {
+    key: 'settings',
+    label: 'Settings',
+    displayLabel: 'Settings',
+    description: 'Access to system settings and configuration',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'onboarding',
+    label: 'Onboarding',
+    displayLabel: 'Onboarding Management',
+    description: 'Access to manage onboarding workflows and templates',
+    category: 'system',
+    affectsOthers: true,
+  },
+  {
+    key: 'offboarding',
+    label: 'Offboarding',
+    displayLabel: 'Offboarding Management',
+    description: 'Access to manage offboarding workflows and templates',
+    category: 'system',
+    affectsOthers: true,
+  },
+  {
+    key: 'forms',
+    label: 'Forms',
+    displayLabel: 'Forms',
+    description: 'Access to company forms and templates',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'leave-requests',
+    label: 'Leave Requests',
+    displayLabel: 'Leave Requests',
+    description: 'Access to view and manage leave requests',
+    category: 'system',
+    affectsOthers: true,
+  },
+  {
+    key: 'working-patterns',
+    label: 'Working Patterns',
+    displayLabel: 'Working Patterns',
+    description: 'Access to view and manage working patterns',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'departments',
+    label: 'Departments',
+    displayLabel: 'Departments',
+    description: 'Access to view and manage departments',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'job-roles',
+    label: 'Job Roles',
+    displayLabel: 'Job Roles',
+    description: 'Access to view and manage job roles',
+    category: 'system',
+    affectsOthers: false,
+  },
+  {
+    key: 'permissions',
+    label: 'Permissions',
+    displayLabel: 'Permissions',
+    description: 'Access to view and manage permission profiles',
+    category: 'system',
+    affectsOthers: false,
+  },
+  // Employee profile screens - these control access to OTHER employees' data
+  {
+    key: 'employee-overview',
+    label: 'Employee Overview',
+    displayLabel: "Other Employees' Overview",
+    description: 'View and manage overview information for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-personal-information',
+    label: 'Employee Personal Information',
+    displayLabel: "Other Employees' Personal Information",
+    description: 'View and manage personal information for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-documents',
+    label: 'Employee Documents',
+    displayLabel: "Other Employees' Documents",
+    description: 'View and manage documents for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-driver-licenses',
+    label: 'Employee Driver Licenses',
+    displayLabel: "Other Employees' Driver Licenses",
+    description: 'View and manage driver license information for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-employment-checks',
+    label: 'Employee Employment Checks',
+    displayLabel: "Other Employees' Employment Checks",
+    description: 'View and manage employment checks for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-employment-details',
+    label: 'Employee Employment Details',
+    displayLabel: "Other Employees' Employment Details",
+    description: 'View and manage employment details for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-emergency-contacts',
+    label: 'Employee Emergency Contacts',
+    displayLabel: "Other Employees' Emergency Contacts",
+    description: 'View and manage emergency contacts for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-bank-payroll',
+    label: 'Employee Bank & Payroll',
+    displayLabel: "Other Employees' Bank & Payroll",
+    description: 'View and manage bank and payroll information for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-forms',
+    label: 'Employee Forms',
+    displayLabel: "Other Employees' Forms",
+    description: 'View and manage forms for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-leave',
+    label: 'Employee Leave',
+    displayLabel: "Other Employees' Leave",
+    description: 'View and manage leave requests for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-offboarding',
+    label: 'Employee Offboarding',
+    displayLabel: "Other Employees' Offboarding",
+    description: 'View and manage offboarding for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-onboarding',
+    label: 'Employee Onboarding',
+    displayLabel: "Other Employees' Onboarding",
+    description: 'View and manage onboarding for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-performance',
+    label: 'Employee Performance',
+    displayLabel: "Other Employees' Performance",
+    description: 'View and manage performance reviews for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-settings',
+    label: 'Employee Settings',
+    displayLabel: "Other Employees' Settings",
+    description: 'View and manage settings for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+  {
+    key: 'employee-training',
+    label: 'Employee Training',
+    displayLabel: "Other Employees' Training",
+    description: 'View and manage training records for other employees in the organisation',
+    category: 'employee-profile',
+    affectsOthers: true,
+  },
+];
+
 // Default permission sets for built-in roles
 const ADMIN_BASE_PERMISSIONS: ScreenPermissions = {
   dashboard: ["read"],
@@ -110,45 +396,25 @@ export function hasPermission(
 }
 
 /**
- * Gets all available screens in the system
+ * Gets all available screens in the system (returns just the keys for backward compatibility)
  */
 export function getAvailableScreens(): string[] {
-  return [
-    "dashboard",
-    "approvals",
-    "employees",
-    "calendar",
-    "documents",
-    "reports",
-    "org-chart",
-    "news",
-    "bulk-actions",
-    "settings",
-    "onboarding",
-    "offboarding",
-    "forms",
-    "leave-requests",
-    "working-patterns",
-    "departments",
-    "job-roles",
-    "permissions",
-    // Employee detail screens
-    "employee-overview",
-    "employee-personal-information",
-    "employee-documents",
-    "employee-driver-licenses",
-    "employee-employment-checks",
-    "employee-employment-details",
-    "employee-emergency-contacts",
-    "employee-bank-payroll",
-    "employee-forms",
-    "employee-leave",
-    "employee-offboarding",
-    "employee-onboarding",
-    "employee-performance",
-    "employee-settings",
-    "employee-training",
-  ];
+  return SCREEN_METADATA.map(screen => screen.key);
+}
+
+/**
+ * Gets all available screens with full metadata
+ */
+export function getAvailableScreensWithMetadata(): ScreenMetadata[] {
+  return SCREEN_METADATA;
+}
+
+/**
+ * Gets metadata for a specific screen by key
+ * Returns undefined if screen key is not found
+ */
+export function getScreenMetadata(key: string): ScreenMetadata | undefined {
+  return SCREEN_METADATA.find(screen => screen.key === key);
 }
 
 /**
@@ -376,4 +642,36 @@ export function getAccessibleEmployeeScreens(user: UserWithProfile): string[] {
   return accessibleScreens;
 }
 
-// ... (rest of the code remains the same)
+/**
+ * Checks if a user can access the employee list
+ * Access rules:
+ * - ADMIN/SUPER_ADMIN always have access
+ * - MANAGER always has access (to their team)
+ * - User with "employees" read permission via profile has access
+ * - User with ANY employee-* screen read permission via profile has access
+ */
+export function canAccessEmployeeList(user: UserWithProfile): boolean {
+  // ADMIN/SUPER_ADMIN always have access
+  if (['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+    return true;
+  }
+  
+  // MANAGER has access to their team
+  if (user.role === 'MANAGER') {
+    return true;
+  }
+  
+  // Check if user has "employees" permission via profile
+  if (hasPermission(user, 'employees', 'read')) {
+    return true;
+  }
+  
+  // Check if user has ANY employee-* screen permission
+  for (const screen of EMPLOYEE_PROFILE_SCREENS) {
+    if (hasPermission(user, screen, 'read')) {
+      return true;
+    }
+  }
+  
+  return false;
+}

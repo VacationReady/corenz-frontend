@@ -85,6 +85,10 @@ interface Employee {
     offboardingType: string;
     completedAt?: string;
   };
+  // Permission-based access flag from server
+  canAccess?: boolean;
+  // Manager user ID for direct report detection
+  managerUserId?: string;
 }
 
 const sortEmployees = (list: Employee[]) =>
@@ -450,67 +454,40 @@ function EmployeesContent(props: EmployeesClientProps) {
           const targetUrl = `/employees/${emp.id}/overview`;
           const isDirectReport = directReportUserIds.has(emp.userId);
           
-          // For managers: show all employees, but only direct reports are clickable
-          if (isManager && !isAdmin) {
-            if (isDirectReport || emp.userId === currentUserId) {
-              // Direct reports and self are clickable
-              return (
-                <Link
-                  href={targetUrl}
-                  onClick={(event) => handleEmployeeLinkClick(event, targetUrl)}
-                  className="group flex items-center gap-3 py-1"
-                >
-                  <div className="relative">
-                    <Avatar
-                      size={36}
-                      name={`${emp.firstName} ${emp.lastName}`}
-                      src={(emp as any).profileImageUrl}
-                      className="ring-2 ring-white dark:ring-card shadow-sm group-hover:ring-primary/30 transition-all duration-200"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground group-hover:text-primary transition-colors duration-200">
-                        {emp.firstName} {emp.lastName}
-                      </span>
-                      {isDirectReport && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/15 text-primary rounded-full">
-                          <UserCheck className="h-3 w-3" />
-                          Direct Report
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
-                  </div>
-                </Link>
-              );
-            } else {
-              // Department colleagues (not direct reports) are view-only
-              return (
-                <div className="flex items-center gap-3 py-1 opacity-60">
-                  <div className="relative">
-                    <Avatar
-                      size={36}
-                      name={`${emp.firstName} ${emp.lastName}`}
-                      src={(emp as any).profileImageUrl}
-                      className="ring-2 ring-white dark:ring-card shadow-sm"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground/70">
-                        {emp.firstName} {emp.lastName}
-                      </span>
-                      <span className="text-xs text-muted-foreground">(View only)</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
-                  </div>
+          // Use canAccess flag from server (respects permission profiles)
+          // Fall back to role-based logic for backward compatibility with API-fetched data
+          const canAccess = emp.canAccess ?? (
+            isAdmin || 
+            emp.userId === currentUserId || 
+            (isManager && isDirectReport)
+          );
+          
+          if (!canAccess) {
+            // Show greyed out (view only) for employees user cannot access
+            return (
+              <div className="flex items-center gap-3 py-1 opacity-60">
+                <div className="relative">
+                  <Avatar
+                    size={36}
+                    name={`${emp.firstName} ${emp.lastName}`}
+                    src={(emp as any).profileImageUrl}
+                    className="ring-2 ring-white dark:ring-card shadow-sm"
+                  />
                 </div>
-              );
-            }
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-foreground/70">
+                      {emp.firstName} {emp.lastName}
+                    </span>
+                    <span className="text-xs text-muted-foreground">(View only)</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
+                </div>
+              </div>
+            );
           }
           
-          // Default behavior for admins and other roles
+          // Clickable link for employees user can access
           return (
             <Link
               href={targetUrl}
@@ -525,10 +502,18 @@ function EmployeesContent(props: EmployeesClientProps) {
                   className="ring-2 ring-white dark:ring-card shadow-sm group-hover:ring-primary/30 transition-all duration-200"
                 />
               </div>
-              <div>
-                <span className="font-medium text-foreground group-hover:text-primary transition-colors duration-200">
-                  {emp.firstName} {emp.lastName}
-                </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground group-hover:text-primary transition-colors duration-200">
+                    {emp.firstName} {emp.lastName}
+                  </span>
+                  {isManager && isDirectReport && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/15 text-primary rounded-full">
+                      <UserCheck className="h-3 w-3" />
+                      Direct Report
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
               </div>
             </Link>

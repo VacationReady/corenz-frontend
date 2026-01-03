@@ -68,6 +68,20 @@ async function resetMocks() {
   };
   mockPrisma.user = {
     findMany: async () => [],
+    // Mock findUnique for permission profile lookup (added in permission enforcement feature)
+    findUnique: async ({ where }: any) => {
+      // Return a basic user with no permission profile by default
+      // Tests can override this if they need specific permission profile behavior
+      if (mockSession?.user?.id && where?.id === mockSession.user.id) {
+        return {
+          id: mockSession.user.id,
+          role: mockSession.user.role,
+          companyId: mockSession.user.companyId,
+          PermissionProfile: null,
+        };
+      }
+      return null;
+    },
   };
   // Preserve mockSupabase object reference so imported supabase sees updated methods
   if (!mockSupabase.storage) {
@@ -544,9 +558,28 @@ test("Employees API - Pagination & Optimization", async (t) => {
   // Authorization with Pagination Tests
   // ========================================
 
-  await run("GET: MANAGER pagination respects authorization", async () => {
+  await run("GET: MANAGER with custom profile (no employees permission) uses role-based filtering", async () => {
     mockSession = {
       user: { id: "manager1", companyId: "company1", role: "MANAGER", email: "manager@example.com" },
+    };
+
+    // Override user.findUnique to return a manager with a custom permission profile
+    // that does NOT include "employees" permission - this should trigger role-based filtering
+    mockPrisma.user.findUnique = async ({ where }: any) => {
+      if (where?.id === "manager1") {
+        return {
+          id: "manager1",
+          role: "MANAGER",
+          companyId: "company1",
+          // Custom profile with only dashboard access - no employees permission
+          PermissionProfile: {
+            id: "custom-profile",
+            name: "Limited Manager",
+            permissions: { dashboard: ["read"] },
+          },
+        };
+      }
+      return null;
     };
 
     // Mock manager's employee record (for department lookup)

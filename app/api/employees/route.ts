@@ -4,7 +4,7 @@ import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import type { Prisma } from "@prisma/client";
 import { getMobileSession } from "@/lib/mobile-session";
-import { canAccessEmployee } from "@/lib/permissions";
+import { canAccessEmployee, hasPermission, EMPLOYEE_PROFILE_SCREENS, UserWithProfile } from "@/lib/permissions";
 import { z } from "zod";
 import supabase from "@/lib/supabase-admin";
 import { resend } from "@/lib/resend";
@@ -348,6 +348,33 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // ✅ Check permission profile for employee list access
+    // Fetch user's permission profile to check for custom permissions
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { PermissionProfile: true },
+    });
+
+    const userWithProfile: UserWithProfile = currentUser ? {
+      ...currentUser,
+      permissionProfile: currentUser.PermissionProfile,
+    } : {
+      id: session.user.id,
+      role: session.user.role,
+      companyId: session.user.companyId,
+    } as UserWithProfile;
+
+    // Check if user has "employees" read permission via profile
+    const hasEmployeesPermission = hasPermission(userWithProfile, 'employees', 'read');
+    
+    // Check if user has ANY employee-* screen read permission via profile
+    const hasAnyEmployeeScreenPermission = EMPLOYEE_PROFILE_SCREENS.some(
+      screen => hasPermission(userWithProfile, screen, 'read')
+    );
+
+    // If user has permission via profile, they get full employee list access (no role-based filtering)
+    const hasPermissionViaProfile = hasEmployeesPermission || hasAnyEmployeeScreenPermission;
+
     // Allow admins to explicitly scope to their managed hierarchy
     if (
       scope === "team" &&
@@ -365,7 +392,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Access control: ADMIN can list all; MANAGER limited to department + reports
-    if (session.user.role === "MANAGER") {
+    // ✅ NEW: Users with permission via profile also get full access
+    if (hasPermissionViaProfile) {
+      // User has permission via profile - grant full employee list access
+      // No additional filtering needed (individual screen access will be checked on profile pages)
+      console.log("[employees] User has permission via profile, granting full access", {
+        userId: session.user.id,
+        hasEmployeesPermission,
+        hasAnyEmployeeScreenPermission,
+      });
+    } else if (session.user.role === "MANAGER") {
       // Special case: allow managers to fetch their OWN employee record when explicitly queried
       if (userId && userId === session.user.id) {
         // Do not apply team restriction; self-lookup is allowed

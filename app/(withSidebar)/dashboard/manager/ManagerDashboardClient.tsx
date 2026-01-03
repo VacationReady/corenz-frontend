@@ -7,6 +7,7 @@ import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { EnhancedWidget } from "@/components/ui/EnhancedWidget";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
+import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
@@ -132,97 +133,6 @@ function TeamAbsenceOverview() {
 }
 
 
-function TeamInsights() {
-  const { data, error, isLoading } = useSWR(
-    `/api/employees?status=active`,
-    fetcher,
-  );
-
-  const insights = useMemo(() => {
-    if (!Array.isArray(data)) return null;
-
-    const now = new Date();
-    const msInYear = 365.25 * 24 * 60 * 60 * 1000;
-
-    const tenures = data
-      .map((e: any) => {
-        const started = e.createdAt ? new Date(e.createdAt) : null;
-        return started ? (now.getTime() - started.getTime()) / msInYear : null;
-      })
-      .filter((x: number | null) => typeof x === "number") as number[];
-
-    const avgTenure =
-      tenures.length > 0
-        ? tenures.reduce((a, b) => a + b, 0) / tenures.length
-        : 0;
-    const turnover12mo = 0;
-    const upcomingAnniversaries = data
-      .filter((e: any) => {
-        if (!e.createdAt) return false;
-        const started = new Date(e.createdAt);
-        const nextAnniv = new Date(
-          now.getFullYear(),
-          started.getMonth(),
-          started.getDate(),
-        );
-        if (nextAnniv < now) nextAnniv.setFullYear(now.getFullYear() + 1);
-        const diffDays = Math.ceil(
-          (nextAnniv.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
-        );
-        return diffDays <= 30;
-      })
-      .slice(0, 5);
-
-    return { avgTenure, turnover12mo, upcomingAnniversaries };
-  }, [data]);
-
-  return (
-    <DashboardWidget title="Team Insights" icon={BarChart3}>
-      {isLoading ? (
-        <WidgetLoading />
-      ) : error ? (
-        <WidgetError message="Failed to load insights." />
-      ) : insights ? (
-        <div className="space-y-3 text-sm">
-          <div>
-            <span className="text-muted-foreground">Avg Tenure:</span>{" "}
-            <span className="font-medium">
-              {insights.avgTenure.toFixed(1)} years
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Turnover (12 mo):</span>{" "}
-            <span className="font-medium">{insights.turnover12mo}%</span>
-          </div>
-          <div>
-            <div className="text-muted-foreground">
-              Upcoming Anniversaries (30d)
-            </div>
-            {insights.upcomingAnniversaries.length === 0 ? (
-              <div className="text-muted-foreground">None</div>
-            ) : (
-              <ul className="list-disc pl-5">
-                {insights.upcomingAnniversaries.map((e: any) => (
-                  <li key={e.id}>
-                    {e.firstName ?? ""} {e.lastName ?? ""}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      ) : (
-        <EmptyState
-          tone="brand"
-          title="Build your first insight"
-          description="We need a little more information to surface team insights."
-          className="py-8"
-        />
-      )}
-    </DashboardWidget>
-  );
-}
-
 interface ManagerDashboardClientProps {
   firstName?: string | null;
   fullName?: string | null;
@@ -236,8 +146,6 @@ export default function ManagerDashboardClient({
   avatarUrl,
   employeeId,
 }: ManagerDashboardClientProps) {
-  const { data: session } = useSession();
-
   const title = firstName ? `Hi, ${firstName}!` : "Manager Dashboard";
 
   return (
@@ -291,16 +199,20 @@ export default function ManagerDashboardClient({
         <div className="flex-1 p-4 pt-0">
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
             {/* Top row - 3 equal cards that stretch full width */}
-            <EnhancedWidget size="small" delay={0.1} className="xl:col-span-1">
-              <MetricsSummary />
-            </EnhancedWidget>
+            {/* Annual Leave Balance - Top Left */}
+            {employeeId && (
+              <EnhancedWidget size="small" delay={0.1} className="xl:col-span-1">
+                <LeaveSummaryCard employeeId={employeeId} />
+              </EnhancedWidget>
+            )}
 
             <EnhancedWidget size="small" delay={0.15} className="xl:col-span-1">
               <TeamAbsenceOverview />
             </EnhancedWidget>
 
+            {/* Team Metrics - Far Right */}
             <EnhancedWidget size="small" delay={0.2} className="xl:col-span-1">
-              <TeamInsights />
+              <MetricsSummary />
             </EnhancedWidget>
           </div>
           

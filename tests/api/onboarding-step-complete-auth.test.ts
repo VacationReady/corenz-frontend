@@ -253,7 +253,8 @@ test("Onboarding Step Complete API auth guards", async (t) => {
 
     const req = new NextRequest("http://localhost/api/onboarding/step/step-1/complete", {
       method: "POST",
-      body: JSON.stringify({}),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formResponse: { completed: true } }), // FORM_FILL requires formResponse
     });
     const res = await callPost(req, { params: { stepId: "step-1" } });
     const data = await res.json();
@@ -344,7 +345,8 @@ test("Onboarding Step Complete API auth guards", async (t) => {
 
     const req = new NextRequest("http://localhost/api/onboarding/step/step-1/complete", {
       method: "POST",
-      body: JSON.stringify({}),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formResponse: { completed: true } }), // FORM_FILL requires formResponse
     });
     const res = await callPost(req, { params: { stepId: "step-1" } });
     const data = await res.json();
@@ -443,7 +445,8 @@ test("Onboarding Step Complete API auth guards", async (t) => {
 
     const req = new NextRequest("http://localhost/api/onboarding/step/step-1/complete", {
       method: "POST",
-      body: JSON.stringify({}),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formResponse: { completed: true } }), // FORM_FILL requires formResponse
     });
     const res = await callPost(req, { params: { stepId: "step-1" } });
     const data = await res.json();
@@ -499,7 +502,8 @@ test("Onboarding Step Complete API auth guards", async (t) => {
 
     const req = new NextRequest("http://localhost/api/onboarding/step/step-1/complete", {
       method: "POST",
-      body: JSON.stringify({}),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formResponse: { completed: true } }), // FORM_FILL requires formResponse
     });
     const res = await callPost(req, { params: { stepId: "step-1" } });
     const data = await res.json();

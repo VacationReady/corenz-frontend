@@ -163,47 +163,62 @@ export function PermissionProfileManagement({
 
   useEffect(() => {
     fetchData();
-  }, [employeeId]);
+  }, [employeeId, canManagePermissions]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
 
-      // Fetch user permissions and audit trail
+      // Fetch user permissions and audit trail (allowed for self-view)
       const userResponse = await fetch(`/api/users/${employeeId}/permissions`);
-      if (!userResponse.ok) throw new Error("Failed to fetch user permissions");
+      if (!userResponse.ok) {
+        // If 403, user doesn't have permission to view this - that's okay for non-admins
+        if (userResponse.status === 403) {
+          // Just show basic info without the full permission data
+          setUserPermissions(null);
+          return;
+        }
+        throw new Error("Failed to fetch user permissions");
+      }
       const userData = await userResponse.json();
       setUserPermissions(userData);
-      // Pre-populate editor with effective permissions so ticks/crosses reflect current access
-      if (userData?.effectivePermissions && typeof userData.effectivePermissions === "object") {
-        const mapped: Record<string, ("read" | "edit" | "delete")[]> = {};
-        Object.entries(userData.effectivePermissions as Record<string, string[]>).forEach(([screen, actions]) => {
-          const filtered = actions.filter((a) => a === "read" || a === "edit" || a === "delete") as ("read" | "edit" | "delete")[];
-          if (filtered.length > 0) mapped[screen] = filtered;
-        });
-        setCustomPermissionsDraft(mapped);
-      }
+      
+      // Only fetch profiles and screens metadata if user can manage permissions
+      if (canManagePermissions) {
+        // Pre-populate editor with effective permissions so ticks/crosses reflect current access
+        if (userData?.effectivePermissions && typeof userData.effectivePermissions === "object") {
+          const mapped: Record<string, ("read" | "edit" | "delete")[]> = {};
+          Object.entries(userData.effectivePermissions as Record<string, string[]>).forEach(([screen, actions]) => {
+            const filtered = actions.filter((a) => a === "read" || a === "edit" || a === "delete") as ("read" | "edit" | "delete")[];
+            if (filtered.length > 0) mapped[screen] = filtered;
+          });
+          setCustomPermissionsDraft(mapped);
+        }
 
-      // Fetch available profiles
-      const profilesResponse = await fetch("/api/permissions");
-      if (!profilesResponse.ok) throw new Error("Failed to fetch profiles");
-      const profilesData = await profilesResponse.json();
-      // Filter out any null/undefined profiles
-      const validProfiles = (profilesData.profiles || []).filter((p: PermissionProfile | null | undefined) => p && p.id && p.name);
-      setAvailableProfiles(validProfiles);
+        // Fetch available profiles
+        const profilesResponse = await fetch("/api/permissions");
+        if (!profilesResponse.ok) throw new Error("Failed to fetch profiles");
+        const profilesData = await profilesResponse.json();
+        // Filter out any null/undefined profiles
+        const validProfiles = (profilesData.profiles || []).filter((p: PermissionProfile | null | undefined) => p && p.id && p.name);
+        setAvailableProfiles(validProfiles);
 
-      // Load screens/actions metadata
-      const screensRes = await fetch("/api/permissions/screens");
-      if (screensRes.ok) {
-        const sm = await screensRes.json();
-        // Validate screens and actions arrays have valid entries
-        const validScreens = (sm.screens || []).filter((s: any) => s && s.key && s.label);
-        const validActions = (sm.actions || []).filter((a: any) => a && a.key && a.label);
-        setScreensMeta({ screens: validScreens, actions: validActions });
+        // Load screens/actions metadata
+        const screensRes = await fetch("/api/permissions/screens");
+        if (screensRes.ok) {
+          const sm = await screensRes.json();
+          // Validate screens and actions arrays have valid entries
+          const validScreens = (sm.screens || []).filter((s: any) => s && s.key && s.label);
+          const validActions = (sm.actions || []).filter((a: any) => a && a.key && a.label);
+          setScreensMeta({ screens: validScreens, actions: validActions });
+        }
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast.error("Failed to load permission data");
+      // Only show error toast for admins who should be able to fetch this data
+      if (canManagePermissions) {
+        toast.error("Failed to load permission data");
+      }
     } finally {
       setLoading(false);
     }
@@ -310,6 +325,14 @@ export function PermissionProfileManagement({
   }
 
   if (!userPermissions) {
+    // For non-admins viewing other employees, show a simple message instead of an error
+    if (!canManagePermissions) {
+      return (
+        <div className="text-sm text-muted-foreground">
+          Permission details are only visible to administrators.
+        </div>
+      );
+    }
     return (
       <div className="text-sm text-red-600">Failed to load permission data</div>
     );

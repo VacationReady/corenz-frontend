@@ -94,19 +94,19 @@ This implementation plan addresses two critical issues:
     - **Property 3: Employee Profile Screen Labels Indicate Others Access**
     - **Validates: Requirements 2.1, 4.2, 4.3**
 
-- [ ] 6. Update permissions/screens API
-  - [ ] 6.1 Update app/api/permissions/screens/route.ts
+- [x] 6. Update permissions/screens API
+  - [x] 6.1 Update app/api/permissions/screens/route.ts
     - Return full SCREEN_METADATA objects instead of just key/label
     - Include displayLabel, description, category, affectsOthers
     - _Requirements: 4.1, 5.1_
 
-- [ ] 7. Add info tooltip to PermissionProfileManagement
-  - [ ] 7.1 Add tooltip to PermissionProfileManagement component
+- [x] 7. Add info tooltip to PermissionProfileManagement
+  - [x] 7.1 Add tooltip to PermissionProfileManagement component
     - Add info icon next to "Permission Profile" heading
     - Tooltip text: "Employees always have access to their own screens. These permissions control access to other employees' data."
     - _Requirements: 1.1, 1.3_
 
-- [ ] 8. Checkpoint - Ensure UI clarity improvements work
+- [x] 8. Checkpoint - Ensure UI clarity improvements work
   - Ensure all tests pass, ask the user if questions arise.
   - Test manually: verify banner, section headers, tooltips, and renamed labels appear correctly
 

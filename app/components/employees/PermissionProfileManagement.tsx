@@ -29,7 +29,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { Shield, Clock, User, ChevronDown, ChevronRight, History, Eye } from "lucide-react";
+import { Shield, Clock, User, ChevronDown, ChevronRight, History, Eye, Info } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -37,6 +37,12 @@ import { PermissionDiff } from "./PermissionDiff";
 import { ScreenPermissions } from "@/lib/permissions";
 import { PermissionEditor, ScreenWithMetadata } from "./PermissionEditor";
 import { ProfileUpdateSuccessAnimation } from "@/components/animations";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PermissionProfile {
   id: string;
@@ -347,7 +353,21 @@ export function PermissionProfileManagement({
         <div className="flex items-center space-x-3">
           <Shield className="h-5 w-5 text-primary" />
           <div>
-            <p className="font-medium">{currentProfile.name}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium">{currentProfile.name}</p>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    <p>
+                      Employees always have access to their own screens. These permissions control access to other employees&apos; data.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <p className="text-sm text-gray-600">
               {currentProfile.description}
             </p>

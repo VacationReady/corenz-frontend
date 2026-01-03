@@ -154,6 +154,27 @@ export function SendReportModal({
     );
   }, [employees, employeeSearch]);
 
+  // Auto-expand departments that have matching employees when searching
+  useEffect(() => {
+    if (employeeSearch.trim()) {
+      // Find all departments that have matching employees
+      const departmentsWithMatches = new Set<string>();
+      filteredEmployees.forEach((emp) => {
+        if (emp.departmentId) {
+          departmentsWithMatches.add(emp.departmentId);
+        }
+      });
+      // Also add "unassigned" if there are unassigned employees in results
+      if (filteredEmployees.some((emp) => !emp.departmentId)) {
+        departmentsWithMatches.add("unassigned");
+      }
+      setExpandedDepartments(departmentsWithMatches);
+    } else {
+      // Collapse all when search is cleared
+      setExpandedDepartments(new Set());
+    }
+  }, [employeeSearch, filteredEmployees]);
+
   const handleDepartmentToggle = (deptId: string) => {
     setSelectedDepartments((prev) =>
       prev.includes(deptId)

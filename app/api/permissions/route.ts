@@ -5,6 +5,7 @@ import {
   hasPermission,
   validatePermissions,
   DEFAULT_PERMISSIONS,
+  UserWithProfile,
 } from "@/lib/permissions";
 import { PermissionProfile } from "@prisma/client";
 
@@ -15,8 +16,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Fetch user with permission profile to check custom permissions
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { PermissionProfile: true },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userWithProfile: UserWithProfile = {
+      ...currentUser,
+      permissionProfile: currentUser.PermissionProfile,
+    };
+
     // Check if user has permission to view permissions
-    if (!hasPermission(session.user as any, "permissions", "read")) {
+    if (!hasPermission(userWithProfile, "permissions", "read")) {
       return NextResponse.json(
         { error: "Insufficient permissions" },
         { status: 403 },
@@ -115,8 +131,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Fetch user with permission profile to check custom permissions
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { PermissionProfile: true },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userWithProfile: UserWithProfile = {
+      ...currentUser,
+      permissionProfile: currentUser.PermissionProfile,
+    };
+
     // Check if user has permission to create permissions
-    if (!hasPermission(session.user as any, "permissions", "edit")) {
+    if (!hasPermission(userWithProfile, "permissions", "edit")) {
       return NextResponse.json(
         { error: "Insufficient permissions" },
         { status: 403 },

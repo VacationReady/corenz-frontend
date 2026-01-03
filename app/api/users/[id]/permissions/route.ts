@@ -5,6 +5,7 @@ import {
   hasPermission,
   resolvePermissions,
   validatePermissions,
+  UserWithProfile,
 } from "@/lib/permissions";
 
 export async function GET(
@@ -20,8 +21,23 @@ export async function GET(
     const { id } = await context.params;
     const isSelf = session.user.id === id;
 
+    // Fetch current user with permission profile to check custom permissions
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { PermissionProfile: true },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: "Current user not found" }, { status: 404 });
+    }
+
+    const currentUserWithProfile: UserWithProfile = {
+      ...currentUser,
+      permissionProfile: currentUser.PermissionProfile,
+    };
+
     // Allow employees to view their own permissions; others require explicit access
-    if (!isSelf && !hasPermission(session.user as any, "permissions", "read")) {
+    if (!isSelf && !hasPermission(currentUserWithProfile, "permissions", "read")) {
       return NextResponse.json(
         { error: "Insufficient permissions" },
         { status: 403 },
@@ -111,8 +127,23 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Fetch current user with permission profile to check custom permissions
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { PermissionProfile: true },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: "Current user not found" }, { status: 404 });
+    }
+
+    const currentUserWithProfile: UserWithProfile = {
+      ...currentUser,
+      permissionProfile: currentUser.PermissionProfile,
+    };
+
     // Check if user has permission to manage permissions
-    if (!hasPermission(session.user as any, "permissions", "edit")) {
+    if (!hasPermission(currentUserWithProfile, "permissions", "edit")) {
       return NextResponse.json(
         { error: "Insufficient permissions" },
         { status: 403 },

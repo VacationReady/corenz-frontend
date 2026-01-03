@@ -66,6 +66,26 @@ function resetMocks() {
   };
   mockPrisma.user = {
     findMany: async () => [],
+    // Mock findUnique for permission profile lookup (added in permission enforcement feature)
+    // For subordinate tests, we want managers to use role-based filtering (not profile-based)
+    // so we return a user with a custom profile that has NO employees permission
+    findUnique: async ({ where }: any) => {
+      if (mockSession?.user?.id && where?.id === mockSession.user.id) {
+        return {
+          id: mockSession.user.id,
+          role: mockSession.user.role,
+          companyId: mockSession.user.companyId,
+          // Custom profile with only dashboard access - no employees permission
+          // This ensures managers use role-based filtering (OR conditions)
+          PermissionProfile: {
+            id: "limited-profile",
+            name: "Limited Manager",
+            permissions: { dashboard: ["read"] },
+          },
+        };
+      }
+      return null;
+    },
   };
   // Preserve mockSupabase object reference so imported supabase sees updated methods
   if (!mockSupabase.storage) {

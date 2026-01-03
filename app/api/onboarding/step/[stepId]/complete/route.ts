@@ -3,13 +3,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { validateIRDNumber } from "@/lib/payroll/validators";
 import { isValidNzBankAccountNumber, normalizeBankAccountNumber } from "@/lib/utils";
 import { validatePhone, validateEmail } from "@/lib/validators";
 import { canAccessEmployee } from "@/lib/permissions";
 import { logStepChange } from "@/lib/onboarding/audit-logger";
+import type { OnboardingStepType } from "@prisma/client";
 
 type CompletionPayload = Record<string, unknown>;
 
@@ -132,6 +132,19 @@ const FIELD_ALIASES: Record<string, string> = {
   hourlyRate: "hourlyRate",
   payRate: "hourlyRate",
 };
+
+/**
+ * Sensitive payroll/salary fields that can ONLY be synced by ADMIN or SUPER_ADMIN.
+ * Non-admin users (EMPLOYEE, MANAGER) cannot update these fields via onboarding completion.
+ * This prevents privilege escalation where employees could modify their own compensation.
+ */
+export const ADMIN_ONLY_SYNC_FIELDS = new Set([
+  // Salary/compensation fields
+  "salaryAmount",
+  "hourlyRate",
+  // Employer contribution rates (employee can set their own rate, but not employer's)
+  "kiwiSaverEmployerRate",
+]);
 
 /**
  * Sanitizes a string to prevent XSS attacks
@@ -306,18 +319,36 @@ async function checkAndUpdateOnboardingCompletion(
  * Syncs form data to the employee's profile (User, Employee, and EmergencyContact records).
  * This enables onboarding forms to populate real profile data, eliminating double-entry.
  * Now includes validation and sanitization of all fields.
+ * 
+ * @param formData - The form data to sync
+ * @param employeeId - The employee ID to sync to
+ * @param userId - The user ID associated with the employee
+ * @param companyId - The company ID for context
+ * @param requesterRole - The role of the user making the request (for field filtering)
  */
 async function syncFormDataToProfile(
   formData: Record<string, any>,
   employeeId: string,
   userId: string,
-  companyId: string
-): Promise<{ success: boolean; errors?: { field: string; message: string }[] }> {
+  companyId: string,
+  requesterRole: string = "EMPLOYEE"
+): Promise<{ success: boolean; errors?: { field: string; message: string }[]; droppedFields?: string[] }> {
+  const isAdmin = requesterRole === "ADMIN" || requesterRole === "SUPER_ADMIN";
+  const droppedFields: string[] = [];
+  
   // Normalize field names using aliases
   const normalizedData: Record<string, any> = {};
   for (const [key, value] of Object.entries(formData)) {
     if (value === undefined || value === null || value === "") continue;
     const canonicalKey = FIELD_ALIASES[key] || key;
+    
+    // Filter out admin-only fields for non-admin users
+    if (!isAdmin && ADMIN_ONLY_SYNC_FIELDS.has(canonicalKey)) {
+      droppedFields.push(canonicalKey);
+      console.warn(`[onboarding/sync] Blocked non-admin sync of restricted field "${canonicalKey}" for employee ${employeeId}`);
+      continue;
+    }
+    
     normalizedData[canonicalKey] = value;
   }
 
@@ -495,7 +526,7 @@ async function syncFormDataToProfile(
     console.log(`[onboarding/sync] Sensitive fields updated for employee ${employeeId}: ${updatedSensitiveFields.join(', ')}`);
   }
 
-  return { success: true };
+  return { success: true, droppedFields: droppedFields.length > 0 ? droppedFields : undefined };
 }
 
 /**
@@ -531,6 +562,104 @@ function validateUploadedFile(body: any): { isValid: boolean; error?: string } {
   }
 
   return { isValid: true };
+}
+
+/**
+ * Validates that required evidence exists before allowing step completion.
+ * Returns validation result with error message if evidence is missing.
+ */
+async function validateStepEvidence(
+  stepType: OnboardingStepType,
+  stepDocumentId: string | null,
+  employeeId: string,
+  stepInstanceId: string,
+  completionPayload: CompletionPayload | null,
+  body: any
+): Promise<{ isValid: boolean; error?: string }> {
+  switch (stepType) {
+    case "ACKNOWLEDGE_DOCUMENT": {
+      // Require an existing DocumentAcknowledgement for the step's linked document
+      if (!stepDocumentId) {
+        return { 
+          isValid: false, 
+          error: "Step configuration error: No document linked to acknowledgement step" 
+        };
+      }
+      
+      const acknowledgement = await prisma.documentAcknowledgement.findUnique({
+        where: {
+          documentId_employeeId: {
+            documentId: stepDocumentId,
+            employeeId: employeeId,
+          },
+        },
+      });
+      
+      if (!acknowledgement) {
+        return { 
+          isValid: false, 
+          error: "Document must be acknowledged before completing this step" 
+        };
+      }
+      return { isValid: true };
+    }
+
+    case "UPLOAD_DOCUMENT": {
+      // Require a document record tied to the employee/step
+      // Check if a document is being uploaded in this request OR already exists
+      if (body.fileUrl) {
+        // Document is being uploaded with this completion request - valid
+        return { isValid: true };
+      }
+      
+      // Check if a document was already uploaded for this step (stored in step response)
+      const existingResponse = await prisma.onboardingStepResponse.findFirst({
+        where: { 
+          onboardingStepInstanceId: stepInstanceId,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      
+      if (existingResponse?.response && typeof existingResponse.response === "object") {
+        const response = existingResponse.response as Record<string, unknown>;
+        if (response.documentId) {
+          // Document was previously uploaded - valid
+          return { isValid: true };
+        }
+      }
+      
+      return { 
+        isValid: false, 
+        error: "A document must be uploaded before completing this step" 
+      };
+    }
+
+    case "FORM_FILL":
+    case "FILL_FORM_BY_SLUG": {
+      // Require formResponse in the completion payload
+      if (!completionPayload?.formResponse) {
+        return { 
+          isValid: false, 
+          error: "Form response is required to complete this step" 
+        };
+      }
+      
+      // Validate that formResponse is a non-empty object
+      const formResponse = completionPayload.formResponse;
+      if (typeof formResponse !== "object" || formResponse === null) {
+        return { 
+          isValid: false, 
+          error: "Form response must be a valid object" 
+        };
+      }
+      
+      return { isValid: true };
+    }
+
+    default:
+      // Other step types don't require specific evidence validation
+      return { isValid: true };
+  }
 }
 
 function extractCompletionPayload(body: any, stepType?: string): CompletionPayload | null {
@@ -700,7 +829,30 @@ export async function POST(
       }
     }
 
-    // 2. Mark step as completed
+    // 2. Validate required evidence before allowing completion
+    const stepType = stepInstance.OnboardingStep?.type as OnboardingStepType | undefined;
+    const stepDocumentId = stepInstance.OnboardingStep?.documentId || null;
+    const completionPayload = extractCompletionPayload(body, stepType);
+    
+    if (stepType) {
+      const evidenceValidation = await validateStepEvidence(
+        stepType,
+        stepDocumentId,
+        onboardingEmployee.id,
+        stepId,
+        completionPayload,
+        body
+      );
+      
+      if (!evidenceValidation.isValid) {
+        return NextResponse.json(
+          { error: evidenceValidation.error, code: "MISSING_EVIDENCE" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 3. Mark step as completed
     await prisma.onboardingStepInstance.update({
       where: { id: stepId },
       data: {
@@ -709,12 +861,11 @@ export async function POST(
       },
     });
 
-    // 3. Save step response (supports new payload structures)
-    const completionPayload = extractCompletionPayload(body, stepInstance.OnboardingStep?.type);
+    // 4. Save step response (supports new payload structures)
     if (completionPayload) {
       await prisma.onboardingStepResponse.create({
         data: {
-          id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `response_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           onboardingStepInstanceId: stepId,
           // Use a broad type cast here to avoid Prisma.InputJsonValue type issues
           response: completionPayload as any,
@@ -722,7 +873,7 @@ export async function POST(
       });
     }
 
-    // 3b. Sync form data to employee profile
+    // 4b. Sync form data to employee profile
     // This handles FORM_FILL steps (formResponse), PAYROLL_SETUP steps (payrollValues),
     // and any other step that collects profile data. Enables onboarding to populate
     // real employee data without double-entry by administrators.
@@ -731,19 +882,24 @@ export async function POST(
       (completionPayload?.payrollValues as Record<string, any>) ||
       null;
 
-    let syncResult: { success: boolean; errors?: { field: string; message: string }[] } | null = null;
+    let syncResult: { success: boolean; errors?: { field: string; message: string }[]; droppedFields?: string[] } | null = null;
     if (formDataToSync && typeof formDataToSync === "object") {
       try {
         syncResult = await syncFormDataToProfile(
           formDataToSync,
           onboardingEmployee.id,
           onboardingUser.id,
-          session.user.companyId
+          session.user.companyId,
+          session.user.role || "EMPLOYEE"
         );
         
         if (!syncResult.success && syncResult.errors) {
           console.warn(`[onboarding/complete] Form data validation errors for step ${stepId}:`, syncResult.errors);
           // Don't fail the step completion, but log the validation errors
+        }
+        
+        if (syncResult.droppedFields && syncResult.droppedFields.length > 0) {
+          console.log(`[onboarding/complete] Restricted fields dropped for non-admin user ${session.user.id}: ${syncResult.droppedFields.join(', ')}`);
         }
       } catch (syncError) {
         // Log but don't fail the step completion if sync fails

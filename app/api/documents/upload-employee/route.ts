@@ -17,12 +17,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const userRole = session.user.role as string;
+  const sessionCompanyId = session.user.companyId as string | undefined;
+
+  if (!sessionCompanyId) {
+    return NextResponse.json(
+      { error: "Missing company context" },
+      { status: 400 },
+    );
+  }
+
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const name = formData.get("name") as string;
   const category = formData.get("category") as string;
   const employeeId = formData.get("employeeId") as string;
-  let companyId = session.user.companyId as string | undefined;
+  let companyId = sessionCompanyId;
   let uploaderId = session.user.id as string | undefined;
 
   // ✅ Access control flags
@@ -40,18 +50,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  // Ensure uploader exists; if not, fallback to employee's userId
+  // Fetch employee with user info for tenant and access validation
   const employeeForContext = await prisma.employee.findUnique({
     where: { id: employeeId },
     select: {
       userId: true,
       companyId: true,
-      User: { select: { companyId: true } },
+      User: { select: { companyId: true, managerId: true } },
     },
   });
   if (!employeeForContext) {
     return NextResponse.json({ error: "Employee not found" }, { status: 404 });
   }
+
+  // ✅ TENANT VALIDATION: Verify employee belongs to user's company
+  if (employeeForContext.companyId !== sessionCompanyId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // ✅ ACCESS VALIDATION: Only Admin/Super Admin or self can upload
+  const isAdminOrSuperAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
+  const isSelf = employeeForContext.userId === session.user.id;
+  const isManager = userRole === "MANAGER" && employeeForContext.User?.managerId === session.user.id;
+
+  if (!isAdminOrSuperAdmin && !isSelf && !isManager) {
+    // EMPLOYEE role must match their own employee record
+    if (userRole === "EMPLOYEE") {
+      // Get the user's employee record to verify
+      const userEmployee = await prisma.employee.findFirst({
+        where: { userId: session.user.id, companyId: sessionCompanyId },
+        select: { id: true },
+      });
+      if (!userEmployee || userEmployee.id !== employeeId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    } else {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
+  // Ensure uploader exists; if not, fallback to employee's userId
   if (!uploaderId) {
     uploaderId = employeeForContext.userId || undefined;
   } else {
@@ -68,14 +106,6 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  // Ensure companyId present (session -> employee -> employee.user)
-  if (!companyId) companyId = employeeForContext.companyId || undefined;
-  if (!companyId) companyId = employeeForContext.User?.companyId || undefined;
-  if (!companyId)
-    return NextResponse.json(
-      { error: "Missing company context" },
-      { status: 400 },
-    );
 
   // Validate company exists to avoid FK violation
   const companyExists = await prisma.company.findUnique({

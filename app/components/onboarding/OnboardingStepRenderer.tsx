@@ -12,7 +12,13 @@ import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { EnhancedFormRenderer } from "@/components/forms/EnhancedFormRenderer";
 import { GlassSpinner } from "@/components/ui/LoadingSpinner";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   normalizeStepMetadata,
   PAYROLL_FIELD_TYPES,
@@ -23,6 +29,19 @@ import {
 import { validateIRDNumber } from "@/lib/payroll/validators";
 import { mapDbStepTypeToUi } from "@/lib/onboarding/stepTypeMapping";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+
+/**
+ * Sensitive payroll field IDs that should only be visible/editable by ADMIN or SUPER_ADMIN.
+ * These fields allow modification of compensation data and must be restricted.
+ */
+const ADMIN_ONLY_PAYROLL_FIELDS = new Set([
+  "salaryAmount",
+  "salary",
+  "annualSalary",
+  "hourlyRate",
+  "payRate",
+  "kiwiSaverEmployerRate",
+]);
 
 type OnboardingStepProps = {
   step: {
@@ -333,17 +352,39 @@ export default function OnboardingStepRenderer({
     });
   }, [metadata, step.id]);
 
+  // Track whether payroll prefill is available (only for admin or self)
+  const [prefillAvailable, setPrefillAvailable] = useState<boolean | null>(null);
+
   // Pre-populate payroll values from Employee record for payroll-setup steps
+  // The API enforces admin/self restrictions - we handle 403 silently
   useEffect(() => {
     if (stepType !== "payroll-setup" || !employeeId) return;
+    
+    // Check if viewer is an admin - they can always access
+    const viewerRole = session?.user?.role;
+    const isAdmin = viewerRole === "ADMIN" || viewerRole === "SUPER_ADMIN";
+    
+    // For non-admins, we'll attempt the fetch and let the API decide
+    // The API will return 403 if the viewer isn't the employee themselves
     
     // Fetch employee's bank/payroll data to pre-populate the form
     const fetchEmployeePayrollData = async () => {
       try {
         const res = await tenantFetch(`/api/employees/${employeeId}/bank-payroll`);
-        if (!res.ok) return;
+        
+        // Handle 403 silently - viewer doesn't have access to prefill data
+        if (res.status === 403) {
+          setPrefillAvailable(false);
+          return;
+        }
+        
+        if (!res.ok) {
+          setPrefillAvailable(false);
+          return;
+        }
         
         const data = await res.json();
+        setPrefillAvailable(true);
         
         // Map employee data to payroll field IDs
         const prePopulatedValues: Record<string, string> = {};
@@ -375,13 +416,14 @@ export default function OnboardingStepRenderer({
             ...prePopulatedValues,
           }));
         }
-      } catch (error) {
-        console.warn("[OnboardingStepRenderer] Failed to fetch employee payroll data for pre-population:", error);
+      } catch {
+        // Handle errors silently to avoid leakage or noisy logs
+        setPrefillAvailable(false);
       }
     };
     
     fetchEmployeePayrollData();
-  }, [stepType, employeeId, payrollFields, tenantFetch]);
+  }, [stepType, employeeId, payrollFields, tenantFetch, session?.user?.role]);
 
   useEffect(() => {
     if (!formType && step.formId) {
@@ -1058,14 +1100,38 @@ export default function OnboardingStepRenderer({
       typeof metadata.instructions === "string" && metadata.instructions.trim().length
         ? metadata.instructions.trim()
         : "Collect payroll details.";
+    
+    // Filter out admin-only fields for non-admin users
+    const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+    const visiblePayrollFields = payrollFields.filter((field) => {
+      if (ADMIN_ONLY_PAYROLL_FIELDS.has(field.id)) {
+        return isAdmin;
+      }
+      return true;
+    });
+    
     return (
       <Card className="p-4 space-y-4">
-        <div className="text-lg font-semibold">
-          {title || "Payroll Setup"}
+        <div className="flex items-center gap-2">
+          <div className="text-lg font-semibold">
+            {title || "Payroll Setup"}
+          </div>
+          {prefillAvailable === false && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Prefill not available. Only admins or the employee can view existing payroll data.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         <div className="text-sm text-muted-foreground">{desc || payrollInstructions}</div>
         <div className="grid gap-3">
-          {payrollFields.map((field) => {
+          {visiblePayrollFields.map((field) => {
             const value = payrollValues[field.id] ?? "";
             const setValue = (next: string) =>
               setPayrollValues((prev) => ({
@@ -1151,7 +1217,7 @@ export default function OnboardingStepRenderer({
               </div>
             );
           })}
-          {!payrollFields.length && (
+          {!visiblePayrollFields.length && (
             <div className="text-sm text-muted-foreground">Payroll fields not configured.</div>
           )}
         </div>
@@ -1162,13 +1228,13 @@ export default function OnboardingStepRenderer({
               if (loading || isCompleting) return;
               const validationErrors: string[] = [];
               const sanitizedValues: Record<string, string> = { ...payrollValues };
-              const kiwiStatusField = payrollFields.find((f) => f.fieldType === "kiwiSaverStatus");
+              const kiwiStatusField = visiblePayrollFields.find((f) => f.fieldType === "kiwiSaverStatus");
               const kiwiStatusValue = kiwiStatusField
                 ? (sanitizedValues[kiwiStatusField.id] ?? "")
                 : "";
               const kiwiEnrolled = kiwiStatusValue === "enrolled";
 
-              for (const field of payrollFields) {
+              for (const field of visiblePayrollFields) {
                 const rawValue = sanitizedValues[field.id] ?? "";
                 const trimmed = typeof rawValue === "string" ? rawValue.trim() : "";
                 if (field.required && !trimmed) {

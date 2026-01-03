@@ -550,4 +550,285 @@ test("Onboarding Step Complete API auth guards", async (t) => {
     // The step completion is role-based, not permission-profile based
     assert.equal(res.status, 403);
   });
+
+  // ============================================================
+  // Sensitive Payroll Field Protection Tests
+  // ============================================================
+
+  await run("non-admin cannot update salary fields via onboarding completion - fields are dropped", async () => {
+    mockSession = {
+      user: { id: "user-1", companyId: "company-1", email: "employee@example.com", role: "EMPLOYEE" },
+    };
+
+    let employeeUpdateData: any = null;
+    let userUpdateData: any = null;
+
+    (prisma as any).onboardingStepInstance = {
+      findUnique: async () => createMockStepInstance({
+        OnboardingStep: {
+          id: "step-1",
+          label: "Payroll Setup",
+          type: "FORM_FILL",
+        },
+        OnboardingInstance: {
+          id: "onboarding-inst-1",
+          OnboardingTemplate: { id: "template-1" },
+          Employee: {
+            id: "emp-1",
+            companyId: "company-1",
+            User: {
+              id: "user-1", // Same as session user (own step)
+              companyId: "company-1",
+              managerId: "manager-1",
+            },
+          },
+        },
+      }),
+      update: async () => ({}),
+      findMany: async () => [{ status: "completed" }],
+    };
+
+    (prisma as any).onboardingStepResponse = {
+      create: async () => ({}),
+    };
+
+    (prisma as any).onboardingInstance = {
+      update: async () => ({}),
+    };
+
+    // Track what gets updated on Employee and User models
+    (prisma as any).employee = {
+      update: async (args: any) => {
+        employeeUpdateData = args.data;
+        return {};
+      },
+    };
+
+    (prisma as any).user = {
+      update: async (args: any) => {
+        userUpdateData = args.data;
+        return {};
+      },
+    };
+
+    (prisma as any).emergencyContact = {
+      findFirst: async () => null,
+      create: async () => ({}),
+    };
+
+    (prisma as any).genderOption = {
+      findFirst: async () => null,
+    };
+
+    // Employee tries to submit payroll form with salary fields
+    const req = new NextRequest("http://localhost/api/onboarding/step/step-1/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        formResponse: {
+          bankAccountNumber: "12-3456-7890123-00",
+          irdNumber: "123456789",
+          taxCode: "M",
+          salaryAmount: 150000, // RESTRICTED - should be dropped
+          hourlyRate: 75, // RESTRICTED - should be dropped
+          kiwiSaverEmployerRate: 0.04, // RESTRICTED - should be dropped
+          kiwiSaverEmployeeRate: 0.03, // Allowed
+        },
+      }),
+    });
+
+    const res = await callPost(req, { params: { stepId: "step-1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.ok, true);
+
+    // Verify restricted fields were NOT synced to employee record
+    if (employeeUpdateData) {
+      assert.equal(employeeUpdateData.salaryAmount, undefined, "salaryAmount should not be synced for non-admin");
+      assert.equal(employeeUpdateData.hourlyRate, undefined, "hourlyRate should not be synced for non-admin");
+      assert.equal(employeeUpdateData.kiwiSaverEmployerRate, undefined, "kiwiSaverEmployerRate should not be synced for non-admin");
+      // Allowed fields should be synced
+      assert.ok(employeeUpdateData.kiwiSaverEmployeeRate !== undefined || employeeUpdateData.bankAccountNumber !== undefined, 
+        "Non-restricted fields should be synced");
+    }
+  });
+
+  await run("admin CAN update salary fields via onboarding completion", async () => {
+    mockSession = {
+      user: { id: "admin-1", companyId: "company-1", email: "admin@example.com", role: "ADMIN" },
+    };
+
+    let employeeUpdateData: any = null;
+
+    (prisma as any).onboardingStepInstance = {
+      findUnique: async () => createMockStepInstance({
+        OnboardingStep: {
+          id: "step-1",
+          label: "Payroll Setup",
+          type: "FORM_FILL",
+        },
+        OnboardingInstance: {
+          id: "onboarding-inst-1",
+          OnboardingTemplate: { id: "template-1" },
+          Employee: {
+            id: "emp-1",
+            companyId: "company-1",
+            User: {
+              id: "user-1",
+              companyId: "company-1",
+              managerId: "manager-1",
+            },
+          },
+        },
+      }),
+      update: async () => ({}),
+      findMany: async () => [{ status: "completed" }],
+    };
+
+    (prisma as any).onboardingStepResponse = {
+      create: async () => ({}),
+    };
+
+    (prisma as any).onboardingInstance = {
+      update: async () => ({}),
+    };
+
+    (prisma as any).employee = {
+      update: async (args: any) => {
+        employeeUpdateData = args.data;
+        return {};
+      },
+    };
+
+    (prisma as any).user = {
+      update: async () => ({}),
+    };
+
+    (prisma as any).emergencyContact = {
+      findFirst: async () => null,
+      create: async () => ({}),
+    };
+
+    (prisma as any).genderOption = {
+      findFirst: async () => null,
+    };
+
+    // Admin submits payroll form with salary fields
+    const req = new NextRequest("http://localhost/api/onboarding/step/step-1/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        formResponse: {
+          bankAccountNumber: "12-3456-7890123-00",
+          irdNumber: "123456789",
+          taxCode: "M",
+          salaryAmount: 150000,
+          hourlyRate: 75,
+          kiwiSaverEmployerRate: 0.04,
+        },
+      }),
+    });
+
+    const res = await callPost(req, { params: { stepId: "step-1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.ok, true);
+
+    // Verify admin CAN sync salary fields
+    if (employeeUpdateData) {
+      assert.equal(employeeUpdateData.salaryAmount, 150000, "Admin should be able to sync salaryAmount");
+      assert.equal(employeeUpdateData.hourlyRate, 75, "Admin should be able to sync hourlyRate");
+      assert.equal(employeeUpdateData.kiwiSaverEmployerRate, 0.04, "Admin should be able to sync kiwiSaverEmployerRate");
+    }
+  });
+
+  await run("manager cannot update salary fields via onboarding completion for their reports", async () => {
+    mockSession = {
+      user: { id: "manager-1", companyId: "company-1", email: "manager@example.com", role: "MANAGER" },
+    };
+
+    mockCanAccessEmployee = true; // Manager can access this employee
+
+    let employeeUpdateData: any = null;
+
+    (prisma as any).onboardingStepInstance = {
+      findUnique: async () => createMockStepInstance({
+        OnboardingStep: {
+          id: "step-1",
+          label: "Payroll Setup",
+          type: "FORM_FILL",
+        },
+        OnboardingInstance: {
+          id: "onboarding-inst-1",
+          OnboardingTemplate: { id: "template-1" },
+          Employee: {
+            id: "emp-1",
+            companyId: "company-1",
+            User: {
+              id: "user-1",
+              companyId: "company-1",
+              managerId: "manager-1",
+            },
+          },
+        },
+      }),
+      update: async () => ({}),
+      findMany: async () => [{ status: "completed" }],
+    };
+
+    (prisma as any).onboardingStepResponse = {
+      create: async () => ({}),
+    };
+
+    (prisma as any).onboardingInstance = {
+      update: async () => ({}),
+    };
+
+    (prisma as any).employee = {
+      update: async (args: any) => {
+        employeeUpdateData = args.data;
+        return {};
+      },
+    };
+
+    (prisma as any).user = {
+      update: async () => ({}),
+    };
+
+    (prisma as any).emergencyContact = {
+      findFirst: async () => null,
+      create: async () => ({}),
+    };
+
+    (prisma as any).genderOption = {
+      findFirst: async () => null,
+    };
+
+    // Manager tries to submit payroll form with salary fields for their report
+    const req = new NextRequest("http://localhost/api/onboarding/step/step-1/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        formResponse: {
+          bankAccountNumber: "12-3456-7890123-00",
+          salaryAmount: 150000, // RESTRICTED - should be dropped
+          hourlyRate: 75, // RESTRICTED - should be dropped
+        },
+      }),
+    });
+
+    const res = await callPost(req, { params: { stepId: "step-1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.ok, true);
+
+    // Verify restricted fields were NOT synced even for manager
+    if (employeeUpdateData) {
+      assert.equal(employeeUpdateData.salaryAmount, undefined, "Manager should not be able to sync salaryAmount");
+      assert.equal(employeeUpdateData.hourlyRate, undefined, "Manager should not be able to sync hourlyRate");
+    }
+  });
 });

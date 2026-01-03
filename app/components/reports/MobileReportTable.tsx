@@ -275,7 +275,7 @@ export function MobileReportTable({
 
           {/* Sort Button */}
           <Button
-            variant="outline"
+            variant={sortField ? "default" : "outline"}
             size="sm"
             onClick={() => {
               const currentIndex = columns.findIndex((c) => c.key === sortField);
@@ -284,11 +284,35 @@ export function MobileReportTable({
               toggleSort(nextField);
               announce(`Sorting by ${columns[nextIndex].label}`);
             }}
-            className="h-9 px-3 flex-shrink-0"
-            aria-label={`Sort by ${sortField || "column"}`}
+            className={cn(
+              "h-9 px-3 flex-shrink-0",
+              sortField && "bg-primary text-primary-foreground"
+            )}
+            aria-label={sortField 
+              ? `Sorted by ${columns.find(c => c.key === sortField)?.label || sortField} ${sortDirection === "asc" ? "ascending" : "descending"}. Click to change sort.`
+              : "Click to sort data"
+            }
           >
-            <ArrowUpDown className="w-4 h-4" />
-            <span className="ml-2 hidden sm:inline">Sort</span>
+            {sortField ? (
+              sortDirection === "asc" ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )
+            ) : (
+              <ArrowUpDown className="w-4 h-4" />
+            )}
+            <span className="ml-2 hidden sm:inline">
+              {sortField 
+                ? columns.find(c => c.key === sortField)?.label || "Sort"
+                : "Sort"
+              }
+            </span>
+            {sortField && (
+              <span className="ml-1 sm:hidden text-xs">
+                {sortDirection === "asc" ? "↑" : "↓"}
+              </span>
+            )}
           </Button>
 
           {/* Results count */}

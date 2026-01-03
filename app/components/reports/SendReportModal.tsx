@@ -517,7 +517,25 @@ export function SendReportModal({
 
                 {/* Employee List by Department */}
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {departments.length > 0 ? (
+                  {/* No results state when search returns empty */}
+                  {employeeSearch.trim() && filteredEmployees.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                        <Search className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground mb-1">No employees found</p>
+                      <p className="text-xs text-muted-foreground max-w-[200px]">
+                        No employees match &quot;{employeeSearch}&quot;. Try a different search term.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setEmployeeSearch("")}
+                        className="mt-3 text-xs text-primary hover:text-primary/80 font-medium"
+                      >
+                        Clear search
+                      </button>
+                    </div>
+                  ) : departments.length > 0 ? (
                     departments.map((dept) => {
                       const deptEmployees = filteredEmployees.filter((emp) => emp.departmentId === dept.id);
                       if (deptEmployees.length === 0 && employeeSearch) return null;

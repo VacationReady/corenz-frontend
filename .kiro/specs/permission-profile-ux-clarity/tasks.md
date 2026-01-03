@@ -110,8 +110,8 @@ This implementation plan addresses two critical issues:
   - Ensure all tests pass, ask the user if questions arise.
   - Test manually: verify banner, section headers, tooltips, and renamed labels appear correctly
 
-- [ ] 9. Write remaining property tests
-  - [ ] 9.1 Write property test for screen ordering
+- [-] 9. Write remaining property tests
+  - [x] 9.1 Write property test for screen ordering
     - **Property 5: System Screens Ordered Before Employee Profile Screens**
     - **Validates: Requirements 3.3**
 
@@ -123,7 +123,7 @@ This implementation plan addresses two critical issues:
     - **Property 2: Screen Permission Grants Profile Page Access**
     - **Validates: Requirements 9.1, 9.2, 9.3, 9.4, 9.5**
 
-- [ ] 10. Final checkpoint - Ensure all tests pass
+- [x] 10. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
   - Verify no regressions in existing permission functionality
 

@@ -594,6 +594,27 @@ export async function GET(req: NextRequest) {
         );
       };
 
+      // Determine if current user can access this employee's profile
+      // Access rules:
+      // - ADMIN/SUPER_ADMIN can access all
+      // - User with permission via profile can access all
+      // - MANAGER can access their direct/indirect reports (already filtered by whereCondition)
+      // - EMPLOYEE can only access themselves
+      let canAccess = false;
+      
+      if (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") {
+        canAccess = true;
+      } else if (hasPermissionViaProfile) {
+        canAccess = true;
+      } else if (session.user.role === "MANAGER") {
+        // For managers, they can access their direct/indirect reports
+        // The whereCondition already filtered to only show subordinates
+        canAccess = true;
+      } else if (session.user.role === "EMPLOYEE") {
+        // Employees can only access their own profile
+        canAccess = emp.userId === session.user.id;
+      }
+
       return {
         id: emp.id,
         userId: emp.User.id,
@@ -625,6 +646,8 @@ export async function GET(req: NextRequest) {
         alternativeHolidayBalance: toNumber(emp.alternativeHolidayBalance),
         publicHolidaysPerYear: toNumber(emp.publicHolidaysPerYear),
         employmentStartDate: toISOString(emp.employmentStartDate),
+        // Permission-based access flag for client component
+        canAccess,
       } as const;
     });
 

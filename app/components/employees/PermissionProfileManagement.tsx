@@ -87,7 +87,7 @@ interface PermissionProfileManagementProps {
 export function PermissionProfileManagement({
   employeeId,
 }: PermissionProfileManagementProps) {
-  const { data: _session } = useSession();
+  const { data: session } = useSession();
   const [userPermissions, setUserPermissions] =
     useState<UserPermissions | null>(null);
   const [availableProfiles, setAvailableProfiles] = useState<
@@ -98,6 +98,9 @@ export function PermissionProfileManagement({
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [note, setNote] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  
+  // Check if current user can manage permissions (ADMIN/SUPER_ADMIN only)
+  const canManagePermissions = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
   const [screensMeta, setScreensMeta] = useState<{
     screens: { key: string; label: string }[];
     actions: { key: "read" | "edit" | "delete"; label: string }[];
@@ -333,28 +336,29 @@ export function PermissionProfileManagement({
           )}
         </div>
 
-        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              Change Permissions
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Change Permission Profile</DialogTitle>
-              <DialogDescription>
-                Select a new permission profile for this employee. This will
-                change their access to various parts of the system.
-              </DialogDescription>
-            </DialogHeader>
+        {canManagePermissions && (
+          <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                Change Permissions
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Change Permission Profile</DialogTitle>
+                <DialogDescription>
+                  Select a new permission profile for this employee. This will
+                  change their access to various parts of the system.
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="profile-select">New Profile</Label>
-                <Select
-                  value={selectedProfileId}
-                  onValueChange={setSelectedProfileId}
-                >
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="profile-select">New Profile</Label>
+                  <Select
+                    value={selectedProfileId}
+                    onValueChange={setSelectedProfileId}
+                  >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a permission profile" />
                   </SelectTrigger>
@@ -400,10 +404,11 @@ export function PermissionProfileManagement({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
-      {/* Per-user overrides */}
-      {screensMeta && (
+      {/* Per-user overrides - only show for admins */}
+      {canManagePermissions && screensMeta && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">

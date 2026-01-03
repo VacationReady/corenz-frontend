@@ -63,6 +63,8 @@ This implementation plan addresses two critical issues:
 - [x] 4. Checkpoint - Ensure permission enforcement works
   - Ensure all tests pass, ask the user if questions arise.
   - Test manually: assign employee-documents permission to an employee, verify they can access other employees
+  - Fixed: API now includes canAccess flag in response so client-side data doesn't revert to read-only
+  - Fixed: "Change Permissions" button now only shows for ADMIN/SUPER_ADMIN users
 
 - [ ] 5. Update PermissionEditor UI for clarity
   - [ ] 5.1 Add explanatory banner to PermissionEditor

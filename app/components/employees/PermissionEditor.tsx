@@ -1,9 +1,29 @@
 "use client";
 
 import React from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, Info, HelpCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ActionKey = "read" | "edit" | "delete";
+
+/**
+ * Extended screen metadata interface for UI display
+ * Includes displayLabel and description for clarity
+ */
+export interface ScreenWithMetadata {
+  key: string;
+  label: string;
+  displayLabel?: string;
+  description?: string;
+  category?: 'system' | 'employee-profile';
+  affectsOthers?: boolean;
+}
 
 export function PermissionEditor({
   screens,
@@ -11,7 +31,7 @@ export function PermissionEditor({
   value,
   onChange,
 }: {
-  screens: { key: string; label: string }[];
+  screens: ScreenWithMetadata[];
   actions: { key: ActionKey; label: string }[];
   value: Record<string, ActionKey[]>;
   onChange: (next: Record<string, ActionKey[]>) => void;
@@ -42,7 +62,13 @@ export function PermissionEditor({
     onChange(copy);
   };
 
-  return (
+  // Group screens by category
+  const validScreens = screens.filter(s => s && s.key);
+  const systemScreens = validScreens.filter(s => s.category !== 'employee-profile');
+  const employeeProfileScreens = validScreens.filter(s => s.category === 'employee-profile');
+
+  // Render a permission table for a group of screens
+  const renderPermissionTable = (screenGroup: ScreenWithMetadata[]) => (
     <div className="overflow-x-auto border rounded">
       <table className="min-w-full divide-y">
         <thead>
@@ -54,11 +80,30 @@ export function PermissionEditor({
           </tr>
         </thead>
         <tbody>
-          {screens.filter(s => s && s.key).map((s) => {
+          {screenGroup.map((s) => {
             const selected = new Set(value[s.key] || []);
+            // Use displayLabel if available, otherwise fall back to label
+            const screenName = s.displayLabel || s.label;
             return (
               <tr key={s.key} className="odd:bg-gray-50">
-                <td className="p-2">{s.label}</td>
+                <td className="p-2">
+                  {s.description ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help border-b border-dotted border-gray-400">
+                            {screenName}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p>{s.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    screenName
+                  )}
+                </td>
                 {actions.filter(a => a && a.key).map((a) => (
                   <td key={a.key} className="text-center p-2">
                     <button
@@ -80,6 +125,75 @@ export function PermissionEditor({
           })}
         </tbody>
       </table>
+    </div>
+  );
+
+  // If screens have category metadata, show grouped view with sections
+  const hasCategories = validScreens.some(s => s.category);
+
+  if (hasCategories && (systemScreens.length > 0 || employeeProfileScreens.length > 0)) {
+    return (
+      <div className="space-y-6">
+        {/* Explanatory Banner */}
+        <Alert className="bg-blue-50 border-blue-200">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            <strong>Note:</strong> This employee will always have access to their own profile, 
+            documents, leave, and other personal screens. The permissions below control 
+            additional access to <strong>other employees&apos;</strong> information.
+          </AlertDescription>
+        </Alert>
+
+        {/* System-wide Permissions */}
+        {systemScreens.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">
+              System-wide Permissions
+            </h3>
+            {renderPermissionTable(systemScreens)}
+          </div>
+        )}
+
+        {/* Employee Profile Permissions */}
+        {employeeProfileScreens.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+              Access to Other Employees&apos; Profiles
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-4 w-4 text-gray-400" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>
+                      These permissions allow viewing and editing specific sections 
+                      of other employees&apos; profiles in the organisation.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </h3>
+            {renderPermissionTable(employeeProfileScreens)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Fallback: render single table without grouping (backward compatibility)
+  return (
+    <div className="space-y-4">
+      {/* Explanatory Banner */}
+      <Alert className="bg-blue-50 border-blue-200">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <strong>Note:</strong> This employee will always have access to their own profile, 
+          documents, leave, and other personal screens. The permissions below control 
+          additional access to <strong>other employees&apos;</strong> information.
+        </AlertDescription>
+      </Alert>
+
+      {renderPermissionTable(validScreens)}
     </div>
   );
 }

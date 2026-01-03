@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import {
-  getAvailableScreens,
-  getScreenDisplayName,
+  getAvailableScreensWithMetadata,
   getActionDisplayName,
 } from "@/lib/permissions";
 
@@ -12,9 +11,14 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const screens = getAvailableScreens().map((key) => ({
-    key,
-    label: getScreenDisplayName(key),
+  // Return full screen metadata including displayLabel, description, category, and affectsOthers
+  const screens = getAvailableScreensWithMetadata().map((screen) => ({
+    key: screen.key,
+    label: screen.label,
+    displayLabel: screen.displayLabel,
+    description: screen.description,
+    category: screen.category,
+    affectsOthers: screen.affectsOthers,
   }));
 
   const actions: { key: "read" | "edit" | "delete"; label: string }[] = [

@@ -120,3 +120,103 @@ test("Property 4: Screen Metadata Uniqueness and Validity", async (t) => {
     assert.deepEqual(result, SCREEN_METADATA);
   });
 });
+
+
+/**
+ * Property 3: Employee Profile Screen Labels Indicate Others Access
+ * For all screens in SCREEN_METADATA where category === 'employee-profile':
+ * - The displayLabel should contain a phrase indicating access to other employees
+ *   (e.g., "Other Employees'" or "Others'")
+ * - The description should mention "other employees"
+ * 
+ * Feature: permission-profile-ux-clarity, Property 3: Employee Profile Screen Labels Indicate Others Access
+ * Validates: Requirements 2.1, 4.2, 4.3
+ */
+test("Property 3: Employee Profile Screen Labels Indicate Others Access", async (t) => {
+  // Get all employee-profile screens
+  const employeeProfileScreens = SCREEN_METADATA.filter(
+    screen => screen.category === 'employee-profile'
+  );
+
+  await t.test("Employee profile screens exist in metadata", () => {
+    // Sanity check: we should have employee-profile screens
+    assert.ok(
+      employeeProfileScreens.length > 0,
+      "Expected at least one employee-profile screen in SCREEN_METADATA"
+    );
+  });
+
+  await t.test("All employee-profile screen displayLabels indicate 'others' access", () => {
+    // Property: For all employee-profile screens, displayLabel contains "Other Employees'"
+    for (const screen of employeeProfileScreens) {
+      const hasOthersIndicator = 
+        screen.displayLabel.includes("Other Employees'") ||
+        screen.displayLabel.includes("Others'") ||
+        screen.displayLabel.includes("other employees");
+      
+      assert.ok(
+        hasOthersIndicator,
+        `Employee-profile screen "${screen.key}" displayLabel "${screen.displayLabel}" ` +
+        `does not indicate access to other employees' data`
+      );
+    }
+  });
+
+  await t.test("All employee-profile screen descriptions mention 'other employees'", () => {
+    // Property: For all employee-profile screens, description mentions "other employees"
+    for (const screen of employeeProfileScreens) {
+      const mentionsOtherEmployees = 
+        screen.description.toLowerCase().includes("other employees") ||
+        screen.description.toLowerCase().includes("other employee");
+      
+      assert.ok(
+        mentionsOtherEmployees,
+        `Employee-profile screen "${screen.key}" description "${screen.description}" ` +
+        `does not mention "other employees"`
+      );
+    }
+  });
+
+  await t.test("Property-based: For any employee-profile screen, labels indicate others access", () => {
+    // Property-based test using fast-check
+    // For any screen with category 'employee-profile', the displayLabel and description
+    // should indicate access to other employees' data
+    
+    if (employeeProfileScreens.length === 0) {
+      // Skip if no employee-profile screens (shouldn't happen, but be safe)
+      return;
+    }
+
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...employeeProfileScreens),
+        (screen: ScreenMetadata) => {
+          // displayLabel should indicate "others" access
+          const displayLabelIndicatesOthers = 
+            screen.displayLabel.includes("Other Employees'") ||
+            screen.displayLabel.includes("Others'") ||
+            screen.displayLabel.includes("other employees");
+          
+          // description should mention "other employees"
+          const descriptionMentionsOthers = 
+            screen.description.toLowerCase().includes("other employees") ||
+            screen.description.toLowerCase().includes("other employee");
+          
+          return displayLabelIndicatesOthers && descriptionMentionsOthers;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("All employee-profile screens have affectsOthers set to true", () => {
+    // Property: For all employee-profile screens, affectsOthers should be true
+    for (const screen of employeeProfileScreens) {
+      assert.ok(
+        screen.affectsOthers === true,
+        `Employee-profile screen "${screen.key}" should have affectsOthers=true, ` +
+        `but got ${screen.affectsOthers}`
+      );
+    }
+  });
+});

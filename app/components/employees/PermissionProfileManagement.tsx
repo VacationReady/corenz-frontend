@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { PermissionDiff } from "./PermissionDiff";
 import { ScreenPermissions } from "@/lib/permissions";
-import { PermissionEditor } from "./PermissionEditor";
+import { PermissionEditor, ScreenWithMetadata } from "./PermissionEditor";
 import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 interface PermissionProfile {
@@ -102,7 +102,7 @@ export function PermissionProfileManagement({
   // Check if current user can manage permissions (ADMIN/SUPER_ADMIN only)
   const canManagePermissions = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
   const [screensMeta, setScreensMeta] = useState<{
-    screens: { key: string; label: string }[];
+    screens: ScreenWithMetadata[];
     actions: { key: "read" | "edit" | "delete"; label: string }[];
   } | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);

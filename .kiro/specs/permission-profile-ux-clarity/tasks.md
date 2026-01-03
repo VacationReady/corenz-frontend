@@ -66,31 +66,31 @@ This implementation plan addresses two critical issues:
   - Fixed: API now includes canAccess flag in response so client-side data doesn't revert to read-only
   - Fixed: "Change Permissions" button now only shows for ADMIN/SUPER_ADMIN users
 
-- [ ] 5. Update PermissionEditor UI for clarity
-  - [ ] 5.1 Add explanatory banner to PermissionEditor
+- [x] 5. Update PermissionEditor UI for clarity
+  - [x] 5.1 Add explanatory banner to PermissionEditor
     - Add Alert component at top of PermissionEditor
     - Text: "This employee will always have access to their own profile, documents, leave, and other personal screens. The permissions below control additional access to other employees' information."
     - Use blue info styling
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 5.2 Group screens by category with section headers
+  - [x] 5.2 Group screens by category with section headers
     - Filter screens into systemScreens and employeeProfileScreens
     - Add "System-wide Permissions" header for system screens
     - Add "Access to Other Employees' Profiles" header for employee-profile screens
     - Add help icon with tooltip explaining employee profile permissions
     - _Requirements: 2.2, 2.3, 3.1, 3.2_
 
-  - [ ] 5.3 Use displayLabel for screen names
+  - [x] 5.3 Use displayLabel for screen names
     - Update table to use screen.displayLabel instead of screen.label
     - Ensure employee-profile screens show "Other Employees' Documents" etc.
     - _Requirements: 2.1_
 
-  - [ ] 5.4 Add tooltips for each screen
+  - [x] 5.4 Add tooltips for each screen
     - Wrap screen name in TooltipProvider/Tooltip
     - Display screen.description on hover
     - _Requirements: 4.1, 4.2, 4.3_
 
-  - [ ] 5.5 Write property test for employee profile screen labels
+  - [x] 5.5 Write property test for employee profile screen labels
     - **Property 3: Employee Profile Screen Labels Indicate Others Access**
     - **Validates: Requirements 2.1, 4.2, 4.3**
 

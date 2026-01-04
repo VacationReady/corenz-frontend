@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
@@ -15,10 +15,16 @@ import {
   BarChart3,
   Search,
   User,
+  Calendar,
+  X,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
+import { Badge } from "@/components/ui/Badge";
+import { getEventCategoryIcon } from "@/lib/event-category-icons";
+import { format } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -90,7 +96,139 @@ function MetricsSummary() {
 
 // Removed old DocumentActionItems component - now using UnifiedActionItems
 
+// Absence detail modal component
+interface AbsenceDetailModalProps {
+  absence: any;
+  open: boolean;
+  onClose: () => void;
+}
+
+function AbsenceDetailModal({ absence, open, onClose }: AbsenceDetailModalProps) {
+  if (!open || !absence) return null;
+  
+  const Icon = getEventCategoryIcon(absence.categoryIconKey);
+  const categoryName = absence.categoryName || absence.title?.split(" - ")[0] || "Leave";
+  const startDate = absence.start ? new Date(absence.start) : null;
+  const endDate = absence.end ? new Date(new Date(absence.end).getTime() - 86400000) : startDate; // Subtract 1 day for exclusive end
+  const isSingleDay = startDate && endDate && startDate.toDateString() === endDate.toDateString();
+  
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden"
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header with gradient */}
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar 
+                    src={absence.employee?.profileImageUrl} 
+                    name={absence.employee?.name} 
+                    size={48} 
+                    className="ring-2 ring-white shadow-lg" 
+                  />
+                  <div className="min-w-0">
+                    <div className="font-semibold text-sm truncate">
+                      {absence.employee?.name || "Unknown"}
+                    </div>
+                    {absence.employee?.department && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {absence.employee.department}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="p-4 space-y-3">
+              {/* Leave type badge */}
+              <div className="flex items-center gap-2">
+                <Badge className="text-xs flex items-center gap-1.5">
+                  <Icon className="h-3.5 w-3.5" />
+                  {categoryName}
+                </Badge>
+                {absence.approvalStatus && (
+                  <Badge 
+                    variant={absence.approvalStatus === "APPROVED" ? "default" : "secondary"}
+                    className="text-xs"
+                  >
+                    {absence.approvalStatus === "APPROVED" ? "Approved" : absence.approvalStatus}
+                  </Badge>
+                )}
+              </div>
+              
+              {/* Date range */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4 text-primary" />
+                <span>
+                  {startDate && (
+                    isSingleDay 
+                      ? format(startDate, "d MMM yyyy")
+                      : `${format(startDate, "d MMM")} – ${endDate ? format(endDate, "d MMM yyyy") : ""}`
+                  )}
+                </span>
+              </div>
+              
+              {/* Reason if provided */}
+              {absence.reason && (
+                <div className="text-sm text-muted-foreground p-2.5 bg-muted/50 rounded-lg italic">
+                  "{absence.reason}"
+                </div>
+              )}
+              
+              {/* Actions */}
+              {absence.employee?.id && (
+                <div className="pt-2 flex gap-2 border-t border-border/50">
+                  <Link href={`/employees/${absence.employee.id}/leave`} className="flex-1">
+                    <Button variant="secondary" size="sm" className="w-full">
+                      View Leave
+                    </Button>
+                  </Link>
+                  <Link href={`/employees/${absence.employee.id}/overview`} className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full">
+                      Profile
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function TeamAbsenceOverview() {
+  const [selectedAbsence, setSelectedAbsence] = useState<any>(null);
   const today = useMemo(() => new Date(), []);
   const from = new Date(
     today.getFullYear(),
@@ -107,28 +245,57 @@ function TeamAbsenceOverview() {
     fetcher,
   );
   return (
-    <DashboardWidget title="Team Absences Today" icon={Users}>
-      {isLoading ? (
-        <WidgetLoading />
-      ) : error ? (
-        <WidgetError message="Failed to load absences." />
-      ) : !data || data.length === 0 ? (
-        <EmptyState
-          tone="success"
-          title="Everyone's in"
-          description="No absences are scheduled today."
-          className="py-8"
-        />
-      ) : (
-        <ul className="space-y-1 text-sm">
-          {data.map((ev: any) => (
-            <li key={ev.id}>
-              {ev.employee?.name} ({ev.title?.split(" - ")[0]})
-            </li>
-          ))}
-        </ul>
-      )}
-    </DashboardWidget>
+    <>
+      <AbsenceDetailModal 
+        absence={selectedAbsence} 
+        open={!!selectedAbsence} 
+        onClose={() => setSelectedAbsence(null)} 
+      />
+      <DashboardWidget title="Team Absences Today" icon={Users}>
+        {isLoading ? (
+          <WidgetLoading />
+        ) : error ? (
+          <WidgetError message="Failed to load absences." />
+        ) : !data || data.length === 0 ? (
+          <EmptyState
+            tone="success"
+            title="Everyone's in"
+            description="No absences are scheduled today."
+            className="py-8"
+          />
+        ) : (
+          <ul className="space-y-2">
+            {data.map((ev: any) => {
+              const Icon = getEventCategoryIcon(ev.categoryIconKey);
+              const categoryName = ev.categoryName || ev.title?.split(" - ")[0] || "Leave";
+              return (
+                <li 
+                  key={ev.id}
+                  onClick={() => setSelectedAbsence(ev)}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors group"
+                >
+                  <Avatar 
+                    src={ev.employee?.profileImageUrl} 
+                    name={ev.employee?.name} 
+                    size={32} 
+                    className="ring-1 ring-border shadow-sm flex-shrink-0" 
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                      {ev.employee?.name || "Unknown"}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Icon className="h-3 w-3" />
+                      <span className="truncate">{categoryName}</span>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </DashboardWidget>
+    </>
   );
 }
 

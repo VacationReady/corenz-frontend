@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { IconPicker } from "@/components/IconPicker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toast } from "react-hot-toast";
 import {
   Select,
   SelectContent,
@@ -71,14 +72,29 @@ export default function AddCategoryModal({
   // Reset state when modal opens with defaults
   useEffect(() => {
     if (isOpen) {
+      // Reset all fields to defaults when modal opens
+      setName("");
       setCategoryType(defaultCategoryType ?? null);
+      setRequiresApproval(false);
+      setAdminOnly(false);
+      setDefaultPaidStatus("PAID");
+      setColor("#3b82f6");
+      setIsActive(true);
+      setIconKey(null);
       setBalanceRequired(defaultBalanceRequired ?? false);
+      setDefaultBalance("");
+      setBalanceRefreshMonths("12");
     }
   }, [isOpen, defaultCategoryType, defaultBalanceRequired]);
 
   const handleSubmit = async () => {
     if (!categoryType || !name) {
-      alert("Please select a category type and enter a name.");
+      toast.error("Please select a category type and enter a name.");
+      return;
+    }
+
+    if (!iconKey) {
+      toast.error("Please select an icon for the category.");
       return;
     }
 
@@ -105,25 +121,23 @@ export default function AddCategoryModal({
 
       const data = await res.json();
       if (data.success) {
+        toast.success("Category created successfully!");
         onSuccess();
         onClose();
-        setName("");
-        setCategoryType(null);
-        setRequiresApproval(false);
-        setAdminOnly(false);
-        setDefaultPaidStatus("PAID");
-        setColor("#3b82f6");
-        setIsActive(true);
-        setIconKey(null);
-        setBalanceRequired(false);
-        setDefaultBalance("");
-        setBalanceRefreshMonths("12");
       } else {
-        alert(data.error || "Failed to add category.");
+        // Handle field-level errors from Zod validation
+        if (typeof data.error === "object" && data.error !== null) {
+          const fieldErrors = Object.entries(data.error)
+            .map(([field, messages]) => `${field}: ${(messages as string[]).join(", ")}`)
+            .join("; ");
+          toast.error(fieldErrors || "Failed to add category.");
+        } else {
+          toast.error(data.error || "Failed to add category.");
+        }
       }
     } catch (error) {
       console.error(error);
-      alert("Failed to add category.");
+      toast.error("Failed to add category. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -271,10 +285,15 @@ export default function AddCategoryModal({
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-foreground/80">Icon</Label>
+                          <Label className="text-sm font-medium text-foreground/80">
+                            Icon <span className="text-primary">*</span>
+                          </Label>
                           <div className="w-12">
                             <IconPicker value={iconKey} onChange={setIconKey} />
                           </div>
+                          {!iconKey && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400">Select an icon</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -450,7 +469,7 @@ export default function AddCategoryModal({
                     {/* Submit Button */}
                     <Button 
                       onClick={handleSubmit} 
-                      disabled={loading || !name} 
+                      disabled={loading || !name || !iconKey} 
                       className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
                     >
                       {loading ? (

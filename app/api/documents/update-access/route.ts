@@ -123,7 +123,7 @@ export async function PATCH(req: Request) {
 
         const users = await prisma.user.findMany({
           where: { id: { in: employees.map((e) => e.userId!).filter(Boolean) as string[] }, companyId: document.companyId },
-          select: { id: true, email: true, name: true },
+          select: { id: true, email: true, name: true, firstName: true },
         });
 
         const baseUrl = getAppBaseUrl();
@@ -141,6 +141,7 @@ export async function PATCH(req: Request) {
               try {
                 const { subject, html, text } = buildDocumentNotificationEmail({
                   recipientName: user.name,
+                  recipientFirstName: user.firstName,
                   documentName: document.name,
                   category: document.category,
                   docLink,

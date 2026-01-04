@@ -2,6 +2,7 @@ import { renderPeopleCoreEmail } from "./template";
 
 export interface DocumentNotificationOptions {
   recipientName?: string | null;
+  recipientFirstName?: string | null;
   documentName: string;
   category?: string | null;
   docLink: string;
@@ -28,6 +29,7 @@ function extractFirstName(value?: string | null): string | null {
 
 export function buildDocumentNotificationEmail({
   recipientName,
+  recipientFirstName,
   documentName,
   category,
   docLink,
@@ -40,7 +42,8 @@ export function buildDocumentNotificationEmail({
 
   const formattedDue = formatDueDate(signatureDueAt);
   const safeCategory = category || "General";
-  const greetingName = extractFirstName(recipientName) || "there";
+  // Prefer explicit firstName, then extract from full name, then fallback
+  const greetingName = recipientFirstName || extractFirstName(recipientName) || "there";
   const actionPhrase = requiresSignature ? "signature" : "acknowledgement";
   const buttonLabel = requiresSignature ? "View & Sign Document" : "View Document";
 

@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     if (document.employeeId && employeeForDocument?.userId) {
       const user = await prisma.user.findFirst({
         where: { id: employeeForDocument.userId, companyId: document.companyId },
-        select: { email: true, name: true },
+        select: { email: true, name: true, firstName: true },
       });
 
       if (user?.email) {
@@ -109,6 +109,7 @@ export async function POST(req: Request) {
         const docLink = `${baseUrl}/employees/${document.employeeId}/documents?open=${document.id}`;
         const { subject, html, text } = buildDocumentNotificationEmail({
           recipientName: user.name,
+          recipientFirstName: user.firstName,
           documentName: document.name,
           category: document.category,
           docLink,
@@ -140,7 +141,7 @@ export async function POST(req: Request) {
           email: { not: "" },
           companyId: document.companyId,
         },
-        select: { id: true, email: true, name: true },
+        select: { id: true, email: true, name: true, firstName: true },
       });
 
       const chunkSize = 50;
@@ -152,6 +153,7 @@ export async function POST(req: Request) {
             const docLink = `${baseUrl}/documents?open=${document.id}`;
             const { subject, html, text } = buildDocumentNotificationEmail({
               recipientName: user.name,
+              recipientFirstName: user.firstName,
               documentName: document.name,
               category: document.category,
               docLink,

@@ -1989,6 +1989,7 @@ async function handleDocumentUpload(action: AIAction): Promise<ActionResult> {
           try {
             const { subject, html, text } = buildDocumentNotificationEmail({
               recipientName: `${employee.User.firstName} ${employee.User.lastName}`,
+              recipientFirstName: employee.User.firstName,
               documentName: data.file.name,
               category: data.category,
               docLink: signed.signedUrl,

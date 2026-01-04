@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
     if (employee?.userId) {
       const user = await prisma.user.findUnique({
         where: { id: employee.userId },
-        select: { email: true, name: true },
+        select: { email: true, name: true, firstName: true },
       });
       console.log("User found for notification:", user);
 
@@ -187,6 +187,7 @@ export async function POST(req: NextRequest) {
         const docLink = `${baseUrl}/employees/${employeeId}/documents?open=${document.id}`;
         const { subject, html, text } = buildDocumentNotificationEmail({
           recipientName: user.name,
+          recipientFirstName: user.firstName,
           documentName: name,
           category,
           docLink,

@@ -132,10 +132,17 @@ export default function AddDocumentModal({
 
   // ✅ Access control state
   // Note: Admin toggle removed - admins always see all documents
+  // FIX: Default canViewManager to true for company docs so managers can see them
   const [canViewManager, setCanViewManager] = useState(false);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
   const hasAnyAudience = canViewManager || canViewEmployee;
+  
+  // ✅ FIX: Check if file is a PDF (for signature placement validation)
+  const isPdfFile = useMemo(() => {
+    if (!file) return false;
+    return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  }, [file]);
   const audienceSummary = useMemo(() => {
     const roles: string[] = ["Admins"]; // Admins always have access
     if (canViewManager) roles.push("Managers");
@@ -157,11 +164,61 @@ export default function AddDocumentModal({
 
   const user = session?.user;
 
+  // ✅ FIX: Reset all form state when modal closes
+  const resetForm = useCallback(() => {
+    setType(null);
+    setEmployeeId("");
+    setTitle("");
+    setCategory("");
+    setDescription("");
+    setFile(null);
+    setSelectedDepartments(["all"]);
+    setSelectedJobRoles(["all"]);
+    setCanViewManager(false);
+    setCanViewEmployee(true);
+    setRequiresAck(false);
+    setRequiresSignature(false);
+    setSignatureDueAt("");
+    setSignerDepartments([]);
+    setSignerJobRoles([]);
+    setSignerEmployees([]);
+    setPendingFields(null);
+    setObjectUrl("");
+    setUploadedDocumentId(null);
+    setIsPlacementBeforeSendOpen(false);
+    setEmployeeSearch("");
+    setNewCategoryName("");
+  }, []);
+
+  // ✅ FIX: Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open, resetForm]);
+
   useEffect(() => {
     if (open) {
       setUploadedDocumentId(null);
     }
   }, [open]);
+
+  // ✅ FIX: Clear signature placement state when file changes
+  useEffect(() => {
+    // When file changes, clear pending fields and uploaded document ID
+    // This prevents signature fields from persisting across file changes
+    setPendingFields(null);
+    setUploadedDocumentId(null);
+    
+    // Also disable requiresSignature if new file is not a PDF
+    if (file && requiresSignature) {
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      if (!isPdf) {
+        setRequiresSignature(false);
+        toast.info("Signature requirement disabled - only PDF files support signature placement.");
+      }
+    }
+  }, [file]); // Note: requiresSignature intentionally not in deps to avoid loops
 
   const getErrorMessageFromResponse = async (res: Response, fallbackMessage: string) => {
     try {
@@ -178,6 +235,7 @@ export default function AddDocumentModal({
   };
 
   // Reset signature state when switching to company type (company docs only support acknowledgement)
+  // ✅ FIX: Also set canViewManager=true for company docs so managers can see them by default
   useEffect(() => {
     if (type === "company") {
       setRequiresSignature(false);
@@ -185,6 +243,8 @@ export default function AddDocumentModal({
       setSignerDepartments([]);
       setSignerJobRoles([]);
       setSignerEmployees([]);
+      // Company docs should be visible to managers by default
+      setCanViewManager(true);
     }
   }, [type]);
 
@@ -315,6 +375,12 @@ export default function AddDocumentModal({
       return;
     }
 
+    // ✅ FIX: Block submit if type is employee but no employee is selected
+    if (type === "employee" && !employeeId) {
+      toast.error("Please select an employee.");
+      return;
+    }
+
     if (!hasAnyAudience) {
       toast.error("Select at least one audience (Admins, Managers, or Employees).");
       return;
@@ -426,6 +492,12 @@ export default function AddDocumentModal({
   // Upload routine that can be triggered after local placement save
   const uploadWithPending = async (fields: any[] | null) => {
     if (!file || !title || !session?.user?.id) return;
+
+    // ✅ FIX: Block submit if type is employee but no employee is selected
+    if (type === "employee" && !employeeId) {
+      toast.error("Please select an employee.");
+      return;
+    }
 
     if (!hasAnyAudience) {
       toast.error("Select at least one audience (Admins, Managers, or Employees).");
@@ -652,13 +724,18 @@ export default function AddDocumentModal({
                   transition={{ duration: 0.2 }}
                   className="space-y-1.5"
                 >
-                  <Label className="text-xs font-medium text-foreground/80">Select Employee</Label>
+                  <Label className="text-xs font-medium text-foreground/80">
+                    Select Employee <span className="text-primary">*</span>
+                  </Label>
                   <Select 
                     open={isEmployeeSelectOpen}
                     onOpenChange={handleEmployeeOpenChange}
                     onValueChange={setEmployeeId}
+                    value={employeeId || undefined}
                   >
-                    <SelectTrigger className="h-9 rounded-lg border-muted/50 bg-white/50 dark:bg-white/5 text-sm">
+                    <SelectTrigger className={`h-9 rounded-lg bg-white/50 dark:bg-white/5 text-sm ${
+                      !employeeId && file ? "border-amber-500/50 ring-1 ring-amber-500/20" : "border-muted/50"
+                    }`}>
                       <SelectValue placeholder="Choose an employee" />
                     </SelectTrigger>
                     <SelectContent>
@@ -676,6 +753,13 @@ export default function AddDocumentModal({
                       ))}
                     </SelectContent>
                   </Select>
+                  {/* ✅ FIX: Show warning when employee not selected but file is ready */}
+                  {!employeeId && file && (
+                    <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>Please select an employee to upload this document</span>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -799,51 +883,52 @@ export default function AddDocumentModal({
                 transition={{ duration: 0.2, delay: 0.15 }}
                 className="space-y-3"
               >
-                {/* Visibility (Employee only) - Compact inline */}
-                {type === "employee" && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        <span className="font-medium text-sm">Visibility</span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 cursor-help">
-                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">?</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-xs">
-                              <p>Admins always have access to all documents regardless of these settings.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <Switch checked={canViewManager} onChange={setCanViewManager} />
-                          <span className="text-xs font-medium">Manager</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
-                          <span className="text-xs font-medium">Employee</span>
-                        </label>
-                      </div>
+                {/* Visibility - Compact inline */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-sm">Visibility</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 cursor-help">
+                              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">?</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p>Admins always have access to all documents regardless of these settings.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-                    <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                      Note: Admins can always see all documents.
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <Switch checked={canViewManager} onChange={setCanViewManager} />
+                        <span className="text-xs font-medium">Manager</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
+                        <span className="text-xs font-medium">Employee</span>
+                      </label>
                     </div>
-
-                    {!hasAnyAudience ? (
-                      <div className="flex items-start gap-2 text-sm text-destructive">
-                        <AlertCircle className="w-4 h-4 mt-0.5" />
-                        <span>Select at least one audience (Managers or Employees).</span>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground">Visible to: {audienceSummary}</div>
-                    )}
                   </div>
-                )}
+                  <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                    {type === "company" 
+                      ? "Note: Admins can always see all documents. Manager visibility is enabled by default for company documents."
+                      : "Note: Admins can always see all documents."
+                    }
+                  </div>
+
+                  {!hasAnyAudience ? (
+                    <div className="flex items-start gap-2 text-sm text-destructive">
+                      <AlertCircle className="w-4 h-4 mt-0.5" />
+                      <span>Select at least one audience (Managers or Employees).</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">Visible to: {audienceSummary}</div>
+                  )}
+                </div>
 
                 {/* Compliance Section - Compact */}
                 <div className="space-y-3">
@@ -871,7 +956,17 @@ export default function AddDocumentModal({
                             <p className="text-xs text-muted-foreground">Document needs to be signed</p>
                           </div>
                         </div>
-                        <Switch checked={requiresSignature} onChange={setRequiresSignature} />
+                        <Switch 
+                          checked={requiresSignature} 
+                          onChange={(checked) => {
+                            // ✅ FIX: Warn user if file is not a PDF when enabling signature
+                            if (checked && file && !isPdfFile) {
+                              toast.error("Signature placement is only supported for PDF files. Please upload a PDF document.");
+                              return;
+                            }
+                            setRequiresSignature(checked);
+                          }} 
+                        />
                       </div>
                     )}
                   </div>
@@ -1030,7 +1125,7 @@ export default function AddDocumentModal({
                                 }
                                 uploadWithPending(pendingFields);
                               }}
-                              disabled={loading || !title || !hasAnyAudience || !pendingFields?.length}
+                              disabled={loading || !title || !hasAnyAudience || !pendingFields?.length || (type === "employee" && !employeeId)}
                               className="h-9 px-5 rounded-lg bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
                             >
                               {loading ? (
@@ -1056,6 +1151,11 @@ export default function AddDocumentModal({
                             <p>Please place signature fields first</p>
                           </TooltipContent>
                         )}
+                        {type === "employee" && !employeeId && (
+                          <TooltipContent>
+                            <p>Please select an employee first</p>
+                          </TooltipContent>
+                        )}
                       </Tooltip>
                     </TooltipProvider>
                   </>
@@ -1063,7 +1163,7 @@ export default function AddDocumentModal({
                   <Button 
                     type="button"
                     onClick={handleSubmit} 
-                    disabled={loading || !title || !hasAnyAudience}
+                    disabled={loading || !title || !hasAnyAudience || (type === "employee" && !employeeId)}
                     className="h-9 px-5 rounded-lg bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
                   >
                     {loading ? (

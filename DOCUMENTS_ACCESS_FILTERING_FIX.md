@@ -36,6 +36,18 @@
 - `app/api/documents/list/route.ts` - Alternative document listing (with permission bypass fix)
 - `app/api/documents/download/route.ts` - Document download access control
 
+### 5. Department/Job Role Filtering Bypassed for Document Managers (NEW - Jan 2026)
+**Problem**: Managers with document management permissions (`canManageDocuments`) were bypassing department/job role restrictions entirely. This meant a Sales Manager could see HR-restricted documents if they had document edit/delete permissions, even though they weren't in the HR department.
+
+**Root Cause**: The `canManageDocuments` code path in `/api/documents/list` only applied `roleFilter` (checking `canViewManager: true`) but completely skipped the department/job role filtering that was applied to regular users.
+
+**Solution**: 
+- Non-admin document managers now have department/job role filtering applied
+- Only true Admins/Super Admins bypass department filtering
+- The fix ensures that even if a manager has document management permissions, they can only see documents that:
+  1. Match their role access (`canViewManager: true`)
+  2. AND match their department OR job role OR are unrestricted (no department/job role set)
+
 ## Files Modified
 
 ### API Routes (Backend)
@@ -68,7 +80,7 @@
 ## Expected Behavior After Fix
 
 ### For Admins:
-- ✅ See ALL documents regardless of access flags
+- ✅ See ALL documents regardless of access flags or department restrictions
 - ✅ Cannot toggle "Admin" access off (option removed from UI)
 - ✅ All documents automatically have `canViewAdmin: true` when saved
 
@@ -77,11 +89,17 @@
 - ✅ Cannot see documents where `canViewManager: false`
 - ✅ Can toggle Manager access on/off when editing documents
 - ✅ Document management permissions (edit/delete) do NOT bypass access control
+- ✅ **Department/Job Role restrictions are enforced** - managers only see documents that match their department/job role OR are unrestricted
 
 ### For Employees:
 - ✅ Only see documents where `canViewEmployee: true`  
 - ✅ Cannot see documents where `canViewEmployee: false`
 - ✅ Can toggle Employee access on/off when editing documents
+
+### Scenario: Sales Manager with HR Employee Reporting to Them
+- ✅ Sales Manager cannot see HR-restricted documents (even if they have document management permissions)
+- ✅ The HR employee reporting to them CAN see HR documents (if they're in the HR department)
+- ✅ The reporting relationship does NOT grant access to department-restricted documents
 
 ## Testing Recommendations
 

@@ -73,11 +73,35 @@ export async function GET(req: Request) {
   }
 
   // ✅ Admin/Manager bypass for document managers - but still respect role-based access
+  // IMPORTANT: Non-admin document managers must still respect department/job role restrictions
   if (canManageDocuments) {
+    // Build department/job role filter for non-admins
+    // Admins see all documents, but managers with document permissions still need department filtering
+    const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
+    
+    let departmentJobRoleFilter: Prisma.DocumentWhereInput = {};
+    if (!isAdmin) {
+      // Non-admin document managers must still respect department/job role restrictions
+      const orConditions: Prisma.DocumentWhereInput[] = [
+        { AND: [{ Department: { none: {} } }, { JobRole: { none: {} } }] }, // unrestricted docs
+      ];
+      if (user?.departmentId) {
+        orConditions.push({ Department: { some: { id: user.departmentId } } });
+      }
+      if (user?.jobRoleId) {
+        orConditions.push({ JobRole: { some: { id: user.jobRoleId } } });
+      }
+      departmentJobRoleFilter = { OR: orConditions };
+      console.log(`[Documents API] Non-admin document manager - applying department filter. User dept: ${user.departmentId}, jobRole: ${user.jobRoleId}`);
+    } else {
+      console.log(`[Documents API] Admin user - bypassing department filter`);
+    }
+
     const adminDocs = await prisma.document.findMany({
       where: {
         ...baseFilter,
         ...roleFilter, // Apply role-based access filter
+        ...departmentJobRoleFilter, // Apply department/job role filter for non-admins
       },
       include: {
         User: { select: { name: true, email: true } },

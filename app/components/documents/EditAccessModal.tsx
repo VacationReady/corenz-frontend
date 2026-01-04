@@ -125,14 +125,17 @@ export default function EditAccessModal({
   useEffect(() => {
     if (document) {
       setDocumentName(document.name || "");
+      // Handle both lowercase (departments) and capitalized (Department) field names from API
+      const docDepartments = (document as any).departments || (document as any).Department || [];
+      const docJobRoles = (document as any).jobRoles || (document as any).JobRole || [];
       setDeptIds(
-        document.departments?.length
-          ? document.departments.map((d) => d.id)
+        docDepartments.length
+          ? docDepartments.map((d: any) => d.id)
           : ["all"],
       );
       setRoleIds(
-        document.jobRoles?.length
-          ? document.jobRoles.map((jr) => jr.id)
+        docJobRoles.length
+          ? docJobRoles.map((jr: any) => jr.id)
           : ["all"],
       );
       setCanManager(document.canViewManager);

@@ -393,81 +393,80 @@ export function EmployeeListModal({
                 <ScrollArea className="h-[calc(85vh-220px)]">
                   <div className="p-6 space-y-3">
                     {filteredEmployees.map((employee, index) => (
-                      <motion.div
-                        key={employee.id}
-                        custom={index}
-                        variants={listItemVariants}
-                        initial="hidden"
-                        animate="visible"
-                        whileHover={{ scale: 1.01, x: 4 }}
-                        className="group flex items-center gap-4 p-4 rounded-2xl
-                          bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10
-                          border border-transparent hover:border-primary/20
-                          shadow-sm hover:shadow-lg hover:shadow-primary/5
-                          cursor-pointer transition-all duration-200"
-                      >
-                        {/* Avatar */}
-                        <div className={`
-                          relative w-14 h-14 rounded-2xl bg-gradient-to-br ${getAvatarColor(employee.firstName, employee.lastName)}
-                          flex items-center justify-center shadow-lg
-                          group-hover:scale-105 transition-transform duration-200
-                        `}>
-                          <span className="text-lg font-bold text-white">
-                            {getInitials(employee.firstName, employee.lastName)}
-                          </span>
-                          {/* Status indicator */}
+                      <Link key={employee.id} href={`/employees/${employee.id}`}>
+                        <motion.div
+                          custom={index}
+                          variants={listItemVariants}
+                          initial="hidden"
+                          animate="visible"
+                          whileHover={{ scale: 1.01, x: 4 }}
+                          className="group flex items-center gap-4 p-4 rounded-2xl
+                            bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10
+                            border border-transparent hover:border-primary/20
+                            shadow-sm hover:shadow-lg hover:shadow-primary/5
+                            cursor-pointer transition-all duration-200"
+                        >
+                          {/* Avatar */}
                           <div className={`
-                            absolute -bottom-1 -right-1 w-5 h-5 rounded-full 
-                            border-2 border-white dark:border-slate-900
-                            flex items-center justify-center
-                            ${employee.isActive ? "bg-emerald-500" : "bg-slate-400"}
+                            relative w-14 h-14 rounded-2xl bg-gradient-to-br ${getAvatarColor(employee.firstName, employee.lastName)}
+                            flex items-center justify-center shadow-lg
+                            group-hover:scale-105 transition-transform duration-200
                           `}>
-                            {employee.isActive ? (
-                              <BadgeCheck className="w-3 h-3 text-white" />
-                            ) : (
-                              <X className="w-3 h-3 text-white" />
+                            <span className="text-lg font-bold text-white">
+                              {getInitials(employee.firstName, employee.lastName)}
+                            </span>
+                            {/* Status indicator */}
+                            <div className={`
+                              absolute -bottom-1 -right-1 w-5 h-5 rounded-full 
+                              border-2 border-white dark:border-slate-900
+                              flex items-center justify-center
+                              ${employee.isActive ? "bg-emerald-500" : "bg-slate-400"}
+                            `}>
+                              {employee.isActive ? (
+                                <BadgeCheck className="w-3 h-3 text-white" />
+                              ) : (
+                                <X className="w-3 h-3 text-white" />
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Main Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-foreground whitespace-normal break-words group-hover:text-primary transition-colors">
+                                {employee.firstName} {employee.lastName}
+                              </h3>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground truncate">
+                                {employee.email}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Meta Info - Desktop */}
+                          <div className="hidden md:flex items-center gap-6">
+                            {employee.department && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <div className="p-1.5 rounded-lg bg-violet-500/10">
+                                  <Building2 className="w-3.5 h-3.5 text-violet-500" />
+                                </div>
+                                <span className="text-muted-foreground">{employee.department.name}</span>
+                              </div>
+                            )}
+                            {employee.location && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <div className="p-1.5 rounded-lg bg-cyan-500/10">
+                                  <MapPin className="w-3.5 h-3.5 text-cyan-500" />
+                                </div>
+                                <span className="text-muted-foreground">{employee.location.name}</span>
+                              </div>
                             )}
                           </div>
-                        </div>
-                        
-                        {/* Main Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-foreground whitespace-normal break-words">
-                              {employee.firstName} {employee.lastName}
-                            </h3>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Mail className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground truncate">
-                              {employee.email}
-                            </span>
-                          </div>
-                        </div>
 
-                        {/* Meta Info - Desktop */}
-                        <div className="hidden md:flex items-center gap-6">
-                          {employee.department && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <div className="p-1.5 rounded-lg bg-violet-500/10">
-                                <Building2 className="w-3.5 h-3.5 text-violet-500" />
-                              </div>
-                              <span className="text-muted-foreground">{employee.department.name}</span>
-                            </div>
-                          )}
-                          {employee.location && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <div className="p-1.5 rounded-lg bg-cyan-500/10">
-                                <MapPin className="w-3.5 h-3.5 text-cyan-500" />
-                              </div>
-                              <span className="text-muted-foreground">{employee.location.name}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-3">
-                          <Link href={`/employees/${employee.id}`}>
+                          {/* View indicator */}
+                          <div className="flex items-center gap-3">
                             <motion.div
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
@@ -476,9 +475,9 @@ export function EmployeeListModal({
                             >
                               <ExternalLink className="w-4 h-4" />
                             </motion.div>
-                          </Link>
-                        </div>
-                      </motion.div>
+                          </div>
+                        </motion.div>
+                      </Link>
                     ))}
                   </div>
                 </ScrollArea>

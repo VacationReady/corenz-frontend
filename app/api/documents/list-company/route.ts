@@ -67,7 +67,7 @@ export async function GET(req: Request) {
   // Fetch user details for filtering
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { departmentId: true, jobRoleId: true, role: true, Employee: { select: { id: true } } },
+    select: { departmentId: true, jobRoleId: true, role: true, Employee: { select: { id: true, departmentId: true, jobRoleId: true } } },
   });
 
   if (!user) {
@@ -75,6 +75,10 @@ export async function GET(req: Request) {
   }
 
   const sessionEmployeeId = user.Employee?.id ?? (session.user as any).employeeId;
+  
+  // Use Employee's department/jobRole if User's is not set (Employee record is the source of truth)
+  const effectiveDepartmentId = user.departmentId || user.Employee?.departmentId;
+  const effectiveJobRoleId = user.jobRoleId || user.Employee?.jobRoleId;
 
   // Check if user is viewing their OWN employee documents
   const isViewingOwnDocuments = employeeId && sessionEmployeeId === employeeId;
@@ -119,8 +123,8 @@ export async function GET(req: Request) {
       deletedAt: null,
       ...roleFilter,
       OR: [
-        { Department: { some: { id: user.departmentId || "" } } },
-        { JobRole: { some: { id: user.jobRoleId || "" } } },
+        { Department: { some: { id: effectiveDepartmentId || "" } } },
+        { JobRole: { some: { id: effectiveJobRoleId || "" } } },
         { AND: [{ Department: { none: {} } }, { JobRole: { none: {} } }] }, // Unrestricted (global) docs
         // Include documents where the user is explicitly assigned as a signer
         ...(sessionEmployeeId ? [{ SignatureEmployees: { some: { employeeId: sessionEmployeeId } } }] : []),

@@ -23,7 +23,7 @@ export async function GET(req: Request) {
       departmentId: true,
       jobRoleId: true,
       PermissionProfile: true,
-      Employee: { select: { id: true } },
+      Employee: { select: { id: true, departmentId: true, jobRoleId: true } },
     },
   });
 
@@ -33,6 +33,10 @@ export async function GET(req: Request) {
 
   // Get the viewer's employee ID
   const viewerEmployeeId = user.Employee?.id;
+  
+  // Use Employee's department/jobRole if User's is not set (Employee record is the source of truth)
+  const effectiveDepartmentId = user.departmentId || user.Employee?.departmentId;
+  const effectiveJobRoleId = user.jobRoleId || user.Employee?.jobRoleId;
 
   // ✅ Base filter
   const baseFilter = {
@@ -85,14 +89,14 @@ export async function GET(req: Request) {
       const orConditions: Prisma.DocumentWhereInput[] = [
         { AND: [{ Department: { none: {} } }, { JobRole: { none: {} } }] }, // unrestricted docs
       ];
-      if (user?.departmentId) {
-        orConditions.push({ Department: { some: { id: user.departmentId } } });
+      if (effectiveDepartmentId) {
+        orConditions.push({ Department: { some: { id: effectiveDepartmentId } } });
       }
-      if (user?.jobRoleId) {
-        orConditions.push({ JobRole: { some: { id: user.jobRoleId } } });
+      if (effectiveJobRoleId) {
+        orConditions.push({ JobRole: { some: { id: effectiveJobRoleId } } });
       }
       departmentJobRoleFilter = { OR: orConditions };
-      console.log(`[Documents API] Non-admin document manager - applying department filter. User dept: ${user.departmentId}, jobRole: ${user.jobRoleId}`);
+      console.log(`[Documents API] Non-admin document manager - applying department filter. User dept: ${effectiveDepartmentId}, jobRole: ${effectiveJobRoleId}`);
     } else {
       console.log(`[Documents API] Admin user - bypassing department filter`);
     }
@@ -256,11 +260,11 @@ export async function GET(req: Request) {
     { AND: [{ Department: { none: {} } }, { JobRole: { none: {} } }] }, // unrestricted
   ];
 
-  if (user?.departmentId) {
-    orConditions.push({ Department: { some: { id: user.departmentId } } });
+  if (effectiveDepartmentId) {
+    orConditions.push({ Department: { some: { id: effectiveDepartmentId } } });
   }
-  if (user?.jobRoleId) {
-    orConditions.push({ JobRole: { some: { id: user.jobRoleId } } });
+  if (effectiveJobRoleId) {
+    orConditions.push({ JobRole: { some: { id: effectiveJobRoleId } } });
   }
 
   // ✅ Final query

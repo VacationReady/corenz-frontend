@@ -10,6 +10,8 @@ import { Suspense } from "react";
 import WorkingPatternAssignment from "@/components/WorkingPatternAssignment";
 import ViewWorkingPatternModal from "@/components/ViewWorkingPatternModal";
 import { PermissionProfileManagement } from "@/components/employees/PermissionProfileManagement";
+import { buildKeyDates, KeyDateItem } from "@/lib/employee/key-dates";
+import { AlertTriangle, PartyPopper, Calendar } from "lucide-react";
 
 export default async function EmployeeSettingsPage(context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -28,6 +30,16 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
   const employee = await prisma.employee.findUnique({
     where: { id },
     include: { User: true },
+    select: {
+      id: true,
+      companyId: true,
+      startDate: true,
+      contractEndDate: true,
+      visaExpiryDate: true,
+      ninetyDayTrialPeriod: true,
+      trialPeriodEndDate: true,
+      User: true,
+    },
   });
 
   if (!employee || !employee.User) {
@@ -52,10 +64,6 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
   const current = [...assignments]
     .filter((a) => a.effectiveDate <= today)
     .sort((a, b) => b.effectiveDate.getTime() - a.effectiveDate.getTime())[0];
-
-  const upcoming = [...assignments]
-    .filter((a) => a.effectiveDate > today)
-    .sort((a, b) => a.effectiveDate.getTime() - b.effectiveDate.getTime())[0];
 
   // Format the current pattern for the ViewWorkingPatternModal
   const currentPatternFormatted = current?.WorkingPattern ? {
@@ -97,6 +105,19 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
     viewerRole === "MANAGER" && employee.User?.managerId === session.user.id;
   const canAssignWorkingPattern = isAdmin || isManagerOfEmployee;
 
+  // Build key dates for the employee
+  const keyDates = buildKeyDates(
+    {
+      id: employee.id,
+      startDate: employee.startDate,
+      contractEndDate: employee.contractEndDate,
+      visaExpiryDate: employee.visaExpiryDate,
+      ninetyDayTrialPeriod: employee.ninetyDayTrialPeriod ?? false,
+      trialPeriodEndDate: employee.trialPeriodEndDate,
+    },
+    today
+  );
+
   return (
     <div className="space-y-4 pt-6 px-8">
       <h1 className="text-xl font-bold">Employee Settings</h1>
@@ -137,22 +158,62 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
           </div>
         </div>
 
-        {/* Upcoming Pattern */}
+        {/* Key Dates & Reminders */}
         <div className="border rounded p-4 bg-white shadow">
           <h2 className="text-lg font-semibold mb-2">
-            Upcoming Working Pattern
+            Key Dates & Reminders
           </h2>
-          {upcoming ? (
-            <div>
-              <p className="font-medium">{upcoming.WorkingPattern?.name ?? "Unknown Pattern"}</p>
-              <p className="text-sm text-gray-600">
-                Effective from:{" "}
-                {format(new Date(upcoming.effectiveDate), "PPP")}
-              </p>
+          {keyDates.length > 0 ? (
+            <div className="space-y-3">
+              {keyDates.map((item: KeyDateItem) => (
+                <div
+                  key={item.id}
+                  className={`flex items-start gap-3 p-2 rounded ${
+                    item.indicator === 'warning'
+                      ? 'bg-amber-50 border border-amber-200'
+                      : item.indicator === 'celebration'
+                      ? 'bg-purple-50 border border-purple-200'
+                      : 'bg-gray-50'
+                  }`}
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    {item.indicator === 'warning' ? (
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    ) : item.indicator === 'celebration' ? (
+                      <PartyPopper className="h-4 w-4 text-purple-500" />
+                    ) : (
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium text-sm ${
+                      item.indicator === 'warning'
+                        ? 'text-amber-800'
+                        : item.indicator === 'celebration'
+                        ? 'text-purple-800'
+                        : 'text-gray-900'
+                    }`}>
+                      {item.label}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {item.formattedDate}
+                      <span className={`ml-2 ${
+                        item.indicator === 'warning'
+                          ? 'text-amber-600'
+                          : item.indicator === 'celebration'
+                          ? 'text-purple-600'
+                          : 'text-gray-500'
+                      }`}>
+                        ({item.relativeText})
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <p className="text-sm text-gray-600">
-              No upcoming working pattern assigned.
+              No upcoming key dates
             </p>
           )}
         </div>

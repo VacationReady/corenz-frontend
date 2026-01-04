@@ -197,32 +197,30 @@ export default function ManagerDashboardClient({
 
         {/* Main Content - Bento Grid */}
         <div className="flex-1 p-4 pt-0">
+          {/* Top row - 3 equal cards */}
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-            {/* Top row - 3 equal cards that stretch full width */}
-            {/* Annual Leave Balance - Top Left */}
             {employeeId && (
-              <EnhancedWidget size="small" delay={0.1} className="xl:col-span-1">
+              <EnhancedWidget size="small" delay={0.1}>
                 <LeaveSummaryCard employeeId={employeeId} />
               </EnhancedWidget>
             )}
 
-            <EnhancedWidget size="small" delay={0.15} className="xl:col-span-1">
+            <EnhancedWidget size="small" delay={0.15}>
               <TeamAbsenceOverview />
             </EnhancedWidget>
 
-            {/* Team Metrics - Far Right */}
-            <EnhancedWidget size="small" delay={0.2} className="xl:col-span-1">
+            <EnhancedWidget size="small" delay={0.2}>
               <MetricsSummary />
             </EnhancedWidget>
           </div>
           
-          {/* Bottom section - 2 column grid for Action Items and News */}
-          <div className="grid gap-4 grid-cols-1 xl:grid-cols-2 mt-4">
-            <EnhancedWidget size="wide" delay={0.25}>
+          {/* Bottom row - Action Items and News side by side */}
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 mt-4">
+            <EnhancedWidget size="small" delay={0.25}>
               <UnifiedActionItems employeeId={employeeId} isManager={true} />
             </EnhancedWidget>
 
-            <EnhancedWidget size="wide" delay={0.3}>
+            <EnhancedWidget size="small" delay={0.3}>
               <NewsWidget limit={3} />
             </EnhancedWidget>
           </div>

@@ -29,7 +29,6 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
   // Get the employee with user information
   const employee = await prisma.employee.findUnique({
     where: { id },
-    include: { User: true },
     select: {
       id: true,
       companyId: true,

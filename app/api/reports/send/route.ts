@@ -6,6 +6,7 @@ import { exportTableToPdf } from "@/lib/pdfExport";
 import { buildDynamicQuery, attachComputedFields } from "@/lib/queryBuilder";
 import Papa from "papaparse";
 import { resolveReportingTimeConfig } from "@/lib/reportingTimeConfig";
+import { isEmailRateLimited, getEmailRateLimitError } from "@/lib/email-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,12 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check email rate limit before processing
+    const rateLimited = await isEmailRateLimited(session.user.id);
+    if (rateLimited) {
+      return NextResponse.json(getEmailRateLimitError(), { status: 429 });
     }
 
     const body: SendReportRequest = await req.json();

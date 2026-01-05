@@ -171,11 +171,14 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Debug endpoint error:', error);
+    // Log stack trace server-side only for debugging
+    if (error instanceof Error) {
+      console.error('Error stack:', error.stack);
+    }
     return NextResponse.json(
       {
         error: 'Debug check failed',
-        message: error.message,
-        stack: error.stack,
+        message: 'Internal server error',
       },
       { status: 500 }
     );

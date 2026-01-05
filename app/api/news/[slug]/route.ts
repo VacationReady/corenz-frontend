@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { sendNewsEmail } from "@/lib/news/sendNewsEmail";
+import { isEmailRateLimited, getEmailRateLimitError } from "@/lib/email-rate-limit";
 
 interface Params {}
 
@@ -97,7 +98,21 @@ export async function PUT(req: NextRequest, context: any) {
     },
   });
 
+  // Only admins can send emails - enforce admin-only email sending
   if (body.sendEmail) {
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: "Only admins can send news emails" },
+        { status: 403 },
+      );
+    }
+
+    // Check email rate limit before sending
+    const rateLimited = await isEmailRateLimited(session.user.id);
+    if (rateLimited) {
+      return NextResponse.json(getEmailRateLimitError(), { status: 429 });
+    }
+    
     const recipients = await prisma.user.findMany({
       where: {
         companyId: postCompanyId,

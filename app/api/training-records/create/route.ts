@@ -36,17 +36,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid reasons payload" }, { status: 400 });
   }
 
-  const employee = await prisma.employee.findUnique({
-    where: { id: employeeId },
+  // Use tenant-scoped query to prevent cross-tenant access
+  const employee = await prisma.employee.findFirst({
+    where: { 
+      id: employeeId,
+      companyId: session.user.companyId, // Tenant isolation
+    },
     select: { id: true, companyId: true },
   });
 
   if (!employee) {
+    // Return 404 for both "not found" and "cross-tenant" to prevent ID enumeration
     return NextResponse.json({ error: "Employee not found" }, { status: 404 });
-  }
-
-  if (employee.companyId !== session.user.companyId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const allowed = await canAccessEmployee(

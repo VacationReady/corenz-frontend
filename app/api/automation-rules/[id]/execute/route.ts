@@ -78,10 +78,13 @@ export async function POST(
     });
   } catch (error: any) {
     console.error("Manual workflow execution error:", error);
+    // Log stack trace server-side only for debugging
+    if (error instanceof Error) {
+      console.error("Error stack:", error.stack);
+    }
     return NextResponse.json(
       { 
-        error: error.message || "Failed to execute workflow",
-        details: error.stack,
+        error: "Failed to execute workflow",
       },
       { status: 500 }
     );

@@ -64,9 +64,16 @@ export async function PATCH(
       );
     }
 
-    // Get the entry with timesheet and employee details
-    const entry = await prisma.timesheetEntry.findUnique({
-      where: { id: entryId },
+    // Get the entry with tenant-scoped query to prevent cross-tenant access
+    const entry = await prisma.timesheetEntry.findFirst({
+      where: { 
+        id: entryId,
+        Timesheet: {
+          Employee: {
+            companyId: requestingEmployee.companyId, // Tenant isolation
+          },
+        },
+      },
       include: {
         Timesheet: {
           include: {
@@ -88,12 +95,8 @@ export async function PATCH(
     });
 
     if (!entry) {
+      // Return 404 for both "not found" and "cross-tenant" to prevent ID enumeration
       return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
-    }
-
-    // Validate company scoping
-    if (entry.Timesheet.Employee.companyId !== requestingEmployee.companyId) {
-      return NextResponse.json({ error: 'Entry belongs to different company' }, { status: 403 });
     }
 
     // Managers can only edit entries from their department or direct reports
@@ -524,9 +527,16 @@ export async function GET(
       return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
     }
 
-    // Get entry to validate access
-    const entry = await prisma.timesheetEntry.findUnique({
-      where: { id: entryId },
+    // Get entry with tenant-scoped query to prevent cross-tenant access
+    const entry = await prisma.timesheetEntry.findFirst({
+      where: { 
+        id: entryId,
+        Timesheet: {
+          Employee: {
+            companyId: requestingEmployee.companyId, // Tenant isolation
+          },
+        },
+      },
       include: {
         Timesheet: {
           select: {
@@ -541,11 +551,8 @@ export async function GET(
     });
 
     if (!entry) {
+      // Return 404 for both "not found" and "cross-tenant" to prevent ID enumeration
       return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
-    }
-
-    if (entry.Timesheet.Employee.companyId !== requestingEmployee.companyId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Get audit logs

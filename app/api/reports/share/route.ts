@@ -180,6 +180,37 @@ export async function POST(req: Request) {
       }
     }
 
+    // Validate recipient belongs to the same tenant (Requirement 7.3)
+    if (validatedData.userId) {
+      const recipientUser = await prisma.user.findFirst({
+        where: {
+          id: validatedData.userId,
+          companyId: session.user.companyId,
+        },
+      });
+      if (!recipientUser) {
+        return NextResponse.json(
+          { error: "Recipient user not found" },
+          { status: 404 }
+        );
+      }
+    }
+
+    if (validatedData.departmentId) {
+      const department = await prisma.department.findFirst({
+        where: {
+          id: validatedData.departmentId,
+          companyId: session.user.companyId,
+        },
+      });
+      if (!department) {
+        return NextResponse.json(
+          { error: "Department not found" },
+          { status: 404 }
+        );
+      }
+    }
+
     // Generate share token for link shares
     const shareToken = validatedData.shareType === "link" 
       ? generateShareToken() 

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth-options";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl } from "@/lib/email/template";
 import { buildDocumentNotificationEmail } from "@/lib/email/documentNotifications";
+import { isEmailRateLimited, getEmailRateLimitError } from "@/lib/email-rate-limit";
 
 /**
  * POST /api/documents/send-notifications
@@ -15,8 +16,14 @@ import { buildDocumentNotificationEmail } from "@/lib/email/documentNotification
  */
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session || !session.user?.companyId) {
+  if (!session || !session.user?.companyId || !session.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Check email rate limit before processing
+  const rateLimited = await isEmailRateLimited(session.user.id);
+  if (rateLimited) {
+    return NextResponse.json(getEmailRateLimitError(), { status: 429 });
   }
 
   try {

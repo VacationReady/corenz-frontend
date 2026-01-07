@@ -164,12 +164,26 @@ export async function POST(req: Request) {
     // Check if user has permission to share (owner or admin)
     const isOwner = report.createdBy === session.user.id;
     if (!isOwner) {
-      // Check if user has admin share permission
+      // 🔒 Bug Fix 3.3: Check if user has admin share permission via direct, department, or company share
+      // Fetch user's departmentId for department share check
+      const currentUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { departmentId: true },
+      });
+
+      // Check if user has admin share permission (direct, department, or company)
       const userShare = await prisma.reportShare.findFirst({
         where: {
           reportId: validatedData.reportId,
-          userId: session.user.id,
           permission: "admin",
+          OR: [
+            { userId: session.user.id }, // Direct user share
+            // Department share (if user has a department)
+            ...(currentUser?.departmentId 
+              ? [{ departmentId: currentUser.departmentId }] 
+              : []),
+            { shareType: "company" }, // Company-wide share
+          ],
         },
       });
       if (!userShare) {

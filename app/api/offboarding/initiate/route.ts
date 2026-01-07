@@ -8,6 +8,7 @@ import {
   sendExitInterviewConfirmation,
   sendExitInterviewFormInvite,
 } from "@/lib/email/send";
+import { canAccessEmployee } from "@/lib/permissions";
 
 // Validation schema
 const initiateSchema = z.object({
@@ -67,6 +68,25 @@ export async function POST(req: NextRequest) {
     } = validatedData;
 
     const companyId = session.user.companyId;
+
+    // 🔒 Bug Fix 1.1: For managers, verify they can access this employee (direct/indirect reports only)
+    // Admins can offboard any employee in their company, but managers can only offboard their direct reports
+    if ((session.user as any).role === "MANAGER") {
+      const canAccess = await canAccessEmployee(
+        {
+          id: session.user.id,
+          role: "MANAGER",
+          companyId: session.user.companyId,
+        },
+        employeeId
+      );
+      if (!canAccess) {
+        return NextResponse.json(
+          { error: "Forbidden: You can only offboard employees you manage" },
+          { status: 403 },
+        );
+      }
+    }
 
     // Check if employee exists
     const employee = await prisma.employee.findUnique({
@@ -196,21 +216,27 @@ export async function POST(req: NextRequest) {
       completionStatus: "PENDING" as const,
     };
 
-    const offboarding = await prisma.employeeOffboarding.create({
-      data: { id: crypto.randomUUID(), updatedAt: new Date(), ...offboardingData },
-      include: {
-        Employee: {
-          include: { User: true },
+    // 🔒 Bug Fix 1.2: Create offboarding record AND archive employee in a single transaction
+    // This ensures atomicity - if either operation fails, both are rolled back
+    const offboarding = await prisma.$transaction(async (tx) => {
+      const offboardingRecord = await tx.employeeOffboarding.create({
+        data: { id: crypto.randomUUID(), updatedAt: new Date(), ...offboardingData },
+        include: {
+          Employee: {
+            include: { User: true },
+          },
+          User_EmployeeOffboarding_interviewerUserIdToUser: true,
+          ExitInterviewFormTemplate: true,
         },
-        User_EmployeeOffboarding_interviewerUserIdToUser: true,
-        ExitInterviewFormTemplate: true,
-      },
-    });
+      });
 
-    // Archive employee
-    await prisma.employee.update({
-      where: { id: employeeId },
-      data: { isActive: false },
+      // Archive employee within the same transaction
+      await tx.employee.update({
+        where: { id: employeeId },
+        data: { isActive: false },
+      });
+
+      return offboardingRecord;
     });
 
     // Send emails and create action items when form is enabled

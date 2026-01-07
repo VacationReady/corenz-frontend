@@ -12,8 +12,38 @@ export async function GET() {
   }
 
   try {
+    // 🔒 Bug Fix 3.1: Add permission-based filtering for report list
+    // Non-admins can only see their own reports or reports shared with them
+    const whereClause: any = { companyId: session.user.companyId };
+    
+    if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
+      // Fetch user's departmentId for department share check
+      const currentUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { departmentId: true },
+      });
+
+      whereClause.OR = [
+        { createdBy: session.user.id }, // Own reports
+        { 
+          ReportShare: { 
+            some: { 
+              OR: [
+                { userId: session.user.id }, // Direct user share
+                { shareType: "company" }, // Company-wide share
+                // Department share (if user has a department)
+                ...(currentUser?.departmentId 
+                  ? [{ departmentId: currentUser.departmentId }] 
+                  : []),
+              ]
+            } 
+          } 
+        },
+      ];
+    }
+
     const reports = await prisma.savedReport.findMany({
-      where: { companyId: session.user.companyId },
+      where: whereClause,
       include: {
         User: { select: { email: true } },
       },

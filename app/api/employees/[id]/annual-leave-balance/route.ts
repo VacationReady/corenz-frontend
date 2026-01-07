@@ -127,33 +127,56 @@ export async function PUT(
     const oldBalanceHours = Number(employee.annualLeaveBalance || 0);
     const oldBalanceDays = oldBalanceHours / HOURS_PER_DAY;
 
-    // 6. Update employee balance and create audit log in a transaction
-    await prisma.$transaction(async (tx) => {
-      // Update the balance
-      await tx.employee.update({
-        where: { id: employeeId },
-        data: {
-          annualLeaveBalance: balanceHours,
-          leaveBalanceLastUpdated: new Date(),
-        },
-      });
+    // 6. Update employee balance with optimistic locking and create audit log in a transaction
+    // 🔒 Bug Fix 2.1: Use optimistic locking to prevent lost updates from concurrent modifications
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Use optimistic locking - verify balance hasn't changed since we read it
+        const updated = await tx.employee.updateMany({
+          where: { 
+            id: employeeId,
+            annualLeaveBalance: oldBalanceHours, // Only update if balance matches what we read
+          },
+          data: {
+            annualLeaveBalance: balanceHours,
+            leaveBalanceLastUpdated: new Date(),
+          },
+        });
 
-      // Create audit log entry
-      await tx.employeeAuditLog.create({
-        data: {
-          id: crypto.randomUUID(),
-          companyId: session.user.companyId!,
-          employeeId,
-          section: 'leave-balance',
-          field: 'annualLeaveBalance',
-          oldValue: `${oldBalanceDays.toFixed(1)} days (${oldBalanceHours.toFixed(2)} hours)`,
-          newValue: `${balanceDays.toFixed(1)} days (${balanceHours.toFixed(2)} hours)`,
-          reason: reason.trim(),
-          changedById: session.user.id,
-          changedAt: new Date(),
-        },
+        if (updated.count === 0) {
+          // Balance was modified by another request - throw to rollback transaction
+          throw new Error("CONCURRENT_MODIFICATION");
+        }
+
+        // Create audit log entry
+        await tx.employeeAuditLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            companyId: session.user.companyId!,
+            employeeId,
+            section: 'leave-balance',
+            field: 'annualLeaveBalance',
+            oldValue: `${oldBalanceDays.toFixed(1)} days (${oldBalanceHours.toFixed(2)} hours)`,
+            newValue: `${balanceDays.toFixed(1)} days (${balanceHours.toFixed(2)} hours)`,
+            reason: reason.trim(),
+            changedById: session.user.id,
+            changedAt: new Date(),
+          },
+        });
       });
-    });
+    } catch (error: any) {
+      if (error?.message === "CONCURRENT_MODIFICATION") {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: "The balance was modified by another user. Please refresh and try again.",
+            code: "CONCURRENT_MODIFICATION"
+          },
+          { status: 409 }, // 409 Conflict
+        );
+      }
+      throw error; // Re-throw other errors
+    }
 
     // 7. Return success response
     return NextResponse.json({

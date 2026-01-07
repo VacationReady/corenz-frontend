@@ -601,8 +601,10 @@ export async function GET(req: NextRequest) {
       // Access rules:
       // - ADMIN/SUPER_ADMIN can access all
       // - User with permission via profile can access all
-      // - MANAGER can access their direct/indirect reports (already filtered by whereCondition)
+      // - MANAGER can access self + their direct/indirect reports (NOT department colleagues)
       // - EMPLOYEE can only access themselves (unless they have employee permissions)
+      // 🔒 Bug Fix 2.3: Correctly determine canAccess for managers
+      // Department colleagues are visible in directory but NOT accessible for profile viewing
       let canAccess = false;
       
       if (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") {
@@ -610,9 +612,13 @@ export async function GET(req: NextRequest) {
       } else if (hasPermissionViaProfile) {
         canAccess = true;
       } else if (session.user.role === "MANAGER") {
-        // For managers, they can access their direct/indirect reports
-        // The whereCondition already filtered to only show subordinates
-        canAccess = true;
+        // For managers, check if this specific employee is:
+        // 1. Self (own profile)
+        // 2. A direct report (managerId === session.user.id)
+        // Department colleagues are visible in directory but NOT accessible
+        const isSelf = emp.userId === session.user.id;
+        const isDirectReport = emp.User.managerId === session.user.id;
+        canAccess = isSelf || isDirectReport;
       } else if (session.user.role === "EMPLOYEE") {
         // Employees can only access their own profile
         canAccess = emp.userId === session.user.id;

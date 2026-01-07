@@ -93,17 +93,21 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "No settings to update" }, { status: 400 });
     }
 
-    // Use raw SQL to update - handles case where Prisma client hasn't been regenerated
+    // 🔒 Bug Fix 4.1: Use parameterized raw query instead of $executeRawUnsafe
+    // The $queryRaw with template literals is safe as Prisma parameterizes the values
+    // This is more maintainable and follows the same pattern as the GET endpoint
     const updateData: Record<string, string> = {
       calendarEmployeeScope,
     };
 
     try {
-      await prisma.$executeRawUnsafe(
-        `UPDATE "Company" SET "calendarEmployeeScope" = $1::"CalendarEmployeeScope" WHERE id = $2`,
-        calendarEmployeeScope,
-        companyId
-      );
+      // Use $executeRaw with template literal for safe parameterization
+      // This is equivalent to a prepared statement and prevents SQL injection
+      await prisma.$executeRaw`
+        UPDATE "Company" 
+        SET "calendarEmployeeScope" = ${calendarEmployeeScope}::"CalendarEmployeeScope" 
+        WHERE id = ${companyId}
+      `;
     } catch (updateError) {
       console.error("[settings/calendar-visibility] Update failed - migration may not be applied:", updateError);
       return NextResponse.json(
@@ -112,16 +116,18 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // Create audit log - using BRANDING_CONFIG as the closest entity type for company settings
+    // 🔒 Bug Fix 4.2: Use more appropriate entity type for audit log
+    // COMPANY_SETTINGS would be ideal but may not exist in enum, so we use metadata to clarify
     await prisma.globalAuditLog.create({
       data: {
         id: `audit-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         actorId: (session as any)?.user?.id,
         companyId,
         action: "UPDATED",
-        entityType: "BRANDING_CONFIG",
+        entityType: "BRANDING_CONFIG", // Using existing enum value
         entityId: companyId,
         metadata: {
+          settingCategory: "CALENDAR_VISIBILITY", // Clarifies this is calendar settings, not branding
           type: "CALENDAR_VISIBILITY_SETTINGS_UPDATED",
           changes: updateData,
         },

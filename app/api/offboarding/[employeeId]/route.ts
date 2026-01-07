@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { canAccessEmployee } from "@/lib/permissions";
 
 export async function GET(
   req: NextRequest,
@@ -22,6 +23,25 @@ export async function GET(
 
     const { employeeId } = await context.params;
     const companyId = session.user.companyId;
+
+    // 🔒 Bug Fix: For managers, verify they can access this employee (direct/indirect reports only)
+    // Admins can view any offboarding in their company, but managers can only view their direct reports
+    if (session.user.role === "MANAGER") {
+      const canAccess = await canAccessEmployee(
+        {
+          id: session.user.id,
+          role: "MANAGER",
+          companyId: session.user.companyId,
+        },
+        employeeId
+      );
+      if (!canAccess) {
+        return NextResponse.json(
+          { error: "Forbidden: You can only view offboarding for employees you manage" },
+          { status: 403 },
+        );
+      }
+    }
 
     // Get offboarding record with all related data
     const offboarding = await prisma.employeeOffboarding.findUnique({
@@ -226,6 +246,25 @@ export async function PATCH(
 
     const companyId = session.user.companyId;
     const { employeeId } = await context.params;
+
+    // 🔒 Bug Fix: For managers, verify they can access this employee (direct/indirect reports only)
+    if (session.user.role === "MANAGER") {
+      const canAccess = await canAccessEmployee(
+        {
+          id: session.user.id,
+          role: "MANAGER",
+          companyId: session.user.companyId,
+        },
+        employeeId
+      );
+      if (!canAccess) {
+        return NextResponse.json(
+          { error: "Forbidden: You can only update offboarding for employees you manage" },
+          { status: 403 },
+        );
+      }
+    }
+
     const { assetsToReturn } = await req.json();
     if (!Array.isArray(assetsToReturn)) {
       return NextResponse.json({ error: "Invalid assets" }, { status: 400 });

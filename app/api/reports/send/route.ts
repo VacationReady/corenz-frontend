@@ -188,6 +188,47 @@ async function getRecipients(
   jobRoles: string[],
   employeeIds: string[]
 ) {
+  // 🔒 Bug Fix 3.2: Validate employee IDs belong to company BEFORE building query
+  // This prevents potential cross-tenant data exposure if IDs are guessed/leaked
+  if (employeeIds && employeeIds.length > 0) {
+    const validEmployees = await prisma.user.findMany({
+      where: {
+        id: { in: employeeIds },
+        companyId, // Explicit tenant check
+        isActivated: true,
+      },
+      select: { id: true },
+    });
+    
+    const validIds = new Set(validEmployees.map(e => e.id));
+    const invalidIds = employeeIds.filter(id => !validIds.has(id));
+    
+    if (invalidIds.length > 0) {
+      console.warn(`[reports/send] Invalid employee IDs filtered out: ${invalidIds.join(', ')}`);
+      // Filter to only valid IDs instead of throwing - more graceful handling
+      employeeIds = employeeIds.filter(id => validIds.has(id));
+    }
+  }
+
+  // Similarly validate departments and job roles belong to company
+  if (departments && departments.length > 0) {
+    const validDepts = await prisma.department.findMany({
+      where: { id: { in: departments }, companyId },
+      select: { id: true },
+    });
+    const validDeptIds = new Set(validDepts.map(d => d.id));
+    departments = departments.filter(id => validDeptIds.has(id));
+  }
+
+  if (jobRoles && jobRoles.length > 0) {
+    const validRoles = await prisma.jobRole.findMany({
+      where: { id: { in: jobRoles }, companyId },
+      select: { id: true },
+    });
+    const validRoleIds = new Set(validRoles.map(r => r.id));
+    jobRoles = jobRoles.filter(id => validRoleIds.has(id));
+  }
+
   const whereConditions: any = {
     companyId,
     isActivated: true,

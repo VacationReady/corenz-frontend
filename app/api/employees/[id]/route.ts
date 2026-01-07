@@ -130,6 +130,33 @@ export async function DELETE(
       );
     }
 
+    // 🔒 Bug Fix 2.2: Prevent self-deletion
+    // Users should not be able to delete their own employee record
+    if (employee.userId === session.user.id) {
+      return NextResponse.json(
+        { success: false, error: "You cannot delete your own employee record" },
+        { status: 400 },
+      );
+    }
+
+    // 🔒 Bug Fix 2.2: Prevent deletion of the last admin
+    // Ensure at least one admin remains in the company
+    if (employee.User?.role === "ADMIN") {
+      const adminCount = await prisma.user.count({
+        where: { 
+          companyId: session.user.companyId, 
+          role: "ADMIN",
+          id: { not: employee.userId },
+        },
+      });
+      if (adminCount === 0) {
+        return NextResponse.json(
+          { success: false, error: "Cannot delete the last admin user in the company" },
+          { status: 400 },
+        );
+      }
+    }
+
     const employeeId = employee.id;
     const userId = employee.userId;
     const companyId =

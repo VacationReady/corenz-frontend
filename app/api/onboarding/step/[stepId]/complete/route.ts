@@ -866,14 +866,40 @@ export async function POST(
       }
     }
 
-    // 3. Mark step as completed
-    await prisma.onboardingStepInstance.update({
-      where: { id: stepId },
+    // 3. Mark step as completed using optimistic locking pattern
+    // 🔒 Bug Fix 1.3: Only update if status is not already completed (prevents race conditions)
+    // This handles double-click scenarios and concurrent requests
+    const updateResult = await prisma.onboardingStepInstance.updateMany({
+      where: { 
+        id: stepId,
+        status: { not: "completed" }, // Only update if not already completed
+      },
       data: {
         status: "completed",
         completedAt: new Date(),
       },
     });
+
+    // If no rows were updated, the step was already completed (possibly by concurrent request)
+    if (updateResult.count === 0) {
+      // Verify the step is actually completed (not just missing)
+      const currentStep = await prisma.onboardingStepInstance.findUnique({
+        where: { id: stepId },
+        select: { status: true },
+      });
+      
+      if (currentStep?.status === "completed") {
+        return NextResponse.json(
+          { success: true, message: "Step already completed", alreadyCompleted: true },
+          { status: 200 }
+        );
+      }
+      // If step exists but wasn't updated and isn't completed, something unexpected happened
+      return NextResponse.json(
+        { error: "Failed to complete step. Please try again." },
+        { status: 500 }
+      );
+    }
 
     // 4. Save step response (supports new payload structures)
     if (completionPayload) {

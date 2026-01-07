@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { hasPermission, hasEmployeeScreenPermission, UserWithProfile, PermissionAction, EMPLOYEE_PROFILE_SCREENS, EmployeeProfileScreen } from "@/lib/permissions";
+import { isApiRateLimited, getApiRateLimitError, API_RATE_LIMITS } from "@/lib/api-rate-limit";
 
 /**
  * GET /api/permissions/check
@@ -15,6 +16,8 @@ import { hasPermission, hasEmployeeScreenPermission, UserWithProfile, Permission
  * 
  * Returns:
  * - { allowed: boolean, screen: string, action: string }
+ * 
+ * 🔒 Rate limited to prevent permission enumeration attacks
  */
 export async function GET(req: NextRequest) {
   try {
@@ -24,6 +27,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // 🔒 Bug Fix 4.3: Add rate limiting to prevent permission enumeration attacks
+    // Limit: 60 permission checks per minute per user
+    const rateLimited = await isApiRateLimited(
+      `permissions-check:${session.user.id}`,
+      API_RATE_LIMITS.PERMISSION_CHECK.maxRequests,
+      API_RATE_LIMITS.PERMISSION_CHECK.windowSeconds
+    );
+    
+    if (rateLimited) {
+      return NextResponse.json(
+        getApiRateLimitError(API_RATE_LIMITS.PERMISSION_CHECK.windowSeconds),
+        { status: 429 }
       );
     }
 

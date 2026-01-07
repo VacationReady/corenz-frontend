@@ -869,35 +869,36 @@ export async function POST(
     // 3. Mark step as completed using optimistic locking pattern
     // 🔒 Bug Fix 1.3: Only update if status is not already completed (prevents race conditions)
     // This handles double-click scenarios and concurrent requests
-    const updateResult = await prisma.onboardingStepInstance.updateMany({
-      where: { 
-        id: stepId,
-        status: { not: "completed" }, // Only update if not already completed
-      },
-      data: {
-        status: "completed",
-        completedAt: new Date(),
-      },
-    });
-
-    // If no rows were updated, the step was already completed (possibly by concurrent request)
-    if (updateResult.count === 0) {
-      // Verify the step is actually completed (not just missing)
-      const currentStep = await prisma.onboardingStepInstance.findUnique({
+    // Use a transaction to ensure atomicity of the check-and-update operation
+    const completionResult = await prisma.$transaction(async (tx) => {
+      // First, check current status
+      const currentStep = await tx.onboardingStepInstance.findUnique({
         where: { id: stepId },
         select: { status: true },
       });
-      
+
+      // If already completed, return early indicator
       if (currentStep?.status === "completed") {
-        return NextResponse.json(
-          { success: true, message: "Step already completed", alreadyCompleted: true },
-          { status: 200 }
-        );
+        return { alreadyCompleted: true, updated: false };
       }
-      // If step exists but wasn't updated and isn't completed, something unexpected happened
+
+      // Update the step - within transaction this is safe from race conditions
+      await tx.onboardingStepInstance.update({
+        where: { id: stepId },
+        data: {
+          status: "completed",
+          completedAt: new Date(),
+        },
+      });
+
+      return { alreadyCompleted: false, updated: true };
+    });
+
+    // If step was already completed (possibly by concurrent request), return success
+    if (completionResult.alreadyCompleted) {
       return NextResponse.json(
-        { error: "Failed to complete step. Please try again." },
-        { status: 500 }
+        { success: true, message: "Step already completed", alreadyCompleted: true },
+        { status: 200 }
       );
     }
 

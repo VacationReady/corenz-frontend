@@ -234,6 +234,15 @@ export async function validateLeaveRequest({
   }
 
   // ── BLACKOUT DAY CHECK ────────────────────────────
+  // BUG FIX: Use local date formatting consistently to avoid timezone mismatch
+  // Previously used toISOString() which converts to UTC, causing issues in non-UTC timezones
+  const formatLocalDate = (d: Date): string => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const blackoutDays = await prisma.blackoutDay.findMany({
     where: {
       companyId,
@@ -244,13 +253,12 @@ export async function validateLeaveRequest({
     },
   });
 
-  const blackoutDates = blackoutDays.map(
-    (b) => b.date.toISOString().split("T")[0],
-  );
+  // Convert blackout dates to local date strings for consistent comparison
+  const blackoutDates = blackoutDays.map((b) => formatLocalDate(new Date(b.date)));
   const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
 
   for (const date of datesInRange) {
-    const dateString = date.toISOString().split("T")[0];
+    const dateString = formatLocalDate(date);
     if (blackoutDates.includes(dateString)) {
       const message = `The date ${dateString} is blocked due to a company blackout.`;
       
@@ -458,14 +466,43 @@ export async function validateLeaveRequest({
     );
   }
 
+  // BUG FIX: Calculate pending leave days to prevent over-booking
+  // Previously, only approved leave was counted in usedDays, allowing employees
+  // to submit multiple requests that collectively exceed their entitlement
+  const pendingLeaveRequests = await prisma.leaveRequest.findMany({
+    where: {
+      employeeId,
+      eventCategoryId,
+      approvalStatus: "PENDING",
+    },
+    select: { startDate: true, endDate: true },
+  });
+
+  let pendingDays = 0;
+  for (const leave of pendingLeaveRequests) {
+    const leaveDates = eachDayOfInterval({ 
+      start: new Date(leave.startDate), 
+      end: new Date(leave.endDate) 
+    });
+    for (const date of leaveDates) {
+      const deduction = await calculateLeaveDeduction(employeeId, date);
+      pendingDays += deduction;
+    }
+  }
+
+  console.log("📊 Pending leave days calculated:", pendingDays);
+
   const availableCarryover = entitlement.carryoverDays ?? 0;
-  const availableEntitlement = entitlement.totalDays - entitlement.usedDays;
+  // Subtract both used days AND pending days from available entitlement
+  const availableEntitlement = entitlement.totalDays - entitlement.usedDays - pendingDays;
 
   const combinedAvailable = availableCarryover + availableEntitlement;
 
   console.log("📊 Leave deduction check:", {
     daysRequestedForDeduction,
     availableCarryover,
+    usedDays: entitlement.usedDays,
+    pendingDays,
     availableEntitlement,
     combinedAvailable,
   });

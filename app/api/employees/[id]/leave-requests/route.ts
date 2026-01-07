@@ -713,6 +713,7 @@ export async function POST(
 
         // NZ SICK LEAVE: Handle sick leave via ledger system (Holidays Act 2003)
         // Sick leave uses a separate balance tracking system from regular leave entitlements
+        // BUG FIX: Ensure data consistency by rolling back leave request if ledger update fails
         if (isSick) {
           console.log("🔍 [LEAVE_REQUEST_DEBUG] Entering sick leave handling block");
           console.log("🔍 [LEAVE_REQUEST_DEBUG] Sick leave params:", {
@@ -736,9 +737,22 @@ export async function POST(
 
           const totalDeductionDays = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
 
+          // Apply any pending grants BEFORE creating the leave request
+          // This ensures the balance is up-to-date for validation
+          if (totalDeductionDays > 0) {
+            try {
+              await applySickLeaveGrants(prisma as any, employeeId, new Date(), session.user.id);
+              console.log("✅ [SICK_LEAVE_DEBUG] Grants applied successfully before leave creation");
+            } catch (grantError: any) {
+              console.error("❌ Failed to apply sick leave grants:", grantError?.message || grantError);
+              // Continue - grants may already be applied or employee may not be eligible yet
+            }
+          }
+
           // Build the data object for leave request creation
+          const leaveRequestId = crypto.randomUUID();
           const leaveRequestData: any = {
-            id: crypto.randomUUID(),
+            id: leaveRequestId,
             Employee: { connect: { id: employeeId } },
             User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
             EventCategory: { connect: { id: EventCategoryId } },
@@ -782,14 +796,13 @@ export async function POST(
           });
 
           // Record sick leave usage via ledger system
+          // If this fails, we MUST delete the leave request to maintain data consistency
           if (totalDeductionDays > 0) {
             try {
               const hoursToDeduct = daysToHours(totalDeductionDays);
               console.log(`🔍 [SICK_LEAVE_DEBUG] Recording usage: ${totalDeductionDays} days = ${hoursToDeduct} hours`);
               
-              // Apply any pending grants first
-              await applySickLeaveGrants(prisma as any, employeeId, new Date(), session.user.id);
-              // Record the usage
+              // Record the usage (grants already applied above)
               await recordSickLeaveUsage(
                 prisma as any,
                 employeeId,
@@ -800,7 +813,6 @@ export async function POST(
               console.log(`✅ Sick leave usage recorded via ledger: ${totalDeductionDays} days (${hoursToDeduct} hours) for request ${newLeaveRequest.id}`);
             } catch (sickLeaveError: any) {
               console.error("❌ Failed to record sick leave usage:", sickLeaveError?.message || sickLeaveError);
-              // Log more details for debugging
               console.error("❌ Sick leave error details:", {
                 employeeId,
                 totalDeductionDays,
@@ -808,8 +820,26 @@ export async function POST(
                 leaveRequestId: newLeaveRequest.id,
                 errorStack: sickLeaveError?.stack,
               });
-              // Don't fail the request - the leave is booked, balance tracking can be reconciled
-              // This matches the behavior in advanceLeaveApproval.ts
+              
+              // BUG FIX: Delete the leave request to maintain data consistency
+              // Previously, the leave request would remain even if balance update failed
+              try {
+                await prisma.leaveRequest.delete({
+                  where: { id: newLeaveRequest.id },
+                });
+                console.log(`🗑️ [SICK_LEAVE_DEBUG] Rolled back leave request ${newLeaveRequest.id} due to ledger failure`);
+              } catch (deleteError: any) {
+                console.error("❌ Failed to rollback leave request:", deleteError?.message || deleteError);
+              }
+              
+              // Return error to user so they know the booking failed
+              return NextResponse.json(
+                { 
+                  success: false, 
+                  error: sickLeaveError?.message || "Failed to record sick leave usage. Please try again or contact your administrator." 
+                },
+                { status: 400 },
+              );
             }
           } else {
             console.log(`⚠️ [SICK_LEAVE_DEBUG] No deduction needed: totalDeductionDays = ${totalDeductionDays}`);

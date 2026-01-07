@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import Module from "module";
 
 const mockGetServerSession = test.mock.fn<() => Promise<any>>();
-const mockEmployeeFindUnique = test.mock.fn<(args: any) => Promise<any>>();
+const mockEmployeeFindFirst = test.mock.fn<(args: any) => Promise<any>>();
 const mockTrainingRecordFindMany = test.mock.fn<(args: any) => Promise<any[]>>();
 const mockTrainingRecordCreate = test.mock.fn<(args: any) => Promise<any>>();
 const mockDocumentCreate = test.mock.fn<(args: any) => Promise<any>>();
@@ -37,7 +37,8 @@ const originalLoad = (Module as any)._load;
     return {
       prisma: {
         employee: {
-          findUnique: mockEmployeeFindUnique,
+          findFirst: mockEmployeeFindFirst,
+          findUnique: mockEmployeeFindFirst, // Alias for backwards compatibility
         },
         trainingRecord: {
           findMany: mockTrainingRecordFindMany,
@@ -102,7 +103,7 @@ const routesPromise = (async () => {
 
 function resetMocks() {
   mockGetServerSession.mock.resetCalls();
-  mockEmployeeFindUnique.mock.resetCalls();
+  mockEmployeeFindFirst.mock.resetCalls();
   mockTrainingRecordFindMany.mock.resetCalls();
   mockTrainingRecordCreate.mock.resetCalls();
   mockDocumentCreate.mock.resetCalls();
@@ -121,7 +122,7 @@ test("GET /api/training-records/list returns 404 when employee missing", async (
   mockGetServerSession.mock.mockImplementationOnce(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1", role: "MANAGER" } }),
   );
-  mockEmployeeFindUnique.mock.mockImplementationOnce(() => Promise.resolve(null));
+  mockEmployeeFindFirst.mock.mockImplementationOnce(() => Promise.resolve(null));
 
   const { list } = await routesPromise;
   const res = await list(
@@ -138,8 +139,8 @@ test("GET /api/training-records/list blocks cross-tenant access", async () => {
   mockGetServerSession.mock.mockImplementationOnce(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1", role: "MANAGER" } }),
   );
-  mockEmployeeFindUnique.mock.mockImplementationOnce(() =>
-    Promise.resolve({ id: "emp-1", companyId: "tenant-2" }),
+  mockEmployeeFindFirst.mock.mockImplementationOnce(() =>
+    Promise.resolve(null), // findFirst with companyId filter returns null for cross-tenant
   );
 
   const { list } = await routesPromise;
@@ -147,7 +148,7 @@ test("GET /api/training-records/list blocks cross-tenant access", async () => {
     new Request("http://localhost/api/training-records/list?employeeId=emp-1"),
   );
 
-  assert.equal(res.status, 403);
+  assert.equal(res.status, 404); // Now returns 404 since findFirst filters by tenant
   assert.equal(mockCanAccessEmployee.mock.calls.length, 0);
   assert.equal(mockTrainingRecordFindMany.mock.calls.length, 0);
 });
@@ -157,7 +158,7 @@ test("GET /api/training-records/list forbids when requester lacks access", async
   mockGetServerSession.mock.mockImplementationOnce(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1", role: "MANAGER" } }),
   );
-  mockEmployeeFindUnique.mock.mockImplementationOnce(() =>
+  mockEmployeeFindFirst.mock.mockImplementationOnce(() =>
     Promise.resolve({ id: "emp-1", companyId: "tenant-1" }),
   );
   mockCanAccessEmployee.mock.mockImplementationOnce(() => Promise.resolve(false));
@@ -176,7 +177,7 @@ test("GET /api/training-records/list returns data when authorized", async () => 
   mockGetServerSession.mock.mockImplementationOnce(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1", role: "MANAGER" } }),
   );
-  mockEmployeeFindUnique.mock.mockImplementationOnce(() =>
+  mockEmployeeFindFirst.mock.mockImplementationOnce(() =>
     Promise.resolve({ id: "emp-1", companyId: "tenant-1" }),
   );
   mockCanAccessEmployee.mock.mockImplementationOnce(() => Promise.resolve(true));
@@ -198,7 +199,7 @@ test("POST /api/training-records/create returns 404 when employee missing", asyn
   mockGetServerSession.mock.mockImplementationOnce(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1", role: "ADMIN" } }),
   );
-  mockEmployeeFindUnique.mock.mockImplementationOnce(() => Promise.resolve(null));
+  mockEmployeeFindFirst.mock.mockImplementationOnce(() => Promise.resolve(null));
 
   const formData = new FormData();
   formData.set("employeeId", "emp-1");
@@ -225,8 +226,8 @@ test("POST /api/training-records/create blocks cross-tenant writes", async () =>
   mockGetServerSession.mock.mockImplementationOnce(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1", role: "ADMIN" } }),
   );
-  mockEmployeeFindUnique.mock.mockImplementationOnce(() =>
-    Promise.resolve({ id: "emp-1", companyId: "tenant-2" }),
+  mockEmployeeFindFirst.mock.mockImplementationOnce(() =>
+    Promise.resolve(null), // findFirst with companyId filter returns null for cross-tenant
   );
 
   const formData = new FormData();
@@ -244,7 +245,7 @@ test("POST /api/training-records/create blocks cross-tenant writes", async () =>
     }),
   );
 
-  assert.equal(res.status, 403);
+  assert.equal(res.status, 404); // Now returns 404 since findFirst filters by tenant
   assert.equal(mockCanAccessEmployee.mock.calls.length, 0);
   assert.equal(mockTrainingRecordCreate.mock.calls.length, 0);
 });
@@ -254,7 +255,7 @@ test("POST /api/training-records/create forbids when requester lacks access", as
   mockGetServerSession.mock.mockImplementationOnce(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1", role: "MANAGER" } }),
   );
-  mockEmployeeFindUnique.mock.mockImplementationOnce(() =>
+  mockEmployeeFindFirst.mock.mockImplementationOnce(() =>
     Promise.resolve({ id: "emp-1", companyId: "tenant-1" }),
   );
   mockCanAccessEmployee.mock.mockImplementationOnce(() => Promise.resolve(false));
@@ -283,7 +284,7 @@ test("POST /api/training-records/create persists when admin authorized", async (
   mockGetServerSession.mock.mockImplementationOnce(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1", role: "ADMIN" } }),
   );
-  mockEmployeeFindUnique.mock.mockImplementationOnce(() =>
+  mockEmployeeFindFirst.mock.mockImplementationOnce(() =>
     Promise.resolve({ id: "emp-1", companyId: "tenant-1" }),
   );
   mockCanAccessEmployee.mock.mockImplementationOnce(() => Promise.resolve(true));

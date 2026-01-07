@@ -160,8 +160,11 @@ export async function POST(req: NextRequest) {
 
     // Generate completion token if form is enabled
     let completionTokenHash: string | null = null;
+    let tokenExpiresAt: Date | null = null;
     if (sendForm) {
       completionTokenHash = generateCompletionToken(employeeId);
+      // Token valid for 30 days (consistent with other long-lived tokens in codebase)
+      tokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     }
 
     // Calculate scheduled send time if ON_DATE
@@ -189,6 +192,7 @@ export async function POST(req: NextRequest) {
       formTiming: sendForm ? (formTiming ?? null) : null,
       scheduledSendAt,
       completionTokenHash,
+      tokenExpiresAt,
       completionStatus: "PENDING" as const,
     };
 

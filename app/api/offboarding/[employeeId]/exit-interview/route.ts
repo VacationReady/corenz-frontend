@@ -149,6 +149,8 @@ export async function POST(
           updateData.completionTokenHash = generateCompletionToken(
             offboarding.id,
           );
+          // Token valid for 30 days
+          updateData.tokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
         }
         updateData.completionStatus = "PENDING";
         updateData.scheduledSendAt =
@@ -161,6 +163,7 @@ export async function POST(
         updateData.completionStatus = null;
         updateData.scheduledSendAt = null;
         updateData.completionTokenHash = null;
+        updateData.tokenExpiresAt = null;
       }
 
       await prisma.employeeOffboarding.update({

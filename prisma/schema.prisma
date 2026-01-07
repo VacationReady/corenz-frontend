@@ -666,6 +666,7 @@ model EmployeeOffboarding {
   inviteLastSentAt                                   DateTime?
   scheduledSendAt                                    DateTime?
   completionTokenHash                                String?
+  tokenExpiresAt                                     DateTime?
   status                                             OffboardingStatus             @default(IN_PROGRESS)
   offboardingType                                    OffboardingType
   formTiming                                         ExitInterviewFormTiming?
@@ -687,6 +688,7 @@ model EmployeeOffboarding {
   @@index([lastWorkingDate])
   @@index([scheduledSendAt])
   @@index([status])
+  @@index([tokenExpiresAt])
 }
 
 model EmployeeWorkingPatternAssignment {

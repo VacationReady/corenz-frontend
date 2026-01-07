@@ -33,6 +33,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if token has expired
+    if (offboarding.tokenExpiresAt && new Date() > offboarding.tokenExpiresAt) {
+      return NextResponse.json(
+        { error: "This link has expired. Please contact HR for a new link." },
+        { status: 410 },
+      );
+    }
+
     const companyId = offboarding.Employee?.companyId;
     if (!companyId) {
       return NextResponse.json(

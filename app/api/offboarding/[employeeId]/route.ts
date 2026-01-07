@@ -252,6 +252,7 @@ export async function PATCH(
         assetsToReturn,
         assetsReturned: allReturned,
         assetsReturnedAt: allReturned ? new Date() : null,
+        assetsReturnedTo: allReturned ? session.user.id : null,
       },
     });
 

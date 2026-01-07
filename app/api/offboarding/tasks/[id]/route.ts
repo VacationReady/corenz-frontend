@@ -100,23 +100,30 @@ export async function PATCH(
         .every((t: any) => t.completedAt !== null);
 
       if (allRequiredTasksCompleted) {
-        await prisma.employeeOffboarding.update({
-          where: { id: task.offboardingId },
+        // Use updateMany with status check to prevent race condition
+        // Only one concurrent request will successfully update from IN_PROGRESS
+        const updated = await prisma.employeeOffboarding.updateMany({
+          where: { 
+            id: task.offboardingId,
+            status: "IN_PROGRESS",
+          },
           data: {
             status: "COMPLETED",
             completedAt: new Date(),
           },
         });
 
-        // Update employee status to fully offboarded
-        await prisma.employee.update({
-          where: { id: task.EmployeeOffboarding.employeeId },
-          data: {
-            offboardingStatus: "COMPLETED",
-          },
-        });
+        // Only update employee and send email if we actually completed the offboarding
+        if (updated.count > 0) {
+          await prisma.employee.update({
+            where: { id: task.EmployeeOffboarding.employeeId },
+            data: {
+              offboardingStatus: "COMPLETED",
+            },
+          });
 
-        await sendOffboardingCompletionSummaryEmail(task.offboardingId);
+          await sendOffboardingCompletionSummaryEmail(task.offboardingId);
+        }
       }
     }
 

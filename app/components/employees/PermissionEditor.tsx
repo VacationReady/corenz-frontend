@@ -164,15 +164,32 @@ export function PermissionEditor({
                   <TooltipTrigger>
                     <HelpCircle className="h-4 w-4 text-gray-400" />
                   </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p>
-                      These permissions allow viewing and editing specific sections 
-                      of other employees&apos; profiles in the organisation.
-                    </p>
+                  <TooltipContent className="max-w-sm">
+                    <div className="space-y-2">
+                      <p>
+                        <strong>Important:</strong> These permissions grant access to <strong>ALL employees</strong> in the organization for the specific sections selected.
+                      </p>
+                      <p>
+                        For example, granting "Employee Bank & Payroll" read access allows viewing bank details for all employees, not just their department.
+                      </p>
+                      <p>
+                        This is designed for specialized roles like Payroll Admin, HR Specialist, etc.
+                      </p>
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </h3>
+            
+            {/* Warning for sensitive permissions */}
+            <Alert className="bg-amber-50 border-amber-200 mb-3">
+              <HelpCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                <strong>Full Access:</strong> Employee profile permissions grant access to <strong>ALL employees</strong> for the selected sections. 
+                Use carefully for specialized roles like Payroll Admin or HR Specialist.
+              </AlertDescription>
+            </Alert>
+            
             {renderPermissionTable(employeeProfileScreens)}
           </div>
         )}

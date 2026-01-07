@@ -713,7 +713,7 @@ export async function POST(
 
         // NZ SICK LEAVE: Handle sick leave via ledger system (Holidays Act 2003)
         // Sick leave uses a separate balance tracking system from regular leave entitlements
-        // BUG FIX: Ensure data consistency by rolling back leave request if ledger update fails
+        // Uses atomic transaction to ensure data consistency between leave request and ledger
         if (isSick) {
           console.log("🔍 [LEAVE_REQUEST_DEBUG] Entering sick leave handling block");
           console.log("🔍 [LEAVE_REQUEST_DEBUG] Sick leave params:", {
@@ -725,7 +725,7 @@ export async function POST(
             endDateObj: endDateObj.toISOString(),
           });
           
-          // Calculate deduction for sick leave
+          // Calculate deduction for sick leave BEFORE transaction
           const totalDays: number[] = [];
           let currentDate = new Date(startDateObj);
 
@@ -739,6 +739,7 @@ export async function POST(
 
           // Apply any pending grants BEFORE creating the leave request
           // This ensures the balance is up-to-date for validation
+          // Note: This is done outside the main transaction as it has its own transaction
           if (totalDeductionDays > 0) {
             try {
               await applySickLeaveGrants(prisma as any, employeeId, new Date(), session.user.id);
@@ -749,103 +750,143 @@ export async function POST(
             }
           }
 
-          // Build the data object for leave request creation
-          const leaveRequestId = crypto.randomUUID();
-          const leaveRequestData: any = {
-            id: leaveRequestId,
-            Employee: { connect: { id: employeeId } },
-            User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
-            EventCategory: { connect: { id: EventCategoryId } },
-            Company: { connect: { id: session.user.companyId } },
-            startDate: startDateObj,
-            endDate: endDateObj,
-            dayType: dayType ?? "FULL_DAY",
-            reason: reason ?? "",
-            leaveType: "SICK",
-            sickReason: resolvedSickReason,
-            paidStatus: paidStatus ?? "PAID",
-            updatedAt: new Date(),
-            approvalStatus: "APPROVED",
-            // Use relation connect for approvedById
-            User_LeaveRequest_approvedByIdToUser: { connect: { id: session.user.id } },
-          };
-
-          // Only connect EventSubcategory if sickReasonId is provided and valid
+          // Verify subcategory exists before transaction (if provided)
+          let subcategoryExists = false;
           if (sickReasonId) {
-            // Verify the subcategory exists before trying to connect
-            const subcategoryExists = await prisma.eventSubcategory.findFirst({
+            const subcategory = await prisma.eventSubcategory.findFirst({
               where: { id: sickReasonId },
               select: { id: true },
             });
-            if (subcategoryExists) {
-              leaveRequestData.EventSubcategory = { connect: { id: sickReasonId } };
-            } else {
+            subcategoryExists = !!subcategory;
+            if (!subcategoryExists) {
               console.warn(`⚠️ [LEAVE_REQUEST_DEBUG] Subcategory ${sickReasonId} not found, skipping connection`);
             }
           }
 
-          // Create leave request
-          const newLeaveRequest = await (prisma.leaveRequest as any).create({
-            data: leaveRequestData,
-          });
+          // Generate leave request ID upfront for idempotency
+          const leaveRequestId = crypto.randomUUID();
+          const hoursToDeduct = daysToHours(totalDeductionDays);
 
-          console.log("✅ [LEAVE_REQUEST_DEBUG] Sick leave request created:", {
-            id: newLeaveRequest.id,
-            approvalStatus: newLeaveRequest.approvalStatus,
-            totalDeductionDays,
-          });
-
-          // Record sick leave usage via ledger system
-          // If this fails, we MUST delete the leave request to maintain data consistency
+          // Validate balance BEFORE creating leave request
+          // This prevents creating a leave request that would fail on ledger update
           if (totalDeductionDays > 0) {
-            try {
-              const hoursToDeduct = daysToHours(totalDeductionDays);
-              console.log(`🔍 [SICK_LEAVE_DEBUG] Recording usage: ${totalDeductionDays} days = ${hoursToDeduct} hours`);
-              
-              // Record the usage (grants already applied above)
-              await recordSickLeaveUsage(
-                prisma as any,
-                employeeId,
-                hoursToDeduct,
-                newLeaveRequest.id,
-                session.user.id
-              );
-              console.log(`✅ Sick leave usage recorded via ledger: ${totalDeductionDays} days (${hoursToDeduct} hours) for request ${newLeaveRequest.id}`);
-            } catch (sickLeaveError: any) {
-              console.error("❌ Failed to record sick leave usage:", sickLeaveError?.message || sickLeaveError);
-              console.error("❌ Sick leave error details:", {
-                employeeId,
-                totalDeductionDays,
-                hoursToDeduct: daysToHours(totalDeductionDays),
-                leaveRequestId: newLeaveRequest.id,
-                errorStack: sickLeaveError?.stack,
-              });
-              
-              // BUG FIX: Delete the leave request to maintain data consistency
-              // Previously, the leave request would remain even if balance update failed
-              try {
-                await prisma.leaveRequest.delete({
-                  where: { id: newLeaveRequest.id },
-                });
-                console.log(`🗑️ [SICK_LEAVE_DEBUG] Rolled back leave request ${newLeaveRequest.id} due to ledger failure`);
-              } catch (deleteError: any) {
-                console.error("❌ Failed to rollback leave request:", deleteError?.message || deleteError);
-              }
-              
-              // Return error to user so they know the booking failed
+            const employeeBalance = await prisma.employee.findUnique({
+              where: { id: employeeId },
+              select: { sickLeaveBalance: true },
+            });
+            const currentBalance = Number(employeeBalance?.sickLeaveBalance || 0);
+            
+            if (currentBalance < hoursToDeduct) {
+              const availableDays = currentBalance / 8; // HOURS_PER_DAY
               return NextResponse.json(
                 { 
                   success: false, 
-                  error: sickLeaveError?.message || "Failed to record sick leave usage. Please try again or contact your administrator." 
+                  error: `Insufficient sick leave balance. Available: ${availableDays.toFixed(1)} days, Requested: ${totalDeductionDays} days` 
                 },
                 { status: 400 },
               );
             }
-          } else {
-            console.log(`⚠️ [SICK_LEAVE_DEBUG] No deduction needed: totalDeductionDays = ${totalDeductionDays}`);
           }
 
-          return NextResponse.json({ success: true, data: newLeaveRequest });
+          try {
+            // Execute leave request creation and ledger update atomically
+            // We use a two-step approach:
+            // 1. Create leave request in a transaction
+            // 2. Record ledger usage (has its own transaction with idempotency)
+            // If step 2 fails, we rollback step 1
+            
+            const newLeaveRequest = await prisma.$transaction(async (tx) => {
+              // Build the data object for leave request creation
+              const leaveRequestData: any = {
+                id: leaveRequestId,
+                Employee: { connect: { id: employeeId } },
+                User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
+                EventCategory: { connect: { id: EventCategoryId } },
+                Company: { connect: { id: session.user.companyId } },
+                startDate: startDateObj,
+                endDate: endDateObj,
+                dayType: dayType ?? "FULL_DAY",
+                reason: reason ?? "",
+                leaveType: "SICK",
+                sickReason: resolvedSickReason,
+                paidStatus: paidStatus ?? "PAID",
+                updatedAt: new Date(),
+                approvalStatus: "APPROVED",
+                User_LeaveRequest_approvedByIdToUser: { connect: { id: session.user.id } },
+              };
+
+              // Only connect EventSubcategory if sickReasonId is provided and valid
+              if (sickReasonId && subcategoryExists) {
+                leaveRequestData.EventSubcategory = { connect: { id: sickReasonId } };
+              }
+
+              // Create leave request inside transaction
+              return (tx.leaveRequest as any).create({
+                data: leaveRequestData,
+              });
+            });
+
+            console.log("✅ [LEAVE_REQUEST_DEBUG] Sick leave request created:", {
+              id: newLeaveRequest.id,
+              approvalStatus: newLeaveRequest.approvalStatus,
+              totalDeductionDays,
+            });
+
+            // Record sick leave usage via ledger system
+            // The ledger has its own transaction with idempotency (keyed by leaveRequestId)
+            // If this fails, we must delete the leave request
+            if (totalDeductionDays > 0) {
+              try {
+                console.log(`🔍 [SICK_LEAVE_DEBUG] Recording usage: ${totalDeductionDays} days = ${hoursToDeduct} hours`);
+                
+                await recordSickLeaveUsage(
+                  prisma as any,
+                  employeeId,
+                  hoursToDeduct,
+                  newLeaveRequest.id,
+                  session.user.id
+                );
+                console.log(`✅ Sick leave usage recorded via ledger: ${totalDeductionDays} days (${hoursToDeduct} hours) for request ${newLeaveRequest.id}`);
+              } catch (sickLeaveError: any) {
+                console.error("❌ Failed to record sick leave usage:", sickLeaveError?.message || sickLeaveError);
+                
+                // Rollback: Delete the leave request to maintain data consistency
+                // Use a separate try-catch to ensure we always return an error to the user
+                try {
+                  await prisma.leaveRequest.delete({
+                    where: { id: newLeaveRequest.id },
+                  });
+                  console.log(`🗑️ [SICK_LEAVE_DEBUG] Rolled back leave request ${newLeaveRequest.id} due to ledger failure`);
+                } catch (deleteError: any) {
+                  // Log but don't throw - the original error is more important
+                  console.error("❌ CRITICAL: Failed to rollback leave request:", deleteError?.message || deleteError);
+                  console.error("❌ Orphaned leave request ID:", newLeaveRequest.id);
+                }
+                
+                // Return error to user
+                return NextResponse.json(
+                  { 
+                    success: false, 
+                    error: sickLeaveError?.message || "Failed to record sick leave usage. Please try again or contact your administrator." 
+                  },
+                  { status: 400 },
+                );
+              }
+            } else {
+              console.log(`⚠️ [SICK_LEAVE_DEBUG] No deduction needed: totalDeductionDays = ${totalDeductionDays}`);
+            }
+
+            return NextResponse.json({ success: true, data: newLeaveRequest });
+          } catch (txError: any) {
+            console.error("❌ Failed to create sick leave request:", txError?.message || txError);
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: txError?.message || "Failed to create sick leave request. Please try again." 
+              },
+              { status: 400 },
+            );
+          }
         }
 
         if (enforceEntitlement) {

@@ -643,12 +643,17 @@ export function getAccessibleEmployeeScreens(user: UserWithProfile): string[] {
 }
 
 /**
- * Checks if a user can access the employee list
+ * Checks if a user can access the employee list page.
+ * 
  * Access rules:
  * - ADMIN/SUPER_ADMIN always have access
  * - MANAGER always has access (to their team)
  * - User with "employees" read permission via profile has access
  * - User with ANY employee-* screen read permission via profile has access
+ * 
+ * NOTE: Users with employee-* permissions get FULL access to all employees
+ * for their specific domain (e.g., payroll admin sees all bank details).
+ * This is intentional for specialized roles like HR, Payroll, etc.
  */
 export function canAccessEmployeeList(user: UserWithProfile): boolean {
   // ADMIN/SUPER_ADMIN always have access
@@ -667,6 +672,7 @@ export function canAccessEmployeeList(user: UserWithProfile): boolean {
   }
   
   // Check if user has ANY employee-* screen permission
+  // This grants FULL access for specialized roles (payroll admin, HR specialist, etc.)
   for (const screen of EMPLOYEE_PROFILE_SCREENS) {
     if (hasPermission(user, screen, 'read')) {
       return true;
@@ -674,4 +680,47 @@ export function canAccessEmployeeList(user: UserWithProfile): boolean {
   }
   
   return false;
+}
+
+/**
+ * Checks if a user has any employee profile screen permission.
+ * Used to determine if a user can navigate to employee profiles.
+ */
+export function hasAnyEmployeeProfilePermission(user: UserWithProfile): boolean {
+  // ADMIN/SUPER_ADMIN always have access
+  if (['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+    return true;
+  }
+  
+  // Check if user has ANY employee-* screen permission
+  for (const screen of EMPLOYEE_PROFILE_SCREENS) {
+    if (hasPermission(user, screen, 'read')) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Checks if a user has permission for a specific employee profile screen.
+ * Used by employee profile pages to validate screen-specific access.
+ * 
+ * @param user - The user to check permissions for
+ * @param screen - The employee profile screen key (e.g., "employee-documents")
+ * @param action - The action to check (default: "read")
+ * @returns true if the user has permission for the specific screen
+ */
+export function hasEmployeeScreenPermission(
+  user: UserWithProfile,
+  screen: EmployeeProfileScreen,
+  action: PermissionAction = 'read'
+): boolean {
+  // ADMIN/SUPER_ADMIN always have access to all screens
+  if (['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+    return true;
+  }
+  
+  // Check the specific screen permission
+  return hasPermission(user, screen, action);
 }

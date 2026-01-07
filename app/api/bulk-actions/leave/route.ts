@@ -9,6 +9,7 @@ import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
 import { notifyApproversForStage } from "@/lib/approvalNotifications";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
 import { createLeaveApprovalActionItem } from "@/lib/action-items-helper";
+import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 const payloadSchema = z.object({
   employeeIds: z.array(z.string().uuid()).min(1),
@@ -126,6 +127,50 @@ export async function POST(request: Request) {
         });
 
         if (forceApprove) {
+          // BUG FIX: Deduct from entitlement when force-approving bulk leave
+          // Previously, bulk actions would create approved leave without deducting from balance
+          
+          // Calculate deduction based on working pattern
+          const totalDays: number[] = [];
+          let currentDate = new Date(start);
+          while (currentDate <= end) {
+            const deduction = await calculateLeaveDeduction(employee.id, currentDate);
+            totalDays.push(deduction);
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+          const totalDeduction = totalDays.reduce((sum, d) => sum + d, 0);
+
+          // Check if entitlement enforcement applies for this category
+          const eventRule = await prisma.eventRule.findUnique({
+            where: {
+              companyId_eventCategoryId: {
+                companyId: session.user.companyId,
+                eventCategoryId,
+              },
+            },
+            select: { enforceEntitlement: true },
+          });
+
+          const isAnnualLeave = eventCategory.name.toLowerCase().includes("annual leave");
+          const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
+
+          // Deduct from entitlement if enforcement is enabled
+          if (enforceEntitlement && totalDeduction > 0) {
+            const entitlement = await prisma.leaveEntitlement.findFirst({
+              where: { employeeId: employee.id, eventCategoryId },
+            });
+
+            if (entitlement) {
+              await prisma.leaveEntitlement.update({
+                where: { id: entitlement.id },
+                data: { usedDays: entitlement.usedDays + totalDeduction },
+              });
+              console.log(`[bulk-actions/leave] Deducted ${totalDeduction} days from entitlement for employee ${employee.id}`);
+            } else {
+              console.warn(`[bulk-actions/leave] No entitlement found for employee ${employee.id}, category ${eventCategoryId}`);
+            }
+          }
+
           continue;
         }
 

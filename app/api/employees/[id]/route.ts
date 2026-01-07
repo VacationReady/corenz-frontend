@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
-import { canAccessEmployee } from "@/lib/permissions";
+import { canAccessEmployee, hasPermission, UserWithProfile } from "@/lib/permissions";
 import supabase from "@/lib/supabase-admin";
 
 // ✅ GET employee profile by Employee.id (not User.id)
@@ -105,10 +105,27 @@ export async function DELETE(
       );
     }
 
-    // Only ADMIN can delete employees
-    if (session.user.role !== "ADMIN") {
+    // ✅ FIX: Check permission profiles for delete operations, not just role
+    // This ensures custom permission profiles that restrict delete access are respected
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { PermissionProfile: true },
+    });
+
+    const userWithProfile: UserWithProfile = currentUser ? {
+      ...currentUser,
+      permissionProfile: currentUser.PermissionProfile,
+    } : {
+      id: session.user.id,
+      role: session.user.role,
+      companyId: session.user.companyId,
+    } as UserWithProfile;
+
+    // Check if user has "employees" delete permission via their permission profile
+    // Note: hasPermission() already handles ADMIN/SUPER_ADMIN override internally
+    if (!hasPermission(userWithProfile, "employees", "delete")) {
       return NextResponse.json(
-        { success: false, error: "Forbidden" },
+        { success: false, error: "Forbidden: insufficient permissions to delete employees" },
         { status: 403 },
       );
     }

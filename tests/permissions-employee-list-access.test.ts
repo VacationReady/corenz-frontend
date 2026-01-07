@@ -3,6 +3,9 @@
  * Feature: permission-profile-ux-clarity
  * Property 1: Permission Profile Grants Employee List Access
  * Validates: Requirements 8.1, 8.2, 8.3, 8.4
+ * 
+ * REVERTED: Back to original behavior where employee-* permissions
+ * grant full access for specialized roles (Payroll Admin, HR Specialist, etc.)
  */
 import "./setupEnv";
 import test from "node:test";
@@ -11,6 +14,7 @@ import * as fc from "fast-check";
 import { 
   hasPermission, 
   canAccessEmployeeList,
+  hasAnyEmployeeProfilePermission,
   EMPLOYEE_PROFILE_SCREENS,
   UserWithProfile,
   ScreenPermissions,
@@ -86,6 +90,9 @@ function createMockUserWithoutProfile(
  * For any user with "employees" read permission OR any "employee-*" screen read permission
  * via their permission profile, the canAccessEmployeeList function should return true.
  * 
+ * REVERTED: Back to original behavior where employee-* permissions grant full access.
+ * This allows specialized roles like Payroll Admin to see all employees for their domain.
+ * 
  * Feature: permission-profile-ux-clarity, Property 1: Permission Profile Grants Employee List Access
  */
 test("Property 1: Permission Profile Grants Employee List Access", async (t) => {
@@ -106,8 +113,9 @@ test("Property 1: Permission Profile Grants Employee List Access", async (t) => 
     );
   });
 
-  await t.test("User with any employee-* screen read permission can access employee list", () => {
-    // Property: For any EMPLOYEE role user with any employee-* screen read permission, canAccessEmployeeList returns true
+  await t.test("User with any employee-* screen read permission can access employee list with FULL access", () => {
+    // Property: For any EMPLOYEE role user with any employee-* screen read permission,
+    // canAccessEmployeeList returns true AND they get full access (for specialized roles)
     fc.assert(
       fc.property(
         fc.constantFrom(...EMPLOYEE_PROFILE_SCREENS),
@@ -116,7 +124,12 @@ test("Property 1: Permission Profile Grants Employee List Access", async (t) => 
             [screen]: ["read"],
           });
           
-          return canAccessEmployeeList(user) === true;
+          // Can access the list page with full access (original behavior)
+          const canAccessList = canAccessEmployeeList(user) === true;
+          // Has profile permission
+          const hasProfilePerm = hasAnyEmployeeProfilePermission(user) === true;
+          
+          return canAccessList && hasProfilePerm;
         }
       ),
       { numRuns: 100 }

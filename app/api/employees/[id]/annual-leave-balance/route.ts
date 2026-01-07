@@ -2,6 +2,7 @@ import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { isAdminOrManager } from "@/lib/roles";
+import { canAccessLeaveRequests, createAuthContext } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -39,6 +40,29 @@ export async function PUT(
         },
         { status: 403 },
       );
+    }
+
+    // 2b. For managers, verify they can access this employee
+    // Admins can update any employee in their company, but managers can only update their direct reports
+    if (session.user.role === "MANAGER") {
+      const authContext = createAuthContext(session);
+      if (!authContext) {
+        return NextResponse.json(
+          { success: false, error: "Invalid session" },
+          { status: 401 },
+        );
+      }
+      
+      const hasAccess = await canAccessLeaveRequests(authContext, employeeId);
+      if (!hasAccess) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: "Forbidden: You can only modify balances for employees you manage" 
+          },
+          { status: 403 },
+        );
+      }
     }
 
     // 3. Verify employee exists and belongs to same company (tenant isolation)

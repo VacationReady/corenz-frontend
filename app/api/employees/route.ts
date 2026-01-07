@@ -4,7 +4,7 @@ import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import type { Prisma } from "@prisma/client";
 import { getMobileSession } from "@/lib/mobile-session";
-import { canAccessEmployee, hasPermission, EMPLOYEE_PROFILE_SCREENS, UserWithProfile } from "@/lib/permissions";
+import { canAccessEmployee, hasPermission, hasAnyEmployeeProfilePermission, EMPLOYEE_PROFILE_SCREENS, UserWithProfile } from "@/lib/permissions";
 import { z } from "zod";
 import supabase from "@/lib/supabase-admin";
 import { resend } from "@/lib/resend";
@@ -373,6 +373,7 @@ export async function GET(req: NextRequest) {
     );
 
     // If user has permission via profile, they get full employee list access (no role-based filtering)
+    // This allows specialized roles like Payroll Admin to see all employees for their domain
     const hasPermissionViaProfile = hasEmployeesPermission || hasAnyEmployeeScreenPermission;
 
     // Allow admins to explicitly scope to their managed hierarchy
@@ -392,7 +393,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Access control: ADMIN can list all; MANAGER limited to department + reports
-    // ✅ NEW: Users with permission via profile also get full access
+    // ✅ Users with permission via profile also get full access
+    // This allows specialized roles (Payroll Admin, HR Specialist) to see all employees for their domain
     if (hasPermissionViaProfile) {
       // User has permission via profile - grant full employee list access
       // No additional filtering needed (individual screen access will be checked on profile pages)
@@ -455,6 +457,7 @@ export async function GET(req: NextRequest) {
         whereCondition.OR = orConditions;
       }
     } else if (session.user.role === "EMPLOYEE") {
+      // EMPLOYEE role without any employee permissions gets LIMITED access: self + department colleagues only
       const requestorEmployee = await prisma.employee.findFirst({
         where: {
           userId: session.user.id,
@@ -599,7 +602,7 @@ export async function GET(req: NextRequest) {
       // - ADMIN/SUPER_ADMIN can access all
       // - User with permission via profile can access all
       // - MANAGER can access their direct/indirect reports (already filtered by whereCondition)
-      // - EMPLOYEE can only access themselves
+      // - EMPLOYEE can only access themselves (unless they have employee permissions)
       let canAccess = false;
       
       if (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") {

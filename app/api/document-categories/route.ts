@@ -95,6 +95,24 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Cannot delete default category" }, { status: 400 });
   }
 
+  // Check if category has any documents (cascade check)
+  const documentCount = await prisma.document.count({
+    where: {
+      companyId: session.user.companyId,
+      category: trimmed,
+    },
+  });
+
+  if (documentCount > 0) {
+    return NextResponse.json(
+      { 
+        error: `Cannot delete category: ${documentCount} document(s) are using this category. Please reassign or delete these documents first.`,
+        documentCount 
+      },
+      { status: 400 }
+    );
+  }
+
   // Get current custom categories and remove the specified one
   const company = await prisma.company.findUnique({
     where: { id: session.user.companyId },

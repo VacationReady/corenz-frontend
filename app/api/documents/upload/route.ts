@@ -187,6 +187,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // ✅ Server-side validation: Signatures only supported for PDF files
+    if (requiresSignature) {
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      if (!isPdf) {
+        return NextResponse.json(
+          { error: "Signatures are only supported for PDF files" },
+          { status: 400 },
+        );
+      }
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const safeName = file.name.replace(/[^a-zA-Z0-9_.-]+/g, "-");
     const fileName = `${Date.now()}-${safeName}`;

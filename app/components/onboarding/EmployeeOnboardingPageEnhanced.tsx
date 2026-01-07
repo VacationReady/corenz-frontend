@@ -537,6 +537,29 @@ export default function EmployeeOnboardingPageEnhanced({
         console.error(`Failed to complete step ${stepId}:`, text);
         toast.error("We couldn't save your progress. Please try again.");
       } else {
+        const responseData = await res.json().catch(() => ({}));
+        
+        // Check for dropped fields (admin-only fields that couldn't be saved)
+        if (responseData.droppedFields && responseData.droppedFields.length > 0) {
+          const fieldNameMap: Record<string, string> = {
+            'salary': 'Salary',
+            'salaryAmount': 'Salary Amount',
+            'annualSalary': 'Annual Salary',
+            'hourlyRate': 'Hourly Rate',
+            'payRate': 'Pay Rate',
+            'kiwiSaverEmployerRate': 'Employer KiwiSaver Rate',
+            'employerKiwiSaverRate': 'Employer KiwiSaver Rate',
+          };
+          const fieldNames = responseData.droppedFields
+            .map((f: string) => fieldNameMap[f] || f)
+            .join(', ');
+          
+          toast.warning('Some fields require admin completion', {
+            description: `The following fields were not saved and require an administrator to complete: ${fieldNames}`,
+            duration: 8000,
+          });
+        }
+        
         toast.success("Step completed!");
         fireConfetti("step");
         

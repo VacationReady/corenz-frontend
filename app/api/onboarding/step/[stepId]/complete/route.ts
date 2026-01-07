@@ -623,7 +623,21 @@ async function validateStepEvidence(
       if (existingResponse?.response && typeof existingResponse.response === "object") {
         const response = existingResponse.response as Record<string, unknown>;
         if (response.documentId) {
-          // Document was previously uploaded - valid
+          // Verify the document still exists (it may have been deleted)
+          const documentExists = await prisma.document.findUnique({
+            where: { id: response.documentId as string },
+            select: { id: true },
+          });
+          
+          if (!documentExists) {
+            return { 
+              isValid: false, 
+              error: "The previously uploaded document no longer exists. Please upload a new document.",
+              errorCode: "DOCUMENT_DELETED" 
+            } as { isValid: boolean; error?: string; errorCode?: string };
+          }
+          
+          // Document was previously uploaded and still exists - valid
           return { isValid: true };
         }
       }

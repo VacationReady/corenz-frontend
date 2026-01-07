@@ -231,6 +231,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [bankHolidaysOn, setBankHolidaysOn] = useState(false);
   const [bankHolidaysAvailable, setBankHolidaysAvailable] = useState(false);
+  const [bankHolidaysFetchError, setBankHolidaysFetchError] = useState(false);
   const [templateLabel, setTemplateLabel] = useState<string | null>(null);
   const [currentTitle, setCurrentTitle] = useState("");
   const [currentCalendarDate, setCurrentCalendarDate] = useState<Date | null>(null);
@@ -633,9 +634,12 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       const params = new URLSearchParams({ from: fetchInfo.startStr, to: fetchInfo.endStr });
       const res = await fetch(`/api/public-holidays?${params.toString()}`);
       if (!res.ok) {
+        console.warn("[Calendar] Public holiday fetch failed:", res.status);
+        setBankHolidaysFetchError(true);
         successCallback([]);
         return;
       }
+      setBankHolidaysFetchError(false);
       const events = await res.json();
       successCallback(
         (events || []).map((e: any) => ({
@@ -648,7 +652,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         })),
       );
     } catch (error) {
-      console.error(error);
+      console.error("[Calendar] Public holiday fetch error:", error);
+      setBankHolidaysFetchError(true);
       failureCallback(error);
     }
   },
@@ -1417,6 +1422,16 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                     showBankHoliday={bankHolidaysAvailable && bankHolidaysOn}
                     bankHolidayLabel={templateLabel}
                   />
+                  
+                  {/* Public Holiday Fetch Error Warning */}
+                  {bankHolidaysFetchError && bankHolidaysOn && (
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                      <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span className="text-[10px] font-medium text-amber-700 dark:text-amber-300">Public holidays unavailable</span>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-muted/30 border border-border/30">

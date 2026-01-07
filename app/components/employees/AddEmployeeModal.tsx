@@ -1154,6 +1154,12 @@ export default function AddEmployeeModal({
     // Don't submit if already submitting
     if (isSubmitting) return;
 
+    // Wait for duplicate email check to complete (race condition fix)
+    if (isCheckingDuplicate) {
+      toast.info("Please wait - email validation is in progress");
+      return;
+    }
+
     try {
       // Check for validation errors
       if (emailError || duplicateEmailError || phoneError || irdError || bankAccountError) {

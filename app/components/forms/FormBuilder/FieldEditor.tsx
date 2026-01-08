@@ -418,7 +418,11 @@ export function FieldEditor({
                     <Input
                       type="number"
                       value={field.validation?.min ?? ""}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...field, validation: { ...(field.validation || {}), min: Number(e.target.value) } })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const val = e.target.value;
+                        const numVal = val === "" ? undefined : Number(val);
+                        onChange({ ...field, validation: { ...(field.validation || {}), min: numVal } });
+                      }}
                       placeholder="No limit"
                       className="h-9 bg-white border-slate-200"
                     />
@@ -430,7 +434,11 @@ export function FieldEditor({
                     <Input
                       type="number"
                       value={field.validation?.max ?? ""}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...field, validation: { ...(field.validation || {}), max: Number(e.target.value) } })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const val = e.target.value;
+                        const numVal = val === "" ? undefined : Number(val);
+                        onChange({ ...field, validation: { ...(field.validation || {}), max: numVal } });
+                      }}
                       placeholder="No limit"
                       className="h-9 bg-white border-slate-200"
                     />
@@ -448,7 +456,11 @@ export function FieldEditor({
                     <Input
                       type="number"
                       value={field.validation?.minLength ?? ""}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...field, validation: { ...(field.validation || {}), minLength: Number(e.target.value) } })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const val = e.target.value;
+                        const numVal = val === "" ? undefined : Number(val);
+                        onChange({ ...field, validation: { ...(field.validation || {}), minLength: numVal } });
+                      }}
                       placeholder="0"
                       className="h-9 bg-white border-slate-200"
                     />
@@ -460,7 +472,11 @@ export function FieldEditor({
                     <Input
                       type="number"
                       value={field.validation?.maxLength ?? ""}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...field, validation: { ...(field.validation || {}), maxLength: Number(e.target.value) } })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const val = e.target.value;
+                        const numVal = val === "" ? undefined : Number(val);
+                        onChange({ ...field, validation: { ...(field.validation || {}), maxLength: numVal } });
+                      }}
                       placeholder="Unlimited"
                       className="h-9 bg-white border-slate-200"
                     />

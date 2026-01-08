@@ -44,8 +44,12 @@ function useSlug(initialName: string, initialSlug: string) {
   const generate = (value: string) =>
     value
       .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+      .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
+      .replace(/-+/g, "-") // Collapse multiple hyphens
+      .replace(/^-+|-+$/g, "") // Trim leading/trailing hyphens
       .trim();
   const onNameChange = (value: string) => {
     setName(value);

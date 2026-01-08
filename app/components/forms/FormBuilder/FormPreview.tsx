@@ -239,6 +239,26 @@ function renderPreviewField(
         </div>
       );
 
+    case "chips":
+    case "multiselect":
+      return (
+        <div className="flex flex-wrap gap-2 mt-1">
+          {field.optionItems?.map((item, i) => (
+            <label key={i} className="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-full border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition-colors">
+              <input
+                type={field.type === "multiselect" ? "checkbox" : "radio"}
+                name={String(field.id)}
+                className="accent-blue-500 focus:ring-blue-400"
+              />
+              <span className="text-sm">{item.label}</span>
+            </label>
+          ))}
+          {(!field.optionItems || field.optionItems.length === 0) && (
+            <span className="text-sm text-gray-400 italic">No options configured</span>
+          )}
+        </div>
+      );
+
     case "file":
       return (
         <input

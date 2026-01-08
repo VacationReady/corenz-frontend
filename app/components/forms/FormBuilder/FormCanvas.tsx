@@ -26,11 +26,15 @@ export function FormCanvas({
   const { isOver, setNodeRef } = useDroppable({ id: "canvas" });
 
   const handleDeleteField = (fieldId: string) => {
-    setSections((prev) => prev.map((s) => ({ ...s, fields: s.fields.filter((f) => f.id !== fieldId) })));
-    if (selectedField?.id === fieldId) {
-      const remaining = sections.flatMap((s) => s.fields).filter((f) => f.id !== fieldId);
-      onSelectField(remaining[0] || null);
-    }
+    setSections((prev) => {
+      const newSections = prev.map((s) => ({ ...s, fields: s.fields.filter((f) => f.id !== fieldId) }));
+      // Calculate remaining fields from the new state to avoid race condition
+      if (selectedField?.id === fieldId) {
+        const remaining = newSections.flatMap((s) => s.fields);
+        onSelectField(remaining[0] || null);
+      }
+      return newSections;
+    });
   };
 
   const handleUpdateField = (updated: FormField) => {
@@ -39,7 +43,7 @@ export function FormCanvas({
   };
 
   const handleDuplicateField = (field: FormField) => {
-    const copy: FormField = { ...field, id: `${field.id}-copy` };
+    const copy: FormField = { ...field, id: crypto.randomUUID() };
     setSections((prev) => prev.map((s) => {
       const idx = s.fields.findIndex((f) => f.id === field.id);
       if (idx === -1) return s;

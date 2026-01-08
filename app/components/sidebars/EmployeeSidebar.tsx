@@ -19,7 +19,7 @@ interface SidebarProps {
 interface NavItem {
   label: string;
   href: string;
-  icon: React.ReactElement;
+  icon: React.ReactElement<{ size?: number }>;
 }
 
 export default function EmployeeSidebar({

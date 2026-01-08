@@ -396,6 +396,54 @@ export function hasPermission(
 }
 
 /**
+ * Checks if a user has permission for a specific screen via their CUSTOM permission profile only.
+ * This does NOT fall back to default role permissions.
+ * Used for access control where we need to distinguish between:
+ * - Default role permissions (e.g., MANAGER can see employee list)
+ * - Custom profile permissions (e.g., HR Specialist can access ALL employee profiles)
+ */
+export function hasPermissionViaProfile(
+  user: UserWithProfile,
+  screen: string,
+  action: PermissionAction,
+): boolean {
+  // Admin override still applies
+  if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+    return true;
+  }
+
+  // Check for custom permission profile - handle both camelCase and PascalCase
+  const profile = user.permissionProfile || (user as any).PermissionProfile;
+  
+  if (!profile) {
+    // No custom profile = no profile-based permissions
+    return false;
+  }
+
+  try {
+    const raw = profile.permissions as unknown;
+    const profilePermissions =
+      typeof raw === "string"
+        ? (JSON.parse(raw) as ScreenPermissions)
+        : (raw as ScreenPermissions);
+    
+    if (!profilePermissions) {
+      return false;
+    }
+
+    const screenPermissions = profilePermissions[screen];
+    if (!screenPermissions) {
+      return false;
+    }
+
+    return screenPermissions.includes(action);
+  } catch (error) {
+    console.error("Error parsing permission profile:", error);
+    return false;
+  }
+}
+
+/**
  * Gets all available screens in the system (returns just the keys for backward compatibility)
  */
 export function getAvailableScreens(): string[] {
@@ -543,10 +591,13 @@ export type EmployeeProfileScreen = typeof EMPLOYEE_PROFILE_SCREENS[number];
  * Access rules:
  * - ADMIN and SUPER_ADMIN can access any employee in their company
  * - A user can access their own employee record
- * - A user with "employees" read permission via their permission profile can access any employee
- * - A user with ANY employee-* screen read permission can access employee profiles (limited to those screens)
- * - A MANAGER without permission profile can access employees in their reporting chain (direct + indirect reports)
- * - An EMPLOYEE without permission profile cannot access other employees
+ * - A user with a CUSTOM PERMISSION PROFILE that includes "employees" or any "employee-*" screen 
+ *   can access ALL employees (this is for HR specialists, payroll admins, etc.)
+ * - A MANAGER without a custom profile can only access their subordinates (direct + indirect reports)
+ * - An EMPLOYEE without a custom profile cannot access other employees
+ * 
+ * IMPORTANT: Default role permissions (like MANAGER having "employees" read) do NOT grant
+ * access to all employee profiles. Only explicit permission profiles grant that access.
  */
 export async function canAccessEmployee(
   requestor: {
@@ -576,8 +627,8 @@ export async function canAccessEmployee(
   // Self-access - always allowed
   if (target.userId === requestor.id) return true;
 
-  // Check if user has permission via their permission profile
-  // This grants access to ALL employees for the permitted screens
+  // Check if user has a CUSTOM permission profile (not just default role permissions)
+  // Only custom profiles grant access to ALL employees
   const requestorUser = await prisma.user.findUnique({
     where: { id: requestor.id },
     include: {
@@ -585,32 +636,36 @@ export async function canAccessEmployee(
     },
   });
 
-  if (requestorUser) {
+  // Only check permission profile if user actually HAS one assigned
+  // Default role permissions do NOT grant access to all employee profiles
+  const hasCustomProfile = requestorUser?.PermissionProfile != null;
+  
+  if (hasCustomProfile && requestorUser) {
     const userWithProfile: UserWithProfile = {
       ...requestorUser,
       permissionProfile: requestorUser.PermissionProfile,
     };
     
-    // If user has "employees" read permission via profile, allow full access
-    if (hasPermission(userWithProfile, "employees", "read")) {
+    // If user has "employees" read permission via their CUSTOM profile, allow full access
+    if (hasPermissionViaProfile(userWithProfile, "employees", "read")) {
       return true;
     }
     
-    // Check if user has ANY employee-* screen permission - if so, allow access to profile
-    // (individual pages should then check their specific permissions)
+    // Check if user has ANY employee-* screen permission via their CUSTOM profile
     for (const screen of EMPLOYEE_PROFILE_SCREENS) {
-      if (hasPermission(userWithProfile, screen, "read")) {
+      if (hasPermissionViaProfile(userWithProfile, screen, "read")) {
         return true;
       }
     }
   }
 
-  // EMPLOYEE without permission profile cannot access other employees
+  // EMPLOYEE without custom profile cannot access other employees
   if (requestor.role === "EMPLOYEE") {
     return false;
   }
 
-  // MANAGER without permission profile: can access subordinates (direct + indirect reports)
+  // MANAGER without custom profile (or profile doesn't grant employee access): 
+  // can only access subordinates (direct + indirect reports)
   if (requestor.role === "MANAGER") {
     const isSubordinate = await isUserSubordinateOf(
       target.userId,

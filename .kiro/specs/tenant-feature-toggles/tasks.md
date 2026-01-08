@@ -25,8 +25,8 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - Generate and apply migration for TenantFeatureToggle table
     - _Requirements: 1.1_
 
-- [ ] 2. Feature Toggle Service
-  - [ ] 2.1 Implement FeatureToggleService class
+- [x] 2. Feature Toggle Service
+  - [x] 2.1 Implement FeatureToggleService class
     - Create `lib/feature-toggles/service.ts`
     - Implement isFeatureEnabled() with caching
     - Implement getEnabledFeatures() with caching
@@ -36,11 +36,11 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - Use existing cache infrastructure from lib/cache.ts
     - _Requirements: 2.3, 5.1, 5.2, 5.3, 5.4_
 
-  - [ ] 2.2 Write property test for toggle persistence round-trip
+  - [x] 2.2 Write property test for toggle persistence round-trip
     - **Property 1: Toggle Persistence Round-Trip**
     - **Validates: Requirements 1.1, 2.3**
 
-  - [ ] 2.3 Write property test for cache invalidation
+  - [x] 2.3 Write property test for cache invalidation
     - **Property 7: Cache Invalidation on Update**
     - **Validates: Requirements 5.2**
 

@@ -8,6 +8,8 @@ import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 import { seedTenantReferenceData } from "@/lib/tenant-seed";
 import { verifySignedToken, TENANT_ADMIN_COOKIE_NAME } from "@/lib/tenant-admin-auth";
+import { featureToggleService } from "@/lib/feature-toggles/service";
+import { FeatureKey, isValidFeatureKey } from "@/lib/feature-toggles/types";
 
 async function isAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
@@ -21,6 +23,7 @@ const createTenantSchema = z.object({
   companyName: z.string().min(1, "Company name is required").max(120),
   adminEmail: z.string().email("Enter a valid email address"),
   adminName: z.string().min(1, "Admin name is required").max(120),
+  enabledFeatures: z.array(z.string()).optional(),
 });
 
 export async function GET() {
@@ -86,8 +89,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { companyName, adminEmail, adminName } = parsed.data;
+    const { companyName, adminEmail, adminName, enabledFeatures } = parsed.data;
     const normalizedCompanyName = companyName.trim();
+
+    // Validate feature keys if provided
+    const validatedFeatures: FeatureKey[] | undefined = enabledFeatures
+      ? enabledFeatures.filter((key): key is FeatureKey => isValidFeatureKey(key))
+      : undefined;
 
     // Check if admin email already exists
     const existingUser = await prisma.user.findFirst({
@@ -298,6 +306,12 @@ export async function POST(request: NextRequest) {
       timeout: 120000,
     });
 
+    // Initialize feature toggles for the new tenant (Requirement 1.2, 2.7)
+    await featureToggleService.initializeDefaultToggles(
+      result.company.id,
+      validatedFeatures
+    );
+
     // Send activation email to the tenant admin
     try {
       const appBaseUrl = getAppBaseUrl();
@@ -386,6 +400,9 @@ export async function DELETE(request: NextRequest) {
     // Delete all related records in the correct order within a transaction
     // Many relations don't have onDelete: Cascade, so we must delete manually
     await prisma.$transaction(async (tx) => {
+      // Delete feature toggles
+      await tx.tenantFeatureToggle.deleteMany({ where: { companyId } });
+
       // Delete user-related records first (depends on User)
       await tx.activationToken.deleteMany({ where: { User: { companyId } } });
       await tx.newsBookmark.deleteMany({ where: { companyId } });

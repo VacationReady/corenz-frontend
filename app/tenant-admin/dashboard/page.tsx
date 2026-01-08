@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Trash2, Plus, LogOut, Building2, Users, UserCheck } from "lucide-react";
+import { FunctionalitySection } from "@/tenant-admin/components/FunctionalitySection";
+import { FeatureToggleState, ALL_FEATURE_KEYS, FeatureKey } from "@/lib/feature-toggles/types";
 
 interface Tenant {
   id: string;
@@ -31,6 +33,14 @@ export default function TenantAdminDashboard() {
   const [createdTenant, setCreatedTenant] = useState<{ name: string; adminEmail: string; activationLink: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const [createStep, setCreateStep] = useState<"details" | "features">("details");
+  const [selectedFeatures, setSelectedFeatures] = useState<FeatureToggleState>(() => {
+    // Default all features to enabled
+    return ALL_FEATURE_KEYS.reduce((acc, key) => {
+      acc[key] = true;
+      return acc;
+    }, {} as FeatureToggleState);
+  });
   const tenantNameInputRef = React.useRef<HTMLInputElement>(null);
 
   const checkAuth = useCallback(async () => {
@@ -89,6 +99,11 @@ export default function TenantAdminDashboard() {
 
     setIsCreating(true);
     try {
+      // Get enabled feature keys from selectedFeatures
+      const enabledFeatures = Object.entries(selectedFeatures)
+        .filter(([, enabled]) => enabled)
+        .map(([key]) => key as FeatureKey);
+
       const response = await fetch("/api/tenant-admin/tenants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -96,6 +111,7 @@ export default function TenantAdminDashboard() {
           companyName: newTenantName.trim(),
           adminName: adminName.trim(),
           adminEmail: adminEmail.trim(),
+          enabledFeatures,
         }),
       });
 
@@ -130,6 +146,14 @@ export default function TenantAdminDashboard() {
     setAdminEmail("");
     setCreatedTenant(null);
     setIsCreating(false);
+    setCreateStep("details");
+    // Reset features to all enabled
+    setSelectedFeatures(
+      ALL_FEATURE_KEYS.reduce((acc, key) => {
+        acc[key] = true;
+        return acc;
+      }, {} as FeatureToggleState)
+    );
   };
 
   const handleSwitchToTenant = async (tenant: Tenant) => {
@@ -326,6 +350,13 @@ export default function TenantAdminDashboard() {
 
                   <div className="flex gap-2">
                     <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => router.push(`/tenant-admin/tenants/${tenant.id}`)}
+                    >
+                      Manage Features
+                    </Button>
+                    <Button
                       variant="primary"
                       className="flex-1"
                       onClick={() => handleSwitchToTenant(tenant)}
@@ -361,10 +392,16 @@ export default function TenantAdminDashboard() {
           }}
         >
           <DialogContent
-            className="max-w-md"
-            title={createdTenant ? "✅ Tenant Created Successfully" : "Create New Tenant"}
+            className={createStep === "features" ? "max-w-2xl" : "max-w-md"}
+            title={
+              createdTenant 
+                ? "✅ Tenant Created Successfully" 
+                : createStep === "features"
+                  ? "Select Features"
+                  : "Create New Tenant"
+            }
             onOpenAutoFocus={(event) => {
-              if (createdTenant) return;
+              if (createdTenant || createStep === "features") return;
               event.preventDefault();
               tenantNameInputRef.current?.focus();
             }}
@@ -411,8 +448,41 @@ export default function TenantAdminDashboard() {
                   Done
                 </Button>
               </div>
+            ) : createStep === "features" ? (
+              <div className="space-y-4">
+                <div className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">
+                  <p className="font-medium">Creating tenant: {newTenantName}</p>
+                  <p className="text-xs mt-1">Select which features to enable for this tenant</p>
+                </div>
+                <div className="max-h-[400px] overflow-y-auto">
+                  <FunctionalitySection
+                    companyId={null}
+                    toggles={selectedFeatures}
+                    onTogglesChange={setSelectedFeatures}
+                    isCreateMode={true}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() => setCreateStep("details")}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    className="flex-1"
+                    loading={isCreating}
+                    onClick={(e) => handleCreateTenant(e as unknown as React.FormEvent)}
+                  >
+                    Create Tenant
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <form onSubmit={handleCreateTenant} className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); setCreateStep("features"); }} className="space-y-4">
                 <div>
                   <label
                     htmlFor="tenantName"
@@ -487,10 +557,9 @@ export default function TenantAdminDashboard() {
                   <Button
                     type="submit"
                     className="flex-1"
-                    loading={isCreating}
                     disabled={!newTenantName.trim() || !adminName.trim() || !adminEmail.trim()}
                   >
-                    Create
+                    Next: Select Features
                   </Button>
                 </div>
               </form>

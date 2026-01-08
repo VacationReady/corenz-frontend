@@ -70,11 +70,11 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - **Property 9: Authentication Enforcement**
     - **Validates: Requirements 7.5**
 
-- [ ] 4. Checkpoint - Core Service Complete
+- [x] 4. Checkpoint - Core Service Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Tenant Admin UI Integration
-  - [ ] 5.1 Create FunctionalitySection component
+- [x] 5. Tenant Admin UI Integration
+  - [x] 5.1 Create FunctionalitySection component
     - Create `app/tenant-admin/components/FunctionalitySection.tsx`
     - Display feature toggles grouped by category
     - Implement toggle switches with immediate persistence
@@ -82,18 +82,18 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - Revert UI state on failure
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-  - [ ] 5.2 Integrate FunctionalitySection into tenant detail page
+  - [x] 5.2 Integrate FunctionalitySection into tenant detail page
     - Add to existing tenant detail/edit page
     - Fetch current toggle states on load
     - _Requirements: 2.1_
 
-  - [ ] 5.3 Add feature selection to tenant creation form
+  - [x] 5.3 Add feature selection to tenant creation form
     - Add FunctionalitySection to create tenant dialog
     - Add "Select All" and "Select None" buttons
     - Pass selected features to tenant creation API
     - _Requirements: 2.6, 2.7, 2.8_
 
-  - [ ] 5.4 Update tenant creation API to accept initial features
+  - [x] 5.4 Update tenant creation API to accept initial features
     - Modify POST /api/tenant-admin/tenants to accept enabledFeatures array
     - Call initializeDefaultToggles with selected features
     - _Requirements: 1.2, 2.7_

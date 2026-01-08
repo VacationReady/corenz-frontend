@@ -543,12 +543,10 @@ export type EmployeeProfileScreen = typeof EMPLOYEE_PROFILE_SCREENS[number];
  * Access rules:
  * - ADMIN and SUPER_ADMIN can access any employee in their company
  * - A user can access their own employee record
- * - A MANAGER can access employees in their reporting chain (direct + indirect reports)
- * - An EMPLOYEE with "employees" read permission via profile can access any employee
- * - An EMPLOYEE with ANY employee-* screen permission can access employee profiles
- * 
- * SECURITY NOTE: Managers are ALWAYS restricted to their subordinates, even with permission profiles.
- * Permission profiles for managers only expand WHAT screens they can see, not WHO they can access.
+ * - A user with "employees" read permission via their permission profile can access any employee
+ * - A user with ANY employee-* screen read permission can access employee profiles (limited to those screens)
+ * - A MANAGER without permission profile can access employees in their reporting chain (direct + indirect reports)
+ * - An EMPLOYEE without permission profile cannot access other employees
  */
 export async function canAccessEmployee(
   requestor: {
@@ -578,51 +576,48 @@ export async function canAccessEmployee(
   // Self-access - always allowed
   if (target.userId === requestor.id) return true;
 
-  // MANAGER access: restricted to subordinates (direct + indirect reports)
-  // This check happens BEFORE permission profiles to ensure managers can never
-  // access employees outside their reporting chain
+  // Check if user has permission via their permission profile
+  // This grants access to ALL employees for the permitted screens
+  const requestorUser = await prisma.user.findUnique({
+    where: { id: requestor.id },
+    include: {
+      PermissionProfile: true,
+    },
+  });
+
+  if (requestorUser) {
+    const userWithProfile: UserWithProfile = {
+      ...requestorUser,
+      permissionProfile: requestorUser.PermissionProfile,
+    };
+    
+    // If user has "employees" read permission via profile, allow full access
+    if (hasPermission(userWithProfile, "employees", "read")) {
+      return true;
+    }
+    
+    // Check if user has ANY employee-* screen permission - if so, allow access to profile
+    // (individual pages should then check their specific permissions)
+    for (const screen of EMPLOYEE_PROFILE_SCREENS) {
+      if (hasPermission(userWithProfile, screen, "read")) {
+        return true;
+      }
+    }
+  }
+
+  // EMPLOYEE without permission profile cannot access other employees
+  if (requestor.role === "EMPLOYEE") {
+    return false;
+  }
+
+  // MANAGER without permission profile: can access subordinates (direct + indirect reports)
   if (requestor.role === "MANAGER") {
     const isSubordinate = await isUserSubordinateOf(
       target.userId,
       requestor.id,
       requestor.companyId
     );
-    
-    // Managers can only access their subordinates
-    // Permission profiles expand WHAT they can see, not WHO
     return isSubordinate;
-  }
-
-  // EMPLOYEE access: check permission profiles
-  if (requestor.role === "EMPLOYEE") {
-    const requestorUser = await prisma.user.findUnique({
-      where: { id: requestor.id },
-      include: {
-        PermissionProfile: true,
-      },
-    });
-
-    if (requestorUser) {
-      const userWithProfile: UserWithProfile = {
-        ...requestorUser,
-        permissionProfile: requestorUser.PermissionProfile,
-      };
-      
-      // If user has "employees" read permission via profile, allow full access
-      if (hasPermission(userWithProfile, "employees", "read")) {
-        return true;
-      }
-      
-      // Check if user has ANY employee-* screen permission - if so, allow access to profile
-      // (individual pages should then check their specific permissions)
-      for (const screen of EMPLOYEE_PROFILE_SCREENS) {
-        if (hasPermission(userWithProfile, screen, "read")) {
-          return true;
-        }
-      }
-    }
-    
-    return false;
   }
 
   return false;

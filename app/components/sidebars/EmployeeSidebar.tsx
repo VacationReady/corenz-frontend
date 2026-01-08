@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, LayoutDashboard, Calendar, Clock, Users, X, Target, ClipboardList, CalendarClock, FileText } from "lucide-react";
@@ -8,11 +8,18 @@ import { signOut } from "next-auth/react";
 import { getLogoutCallbackUrl } from "@/lib/logout-url";
 import clsx from "clsx";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 
 interface SidebarProps {
   variant?: "desktop" | "mobile";
   onMobileNavigate?: () => void;
   onMobileClose?: () => void;
+}
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ReactElement;
 }
 
 export default function EmployeeSidebar({
@@ -21,6 +28,7 @@ export default function EmployeeSidebar({
   onMobileClose,
 }: SidebarProps) {
   const { branding } = useTenantBranding();
+  const { filterNavItems } = useFeatureToggles();
   const pathname = usePathname();
   const isMobile = variant === "mobile";
   const headerPadding = isMobile ? "px-4 py-4" : "px-4 py-4";
@@ -34,7 +42,7 @@ export default function EmployeeSidebar({
     void signOut({ callbackUrl: getLogoutCallbackUrl() });
   };
 
-  const navItems = [
+  const navItems: NavItem[] = [
     {
       label: "Dashboard",
       href: "/dashboard",
@@ -47,6 +55,12 @@ export default function EmployeeSidebar({
     { label: "My Performance", href: "/performance", icon: <Target size={18} /> },
     { label: "Documents", href: "/documents", icon: <FileText size={18} /> },
   ];
+
+  // Filter navigation items based on feature toggles
+  const filteredNavItems = useMemo(
+    () => filterNavItems(navItems),
+    [filterNavItems]
+  );
 
   return (
     <div
@@ -96,7 +110,7 @@ export default function EmployeeSidebar({
           )}
         >
           <div className="space-y-0.5">
-            {navItems.map(({ label, href, icon }) => (
+            {filteredNavItems.map(({ label, href, icon }) => (
               <Link
                 key={href}
                 href={href}

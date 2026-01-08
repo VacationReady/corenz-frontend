@@ -2,16 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { LogOut, X, LayoutDashboard, Calendar, Users as UsersIcon, Target, ClipboardList, CalendarClock, GitCompare, Network, FileText } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { getLogoutCallbackUrl } from "@/lib/logout-url";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 
 interface SidebarProps {
   variant?: "desktop" | "mobile";
   onMobileNavigate?: () => void;
   onMobileClose?: () => void;
+}
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
 }
 
 export default function ManagerSidebar({
@@ -20,6 +28,7 @@ export default function ManagerSidebar({
   onMobileClose,
 }: SidebarProps) {
   const { branding } = useTenantBranding();
+  const { filterNavItems } = useFeatureToggles();
   const pathname = usePathname();
   const isMobile = variant === "mobile";
   const headerPadding = isMobile ? "px-4 py-4" : "px-4 py-4";
@@ -31,7 +40,7 @@ export default function ManagerSidebar({
     void signOut({ callbackUrl: getLogoutCallbackUrl() });
   };
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={16} /> },
     { label: "Employees", href: "/employees", icon: <UsersIcon size={16} /> },
     { label: "Calendar", href: "/calendar", icon: <Calendar size={16} /> },
@@ -42,6 +51,12 @@ export default function ManagerSidebar({
     { label: "Performance", href: "/performance", icon: <Target size={16} /> },
     { label: "Org Chart", href: "/org-chart", icon: <Network size={16} /> },
   ];
+
+  // Filter navigation items based on feature toggles
+  const filteredNavItems = useMemo(
+    () => filterNavItems(navItems),
+    [filterNavItems]
+  );
 
   return (
     <div
@@ -93,7 +108,7 @@ export default function ManagerSidebar({
           )}
         >
           <div className="space-y-0.5">
-            {navItems.map(({ label, href, icon }) => (
+            {filteredNavItems.map(({ label, href, icon }) => (
               <Link
                 key={href}
                 href={href}

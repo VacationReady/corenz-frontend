@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -34,6 +34,7 @@ import {
   SidebarFooter,
 } from "@/components/navigation/SidebarPrimitives";
 import { getLogoutCallbackUrl } from "@/lib/logout-url";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 
 interface SidebarProps {
   variant?: "desktop" | "mobile";
@@ -47,6 +48,7 @@ export default function AdminSidebar({
   onMobileClose,
 }: SidebarProps) {
   const { branding } = useTenantBranding();
+  const { filterNavItems, isFeatureEnabled } = useFeatureToggles();
   const [collapsed, setCollapsed] = useState(false);
   const toggleSidebar = () => setCollapsed(!collapsed);
   const isMobile = variant === "mobile";
@@ -57,6 +59,19 @@ export default function AdminSidebar({
     onMobileNavigate?.();
     void signOut({ callbackUrl: getLogoutCallbackUrl() });
   };
+
+  // Filter navigation items based on feature toggles
+  const filteredHrToolsLinks = useMemo(
+    () => filterNavItems(hrToolsLinks),
+    [filterNavItems]
+  );
+  const filteredBulkActionLinks = useMemo(
+    () => filterNavItems(bulkActionLinks),
+    [filterNavItems]
+  );
+  
+  // Only show App Library if automation_rules feature is enabled
+  const showAppLibrary = isFeatureEnabled("automation_rules");
 
   return (
     <div className={isMobile ? "h-full w-full" : "h-full p-2"}>
@@ -87,7 +102,7 @@ export default function AdminSidebar({
           </SidebarSection>
 
           <SidebarSection title="HR Tools" collapsed={collapsed}>
-            {[...hrToolsLinks, ...bulkActionLinks, appLibraryLink].map((link) => (
+            {[...filteredHrToolsLinks, ...filteredBulkActionLinks, ...(showAppLibrary ? [appLibraryLink] : [])].map((link) => (
               <SidebarItem
                 key={link.href}
                 href={link.href}

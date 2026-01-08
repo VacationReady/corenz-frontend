@@ -98,8 +98,8 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - Call initializeDefaultToggles with selected features
     - _Requirements: 1.2, 2.7_
 
-- [ ] 6. Navigation Filtering
-  - [ ] 6.1 Create useFeatureToggles hook
+- [x] 6. Navigation Filtering
+  - [x] 6.1 Create useFeatureToggles hook
     - Create `app/hooks/useFeatureToggles.ts`
     - Fetch enabled features for current tenant
     - Provide isFeatureEnabled() helper
@@ -107,22 +107,22 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - Cache results in SWR
     - _Requirements: 3.1, 3.2, 3.3_
 
-  - [ ] 6.2 Update AdminSidebar to filter navigation items
+  - [x] 6.2 Update AdminSidebar to filter navigation items
     - Import useFeatureToggles hook
     - Filter coreLinks, hrToolsLinks, bulkActionLinks based on enabled features
     - _Requirements: 3.1_
 
-  - [ ] 6.3 Update ManagerSidebar to filter navigation items
+  - [x] 6.3 Update ManagerSidebar to filter navigation items
     - Import useFeatureToggles hook
     - Filter navigation items based on enabled features
     - _Requirements: 3.2_
 
-  - [ ] 6.4 Update EmployeeSidebar to filter navigation items
+  - [x] 6.4 Update EmployeeSidebar to filter navigation items
     - Import useFeatureToggles hook
     - Filter navigation items based on enabled features
     - _Requirements: 3.3_
 
-  - [ ] 6.5 Write property test for navigation filtering consistency
+  - [x] 6.5 Write property test for navigation filtering consistency
     - **Property 3: Navigation Filtering Consistency**
     - **Validates: Requirements 3.1, 3.2, 3.3**
 

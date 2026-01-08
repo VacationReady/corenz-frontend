@@ -156,6 +156,7 @@ export default async function EmployeeLayout({
     : false;
 
   // Debug logging for permission issues
+  const profilePermissions = currentUser?.PermissionProfile?.permissions;
   console.log("[EmployeeLayout] Permission check:", {
     viewerRole: session.user.role,
     viewerId: session.user.id,
@@ -164,6 +165,7 @@ export default async function EmployeeLayout({
     isOwnProfile,
     isSubordinate,
     hasCustomProfile: !!currentUser?.PermissionProfile,
+    profilePermissionsRaw: profilePermissions,
     accessibleScreensViaProfile,
     hasFullEmployeesAccessViaProfile,
   });

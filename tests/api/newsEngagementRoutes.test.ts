@@ -13,6 +13,7 @@ const mockBookmarkFindUnique = test.mock.fn();
 const mockBookmarkCreate = test.mock.fn();
 const mockBookmarkDelete = test.mock.fn();
 const mockBookmarkCount = test.mock.fn();
+const mockIsFeatureEnabled = test.mock.fn();
 
 const originalLoad = (Module as any)._load;
 (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
@@ -46,6 +47,14 @@ const originalLoad = (Module as any)._load;
       auth: async () => mockGetServerSession(),
     };
   }
+  // Mock feature toggle service to always enable NEWS feature
+  if (request === "@/lib/feature-toggles/service" || request === "./service") {
+    return {
+      featureToggleService: {
+        isFeatureEnabled: mockIsFeatureEnabled,
+      },
+    };
+  }
   return originalLoad.call(this, request, parent, isMain);
 };
 
@@ -71,7 +80,10 @@ const routesPromise = (async () => {
 test("POST /api/news/[slug]/view requires authentication", async () => {
   mockGetServerSession.mock.resetCalls();
   mockFindFirst.mock.resetCalls();
-  mockGetServerSession.mock.mockImplementationOnce(() => Promise.resolve(null));
+  mockIsFeatureEnabled.mock.resetCalls();
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockGetServerSession.mock.mockImplementation(() => Promise.resolve(null));
+  mockIsFeatureEnabled.mock.mockImplementation(() => Promise.resolve(true));
 
   const { view } = await routesPromise;
   const res = await view(new Request("http://localhost/api/news/foo/view"), {
@@ -86,10 +98,14 @@ test("POST /api/news/[slug]/view increments view count", async () => {
   mockGetServerSession.mock.resetCalls();
   mockFindFirst.mock.resetCalls();
   mockUpdate.mock.resetCalls();
+  mockIsFeatureEnabled.mock.resetCalls();
 
-  mockGetServerSession.mock.mockImplementationOnce(() =>
-    Promise.resolve({ user: { companyId: "tenant-1" } }),
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  // Feature guard requires both id and companyId
+  mockGetServerSession.mock.mockImplementation(() =>
+    Promise.resolve({ user: { id: "user-1", companyId: "tenant-1" } }),
   );
+  mockIsFeatureEnabled.mock.mockImplementation(() => Promise.resolve(true));
   mockFindFirst.mock.mockImplementationOnce(() =>
     Promise.resolve({ id: "post-1" }),
   );
@@ -119,10 +135,13 @@ test("POST /api/news/[slug]/reaction requires authentication", async () => {
   mockGetServerSession.mock.resetCalls();
   mockFindFirst.mock.resetCalls();
   mockReactionUpsert.mock.resetCalls();
+  mockIsFeatureEnabled.mock.resetCalls();
 
-  mockGetServerSession.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockGetServerSession.mock.mockImplementation(() =>
     Promise.resolve({ user: { companyId: "tenant-1" } }),
   );
+  mockIsFeatureEnabled.mock.mockImplementation(() => Promise.resolve(true));
 
   const { reactPost } = await routesPromise;
   const res = await reactPost(
@@ -142,10 +161,13 @@ test("POST /api/news/[slug]/reaction validates payload", async () => {
   mockGetServerSession.mock.resetCalls();
   mockFindFirst.mock.resetCalls();
   mockReactionUpsert.mock.resetCalls();
+  mockIsFeatureEnabled.mock.resetCalls();
 
-  mockGetServerSession.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockGetServerSession.mock.mockImplementation(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1" } }),
   );
+  mockIsFeatureEnabled.mock.mockImplementation(() => Promise.resolve(true));
 
   const { reactPost } = await routesPromise;
   const res = await reactPost(
@@ -162,10 +184,13 @@ test("POST /api/news/[slug]/reaction upserts and returns counts", async () => {
   mockFindFirst.mock.resetCalls();
   mockReactionUpsert.mock.resetCalls();
   mockReactionGroupBy.mock.resetCalls();
+  mockIsFeatureEnabled.mock.resetCalls();
 
-  mockGetServerSession.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockGetServerSession.mock.mockImplementation(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1" } }),
   );
+  mockIsFeatureEnabled.mock.mockImplementation(() => Promise.resolve(true));
   mockFindFirst.mock.mockImplementationOnce(() =>
     Promise.resolve({ id: "post-1" }),
   );
@@ -202,10 +227,13 @@ test("DELETE /api/news/[slug]/reaction removes reaction", async () => {
   mockFindFirst.mock.resetCalls();
   mockReactionDeleteMany.mock.resetCalls();
   mockReactionGroupBy.mock.resetCalls();
+  mockIsFeatureEnabled.mock.resetCalls();
 
-  mockGetServerSession.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockGetServerSession.mock.mockImplementation(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1" } }),
   );
+  mockIsFeatureEnabled.mock.mockImplementation(() => Promise.resolve(true));
   mockFindFirst.mock.mockImplementationOnce(() =>
     Promise.resolve({ id: "post-1" }),
   );
@@ -232,10 +260,13 @@ test("POST /api/news/[slug]/bookmark requires authentication", async () => {
   mockGetServerSession.mock.resetCalls();
   mockFindFirst.mock.resetCalls();
   mockBookmarkFindUnique.mock.resetCalls();
+  mockIsFeatureEnabled.mock.resetCalls();
 
-  mockGetServerSession.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockGetServerSession.mock.mockImplementation(() =>
     Promise.resolve({ user: { companyId: "tenant-1" } }),
   );
+  mockIsFeatureEnabled.mock.mockImplementation(() => Promise.resolve(true));
 
   const { bookmarkToggle } = await routesPromise;
   const res = await bookmarkToggle(
@@ -255,10 +286,13 @@ test("POST /api/news/[slug]/bookmark creates bookmark when absent", async () => 
   mockBookmarkCreate.mock.resetCalls();
   mockBookmarkDelete.mock.resetCalls();
   mockBookmarkCount.mock.resetCalls();
+  mockIsFeatureEnabled.mock.resetCalls();
 
-  mockGetServerSession.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockGetServerSession.mock.mockImplementation(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1" } }),
   );
+  mockIsFeatureEnabled.mock.mockImplementation(() => Promise.resolve(true));
   mockFindFirst.mock.mockImplementationOnce(() =>
     Promise.resolve({ id: "post-1" }),
   );
@@ -289,10 +323,13 @@ test("POST /api/news/[slug]/bookmark removes existing bookmark", async () => {
   mockBookmarkCreate.mock.resetCalls();
   mockBookmarkDelete.mock.resetCalls();
   mockBookmarkCount.mock.resetCalls();
+  mockIsFeatureEnabled.mock.resetCalls();
 
-  mockGetServerSession.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockGetServerSession.mock.mockImplementation(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "tenant-1" } }),
   );
+  mockIsFeatureEnabled.mock.mockImplementation(() => Promise.resolve(true));
   mockFindFirst.mock.mockImplementationOnce(() =>
     Promise.resolve({ id: "post-1" }),
   );

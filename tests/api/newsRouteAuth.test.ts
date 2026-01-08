@@ -11,6 +11,7 @@ const mockNewsPostFindFirst = test.mock.fn<(args: any) => Promise<any>>();
 const mockNewsPostCount = test.mock.fn<(args: any) => Promise<any>>();
 const mockNewsPostFindMany = test.mock.fn<(args: any) => Promise<any>>();
 const mockHasPermission = test.mock.fn<(user: any, screen: string, action: string) => boolean>();
+const mockIsFeatureEnabled = test.mock.fn<(companyId: string, featureKey: string) => Promise<boolean>>();
 
 const originalLoad = (Module as any)._load;
 (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
@@ -34,6 +35,14 @@ const originalLoad = (Module as any)._load;
       },
     };
   }
+  // Mock feature toggle service to always enable NEWS feature
+  if (request === "@/lib/feature-toggles/service" || request === "./service") {
+    return {
+      featureToggleService: {
+        isFeatureEnabled: mockIsFeatureEnabled,
+      },
+    };
+  }
 
   return originalLoad.call(this, request, parent, isMain);
 };
@@ -53,11 +62,15 @@ function resetMocks() {
   mockNewsPostCount.mock.resetCalls();
   mockNewsPostFindMany.mock.resetCalls();
   mockHasPermission.mock.resetCalls();
+  mockIsFeatureEnabled.mock.resetCalls();
+  // Default: feature is enabled (use mockImplementation for all calls)
+  mockIsFeatureEnabled.mock.mockImplementation(() => Promise.resolve(true));
 }
 
 test("POST /api/news rejects unauthenticated", async () => {
   resetMocks();
-  mockAuth.mock.mockImplementationOnce(() => Promise.resolve(null));
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockAuth.mock.mockImplementation(() => Promise.resolve(null));
 
   const { POST } = await routePromise;
   const res = await POST(
@@ -74,7 +87,8 @@ test("POST /api/news rejects unauthenticated", async () => {
 
 test("POST /api/news requires news:edit permission", async () => {
   resetMocks();
-  mockAuth.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockAuth.mock.mockImplementation(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "comp-1" } }),
   );
   mockUserFindUnique.mock.mockImplementationOnce(() =>
@@ -96,7 +110,8 @@ test("POST /api/news requires news:edit permission", async () => {
 
 test("POST /api/news forbids sendEmail for non-admin roles", async () => {
   resetMocks();
-  mockAuth.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockAuth.mock.mockImplementation(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "comp-1" } }),
   );
   mockUserFindUnique.mock.mockImplementationOnce(() =>
@@ -118,7 +133,8 @@ test("POST /api/news forbids sendEmail for non-admin roles", async () => {
 
 test("POST /api/news allows admin to create", async () => {
   resetMocks();
-  mockAuth.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockAuth.mock.mockImplementation(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "comp-1" } }),
   );
   mockUserFindUnique.mock.mockImplementationOnce(() =>
@@ -152,7 +168,8 @@ test("POST /api/news allows admin to create", async () => {
 
 test("GET /api/news enforces department audience", async () => {
   resetMocks();
-  mockAuth.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockAuth.mock.mockImplementation(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "comp-1" } }),
   );
 
@@ -187,7 +204,8 @@ test("GET /api/news enforces department audience", async () => {
 
 test("GET /api/news returns type=all posts", async () => {
   resetMocks();
-  mockAuth.mock.mockImplementationOnce(() =>
+  // Use mockImplementation (not Once) since feature guard also calls auth()
+  mockAuth.mock.mockImplementation(() =>
     Promise.resolve({ user: { id: "user-1", companyId: "comp-1" } }),
   );
 

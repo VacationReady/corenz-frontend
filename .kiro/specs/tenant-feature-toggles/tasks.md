@@ -169,11 +169,11 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - Note: reconciliation and analytics routes don't exist yet - guards will be added when routes are created
     - _Requirements: 4.3_
 
-  - [ ] 9.6 Write property test for API guard enforcement
+  - [x] 9.6 Write property test for API guard enforcement
     - **Property 5: API Guard Enforcement**
     - **Validates: Requirements 4.1, 4.3**
 
-  - [ ] 9.7 Write property test for core routes accessibility
+  - [x] 9.7 Write property test for core routes accessibility
     - **Property 6: Core Routes Always Accessible**
     - **Validates: Requirements 4.4**
 

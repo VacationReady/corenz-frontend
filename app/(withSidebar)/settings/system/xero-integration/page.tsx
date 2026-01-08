@@ -31,6 +31,7 @@ export default function XeroIntegrationPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isTestingPayroll, setIsTestingPayroll] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     message: string;
@@ -132,6 +133,38 @@ export default function XeroIntegrationPage() {
       });
     } finally {
       setIsTesting(false);
+    }
+  };
+
+  const handleTestPayroll = async () => {
+    setIsTestingPayroll(true);
+    setStatusMessage(null);
+
+    try {
+      const res = await fetch("/api/xero/test-payroll");
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setStatusMessage({
+          type: "success",
+          message: `${data.message}! Found ${data.employeeCount} employee${data.employeeCount !== 1 ? 's' : ''} in Xero Payroll.`,
+        });
+      } else if (res.status === 403) {
+        setStatusMessage({
+          type: "error",
+          message: data.message || "Payroll access restricted. This requires Xero partner certification.",
+        });
+      } else {
+        throw new Error(data.message || data.error || "Payroll test failed");
+      }
+    } catch (error) {
+      console.error("Payroll test error:", error);
+      setStatusMessage({
+        type: "error",
+        message: `Payroll test failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
+    } finally {
+      setIsTestingPayroll(false);
     }
   };
 
@@ -240,7 +273,7 @@ export default function XeroIntegrationPage() {
                       Your Xero account is successfully connected. Employee and payroll data will sync automatically.
                     </p>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-3">
                     <Button
                       variant="outline"
                       onClick={handleDisconnect}
@@ -264,6 +297,24 @@ export default function XeroIntegrationPage() {
                         <>
                           <Settings className="h-4 w-4" />
                           Test Connection
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={handleTestPayroll}
+                      disabled={isTestingPayroll}
+                      className="flex items-center gap-2"
+                    >
+                      {isTestingPayroll ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          Testing Payroll...
+                        </>
+                      ) : (
+                        <>
+                          <Users className="h-4 w-4" />
+                          Test Payroll Access
                         </>
                       )}
                     </Button>
@@ -325,6 +376,27 @@ export default function XeroIntegrationPage() {
             ))}
           </div>
         </div>
+
+        {/* Payroll Access Info */}
+        {isConnected && (
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900">
+            <CardHeader>
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-blue-100 dark:bg-blue-900 p-2 text-blue-600 dark:text-blue-400">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base text-blue-900 dark:text-blue-100">
+                    Payroll API Access
+                  </CardTitle>
+                  <CardDescription className="text-sm mt-2 text-blue-800 dark:text-blue-200">
+                    Payroll features require Xero partner certification. Use the "Test Payroll Access" button to check if your app has been granted payroll permissions. Uncertified apps will receive a 403 error, which is expected.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        )}
 
         {/* Documentation */}
         <Card className="border-transparent bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 shadow-sm">

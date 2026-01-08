@@ -3,7 +3,8 @@
  * Verifies tenant isolation and admin-only access
  */
 
-import { describe, it, expect, beforeEach } from "@jest/globals";
+import { describe, it } from "node:test";
+import assert from "node:assert";
 
 describe("Xero Integration Security", () => {
   describe("Access Control", () => {
@@ -17,21 +18,21 @@ describe("Xero Integration Security", () => {
 
       // All endpoints should check for session.user.companyId
       // This is verified in the implementation
-      expect(endpoints.length).toBeGreaterThan(0);
+      assert.ok(endpoints.length > 0);
     });
 
     it("should require admin role for all Xero operations", () => {
       // All API routes check: isAdmin(session.user)
       // This prevents EMPLOYEE and MANAGER roles from accessing
       const requiredCheck = "isAdmin(session.user)";
-      expect(requiredCheck).toBeDefined();
+      assert.ok(requiredCheck);
     });
 
     it("should enforce tenant isolation via companyId", () => {
       // All database queries use: where: { companyId: session.user.companyId }
       // This ensures users can only access their own company's Xero integration
       const isolationPattern = "companyId: session.user.companyId";
-      expect(isolationPattern).toBeDefined();
+      assert.ok(isolationPattern);
     });
   });
 
@@ -40,14 +41,14 @@ describe("Xero Integration Security", () => {
       // Page checks: isAdmin(session.user)
       // Shows "Access Denied" card if false
       const accessCheck = "isAdmin(session.user)";
-      expect(accessCheck).toBeDefined();
+      assert.ok(accessCheck);
     });
 
     it("should show loading state while checking auth", () => {
       // Page checks: status === "loading"
       // Shows loading spinner before auth check completes
       const loadingCheck = 'status === "loading"';
-      expect(loadingCheck).toBeDefined();
+      assert.ok(loadingCheck);
     });
   });
 
@@ -56,14 +57,14 @@ describe("Xero Integration Security", () => {
       // Callback route checks: isAdmin(session.user)
       // Redirects with error if not admin
       const callbackCheck = "isAdmin(session.user)";
-      expect(callbackCheck).toBeDefined();
+      assert.ok(callbackCheck);
     });
 
     it("should link integration to correct company", () => {
       // Integration is created/updated with: companyId: session.user.companyId
       // This ensures the OAuth connection is linked to the right tenant
       const tenantLink = "companyId: session.user.companyId";
-      expect(tenantLink).toBeDefined();
+      assert.ok(tenantLink);
     });
   });
 
@@ -72,14 +73,14 @@ describe("Xero Integration Security", () => {
       // getXeroAccessToken(companyId) only returns tokens for that company
       // No cross-tenant token access possible
       const tokenScope = "companyId";
-      expect(tokenScope).toBeDefined();
+      assert.ok(tokenScope);
     });
 
     it("should mark integration inactive on refresh failure", () => {
       // Failed token refresh sets: isActive: false
       // Prevents using expired/invalid tokens
       const failureHandling = "isActive: false";
-      expect(failureHandling).toBeDefined();
+      assert.ok(failureHandling);
     });
   });
 
@@ -88,14 +89,14 @@ describe("Xero Integration Security", () => {
       // XeroIntegration model has: companyId @unique
       // Prevents multiple integrations per company
       const uniqueConstraint = "@unique";
-      expect(uniqueConstraint).toBeDefined();
+      assert.ok(uniqueConstraint);
     });
 
     it("should cascade delete on company deletion", () => {
       // Relation has: onDelete: Cascade
       // Ensures orphaned integrations are cleaned up
       const cascadeDelete = "onDelete: Cascade";
-      expect(cascadeDelete).toBeDefined();
+      assert.ok(cascadeDelete);
     });
   });
 });
@@ -113,7 +114,7 @@ describe("Xero Integration - Role-Based Access", () => {
       // isAdmin() returns true only for ADMIN and SUPER_ADMIN
       const adminRoles = ["ADMIN", "SUPER_ADMIN"];
       const roleHasAccess = adminRoles.includes(role);
-      expect(roleHasAccess).toBe(hasAccess);
+      assert.strictEqual(roleHasAccess, hasAccess);
     });
   });
 });
@@ -132,9 +133,9 @@ describe("Xero Integration - Error Messages", () => {
     // - Internal system details
     // - Other tenant information
     errorMessages.forEach((msg) => {
-      expect(msg).not.toContain("token");
-      expect(msg).not.toContain("secret");
-      expect(msg).not.toContain("password");
+      assert.ok(!msg.includes("token"));
+      assert.ok(!msg.includes("secret"));
+      assert.ok(!msg.includes("password"));
     });
   });
 });

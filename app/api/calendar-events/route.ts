@@ -421,7 +421,7 @@ export async function GET(req: NextRequest) {
     // ADMIN/SUPER_ADMIN: No filtering - full visibility (default behavior)
     
     // Remove internal flags before sending response
-    const sanitizedEvents = filteredLeaveEvents.map(({ _isSickness, _excludedFromGeneralVisibility, _employeeUserId, ...event }) => event);
+    const sanitizedEvents = filteredLeaveEvents.map(({ _isSickness, _isOtherEntitlement, _excludedFromGeneralVisibility, _employeeUserId, ...event }) => event);
 
     return NextResponse.json(sanitizedEvents);
   } catch (error) {

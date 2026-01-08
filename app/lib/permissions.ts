@@ -588,16 +588,18 @@ export type EmployeeProfileScreen = typeof EMPLOYEE_PROFILE_SCREENS[number];
 
 /**
  * Determines if the requesting user can access a target employee record.
+ * 
  * Access rules:
  * - ADMIN and SUPER_ADMIN can access any employee in their company
  * - A user can access their own employee record
- * - A user with a CUSTOM PERMISSION PROFILE that includes "employees" or any "employee-*" screen 
- *   can access ALL employees (this is for HR specialists, payroll admins, etc.)
- * - A MANAGER without a custom profile can only access their subordinates (direct + indirect reports)
- * - An EMPLOYEE without a custom profile cannot access other employees
+ * - A user with "employees" read permission via CUSTOM profile can access ALL employees
+ * - A user with ANY "employee-*" screen permission via CUSTOM profile can access ALL employees
+ *   (but only sees the screens they have permission for - controlled by layout menu filtering)
+ * - A MANAGER without custom profile can only access their subordinates
+ * - An EMPLOYEE without custom profile cannot access other employees
  * 
- * IMPORTANT: Default role permissions (like MANAGER having "employees" read) do NOT grant
- * access to all employee profiles. Only explicit permission profiles grant that access.
+ * The layout.tsx handles filtering which screens/tabs are shown based on permissions.
+ * This function only controls whether the user can access the profile at all.
  */
 export async function canAccessEmployee(
   requestor: {
@@ -627,8 +629,7 @@ export async function canAccessEmployee(
   // Self-access - always allowed
   if (target.userId === requestor.id) return true;
 
-  // Check if user has a CUSTOM permission profile (not just default role permissions)
-  // Only custom profiles grant access to ALL employees
+  // Check if user has a CUSTOM permission profile
   const requestorUser = await prisma.user.findUnique({
     where: { id: requestor.id },
     include: {
@@ -636,8 +637,6 @@ export async function canAccessEmployee(
     },
   });
 
-  // Only check permission profile if user actually HAS one assigned
-  // Default role permissions do NOT grant access to all employee profiles
   const hasCustomProfile = requestorUser?.PermissionProfile != null;
   
   if (hasCustomProfile && requestorUser) {
@@ -646,12 +645,13 @@ export async function canAccessEmployee(
       permissionProfile: requestorUser.PermissionProfile,
     };
     
-    // If user has "employees" read permission via their CUSTOM profile, allow full access
+    // The main "employees" permission grants access to ALL employees
     if (hasPermissionViaProfile(userWithProfile, "employees", "read")) {
       return true;
     }
     
-    // Check if user has ANY employee-* screen permission via their CUSTOM profile
+    // Any employee-* screen permission grants access to ALL employees
+    // The layout will filter which screens/tabs they can actually see
     for (const screen of EMPLOYEE_PROFILE_SCREENS) {
       if (hasPermissionViaProfile(userWithProfile, screen, "read")) {
         return true;
@@ -659,13 +659,12 @@ export async function canAccessEmployee(
     }
   }
 
-  // EMPLOYEE without custom profile cannot access other employees
+  // EMPLOYEE without relevant profile permissions cannot access other employees
   if (requestor.role === "EMPLOYEE") {
     return false;
   }
 
-  // MANAGER without custom profile (or profile doesn't grant employee access): 
-  // can only access subordinates (direct + indirect reports)
+  // MANAGER without profile permissions: can only access subordinates
   if (requestor.role === "MANAGER") {
     const isSubordinate = await isUserSubordinateOf(
       target.userId,
@@ -682,7 +681,7 @@ export async function canAccessEmployee(
  * Checks if a target user is a subordinate (direct or indirect) of a manager.
  * Uses iterative approach to traverse the reporting chain upward from the target.
  */
-async function isUserSubordinateOf(
+export async function isUserSubordinateOf(
   targetUserId: string | null,
   managerUserId: string,
   companyId: string
@@ -717,7 +716,11 @@ async function isUserSubordinateOf(
 }
 
 /**
- * Gets the list of employee profile screens the user has access to
+ * Gets the list of employee profile screens the user has access to.
+ * This uses the full permission resolution (including default role permissions).
+ * 
+ * For filtering menus when viewing OTHER employees' profiles, use
+ * getAccessibleEmployeeScreensViaProfile() instead to only check custom profiles.
  */
 export function getAccessibleEmployeeScreens(user: UserWithProfile): string[] {
   // ADMIN and SUPER_ADMIN have access to all screens
@@ -735,6 +738,37 @@ export function getAccessibleEmployeeScreens(user: UserWithProfile): string[] {
   // Check individual employee-* screens
   for (const screen of EMPLOYEE_PROFILE_SCREENS) {
     if (hasPermission(user, screen, "read")) {
+      accessibleScreens.push(screen);
+    }
+  }
+  
+  return accessibleScreens;
+}
+
+/**
+ * Gets the list of employee profile screens the user has access to via their CUSTOM permission profile only.
+ * This does NOT include default role permissions.
+ * 
+ * Use this when filtering menus for viewing OTHER employees' profiles where you need to
+ * distinguish between role-based access (manager seeing subordinates) and profile-based access
+ * (HR specialist seeing specific screens for all employees).
+ */
+export function getAccessibleEmployeeScreensViaProfile(user: UserWithProfile): string[] {
+  // ADMIN and SUPER_ADMIN have access to all screens
+  if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+    return ["employees", ...EMPLOYEE_PROFILE_SCREENS];
+  }
+  
+  const accessibleScreens: string[] = [];
+  
+  // Check main "employees" permission via profile only
+  if (hasPermissionViaProfile(user, "employees", "read")) {
+    accessibleScreens.push("employees");
+  }
+  
+  // Check individual employee-* screens via profile only
+  for (const screen of EMPLOYEE_PROFILE_SCREENS) {
+    if (hasPermissionViaProfile(user, screen, "read")) {
       accessibleScreens.push(screen);
     }
   }

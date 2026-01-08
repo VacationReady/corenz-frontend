@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
 import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
-import { canAccessEmployee, getAccessibleEmployeeScreens, UserWithProfile } from "@/lib/permissions";
+import { canAccessEmployee, getAccessibleEmployeeScreensViaProfile, isUserSubordinateOf, UserWithProfile } from "@/lib/permissions";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
 import EmployeeNavClient from "./EmployeeNavClient";
 
@@ -137,17 +137,23 @@ export default async function EmployeeLayout({
     include: { PermissionProfile: true },
   });
 
-  // Get accessible screens for the current user
+  // Get accessible screens via CUSTOM permission profile only (not default role permissions)
   const userWithProfile: UserWithProfile = currentUser ? {
     ...currentUser,
     permissionProfile: currentUser.PermissionProfile,
   } : { role: session.user.role } as UserWithProfile;
   
-  const accessibleScreens = getAccessibleEmployeeScreens(userWithProfile);
-  const hasFullEmployeesAccess = accessibleScreens.includes("employees");
+  // Use the profile-only version to check what screens the user has explicit access to
+  const accessibleScreensViaProfile = getAccessibleEmployeeScreensViaProfile(userWithProfile);
+  const hasFullEmployeesAccessViaProfile = accessibleScreensViaProfile.includes("employees");
   
   // Check if user is viewing their own profile
   const isOwnProfile = employee.userId === session.user.id;
+  
+  // Check if this is a subordinate (for managers)
+  const isSubordinate = session.user.role === "MANAGER" 
+    ? await isUserSubordinateOf(employee.userId, session.user.id, session.user.companyId)
+    : false;
 
   // Build the full menu
   const fullMenu = [
@@ -189,12 +195,18 @@ export default async function EmployeeLayout({
 
   // Filter menu based on permissions
   // - If viewing own profile, show all screens (employees can see their own data)
-  // - If user has full "employees" access, show all screens
-  // - Otherwise, only show screens they have specific permission for
+  // - If ADMIN/SUPER_ADMIN, show all screens
+  // - If user has full "employees" access via their CUSTOM profile, show all screens
+  // - If MANAGER viewing a subordinate, show all screens (normal manager access)
+  // - Otherwise, only show screens they have specific permission for via their profile
+  const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+  
   const menu = fullMenu.filter((item) => {
     if (isOwnProfile) return true;
-    if (hasFullEmployeesAccess) return true;
-    return accessibleScreens.includes(item.screenKey);
+    if (isAdmin) return true;
+    if (hasFullEmployeesAccessViaProfile) return true;
+    if (isSubordinate) return true; // Managers see all screens for their subordinates
+    return accessibleScreensViaProfile.includes(item.screenKey);
   }).map(({ href, label }) => ({ href, label }));
 
   return (

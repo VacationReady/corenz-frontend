@@ -36,6 +36,21 @@ export default function XeroIntegrationPage() {
   } | null>(null);
 
   useEffect(() => {
+    // Fetch connection status
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch("/api/xero/status");
+        const data = await res.json();
+        if (data.connected) {
+          setIsConnected(true);
+        }
+      } catch (error) {
+        console.error("Failed to fetch Xero status:", error);
+      }
+    };
+
+    fetchStatus();
+
     // Check for OAuth callback parameters
     const success = searchParams.get("success");
     const error = searchParams.get("error");
@@ -46,14 +61,12 @@ export default function XeroIntegrationPage() {
         type: "success",
         message: "Successfully connected to Xero!",
       });
-      // Clear URL parameters
       window.history.replaceState({}, "", "/settings/system/xero-integration");
     } else if (error) {
       setStatusMessage({
         type: "error",
         message: `Connection failed: ${error.replace(/_/g, " ")}`,
       });
-      // Clear URL parameters after showing error
       setTimeout(() => {
         window.history.replaceState({}, "", "/settings/system/xero-integration");
       }, 100);

@@ -245,6 +245,7 @@ model Company {
   OnboardingStepAuditLogs             OnboardingStepAuditLog[]
   OnboardingReminders                 OnboardingReminder[]
   EmployeeOtherEntitlements           EmployeeOtherEntitlement[]
+  XeroIntegration                     XeroIntegration?
 }
 
 model ContractTypeOption {
@@ -4354,4 +4355,25 @@ enum PayrollExportFormat {
   CSV
   EXCEL
   JSON
+}
+
+// Xero Integration
+model XeroIntegration {
+  id            String   @id @default(cuid())
+  companyId     String   @unique
+  xeroTenantId  String
+  accessToken   String   @db.Text
+  refreshToken  String   @db.Text
+  expiresAt     DateTime
+  tokenType     String   @default("Bearer")
+  scopes        String[] // Array of granted scopes
+  connectedAt   DateTime @default(now())
+  lastSyncAt    DateTime?
+  isActive      Boolean  @default(true)
+  
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId])
+  @@index([xeroTenantId])
+  @@map("xero_integrations")
 }

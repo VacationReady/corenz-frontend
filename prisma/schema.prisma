@@ -2427,6 +2427,7 @@ enum AuditEntityType {
   DRIVER_LICENSE
   TRAINING_RECORD
   ANNOUNCEMENT
+  FEATURE_TOGGLE
 }
 
 enum AutomationExecutionStatus {

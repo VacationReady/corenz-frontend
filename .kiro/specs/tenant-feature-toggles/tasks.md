@@ -44,29 +44,29 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - **Property 7: Cache Invalidation on Update**
     - **Validates: Requirements 5.2**
 
-- [ ] 3. Tenant Admin API Endpoints
-  - [ ] 3.1 Create GET /api/tenant-admin/feature-toggles endpoint
+- [x] 3. Tenant Admin API Endpoints
+  - [x] 3.1 Create GET /api/tenant-admin/feature-toggles endpoint
     - Return all toggles for all tenants (for dashboard view)
     - Require tenant-admin authentication
     - _Requirements: 7.1, 7.5_
 
-  - [ ] 3.2 Create GET /api/tenant-admin/feature-toggles/[companyId] endpoint
+  - [x] 3.2 Create GET /api/tenant-admin/feature-toggles/[companyId] endpoint
     - Return toggles for specific tenant
     - Require tenant-admin authentication
     - _Requirements: 7.2, 7.5_
 
-  - [ ] 3.3 Create PATCH /api/tenant-admin/feature-toggles/[companyId] endpoint
+  - [x] 3.3 Create PATCH /api/tenant-admin/feature-toggles/[companyId] endpoint
     - Accept partial update object
     - Update only specified feature keys
     - Invalidate cache after update
     - Log changes to audit log
     - _Requirements: 7.3, 7.4, 7.5, 7.6_
 
-  - [ ] 3.4 Write property test for partial update preservation
+  - [x] 3.4 Write property test for partial update preservation
     - **Property 8: Partial Update Preservation**
     - **Validates: Requirements 7.4**
 
-  - [ ] 3.5 Write property test for authentication enforcement
+  - [x] 3.5 Write property test for authentication enforcement
     - **Property 9: Authentication Enforcement**
     - **Validates: Requirements 7.5**
 

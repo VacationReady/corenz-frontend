@@ -21,17 +21,49 @@ import {
   DollarSign,
   FileText,
   Settings,
+  AlertCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function XeroIntegrationPage() {
+  const searchParams = useSearchParams();
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    // Check for OAuth callback parameters
+    const success = searchParams.get("success");
+    const error = searchParams.get("error");
+
+    if (success === "true") {
+      setIsConnected(true);
+      setStatusMessage({
+        type: "success",
+        message: "Successfully connected to Xero!",
+      });
+      // Clear URL parameters
+      window.history.replaceState({}, "", "/settings/system/xero-integration");
+    } else if (error) {
+      setStatusMessage({
+        type: "error",
+        message: `Connection failed: ${error.replace(/_/g, " ")}`,
+      });
+      // Clear URL parameters after showing error
+      setTimeout(() => {
+        window.history.replaceState({}, "", "/settings/system/xero-integration");
+      }, 100);
+    }
+  }, [searchParams]);
 
   const handleConnect = async () => {
     setIsConnecting(true);
     // Redirect to OAuth flow
-    window.location.href = "/api/integrations/xero/auth";
+    window.location.href = "/api/xero/connect";
   };
 
   const handleDisconnect = async () => {
@@ -79,6 +111,34 @@ export default function XeroIntegrationPage() {
       showHomeIcon={false}
     >
       <div className="space-y-6">
+        {/* Status Message */}
+        {statusMessage && (
+          <div
+            className={`rounded-lg p-4 border ${
+              statusMessage.type === "success"
+                ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900"
+                : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {statusMessage.type === "success" ? (
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              )}
+              <p
+                className={`text-sm ${
+                  statusMessage.type === "success"
+                    ? "text-green-800 dark:text-green-200"
+                    : "text-red-800 dark:text-red-200"
+                }`}
+              >
+                {statusMessage.message}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Connection Status Card */}
         <Card className="border-transparent bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 shadow-sm">
           <CardHeader>

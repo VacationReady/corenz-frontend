@@ -25,11 +25,11 @@ export interface FeatureDisabledResponse {
 
 /**
  * Type for Next.js App Router route handlers
+ * Uses any for context to support both static routes and dynamic routes
+ * with Promise-based params (Next.js 15+/16)
  */
-type RouteHandler = (
-  req: NextRequest,
-  context?: { params?: Record<string, string | string[]> }
-) => Promise<Response>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RouteHandler = (req: NextRequest, context?: any) => Promise<Response>;
 
 /**
  * Higher-order function that wraps API route handlers with feature toggle checks.
@@ -64,7 +64,8 @@ export function withFeatureGuard(featureKey: FeatureKey) {
   return function <T extends RouteHandler>(handler: T): T {
     const guardedHandler = async (
       req: NextRequest,
-      context?: { params?: Record<string, string | string[]> }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      context?: any
     ): Promise<Response> => {
       // Get the authenticated session
       const session = await auth();

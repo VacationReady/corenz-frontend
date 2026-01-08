@@ -17,6 +17,7 @@ import {
   FileText,
   Info,
   Calendar,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
@@ -49,6 +50,14 @@ const systemSettings = [
     icon: <Calendar className="h-5 w-5" />,
     description:
       "Plug HR events like exit interviews, 1-2-1s, and holidays into Google & Outlook calendars",
+    status: "beta",
+  },
+  {
+    title: "Xero Integration",
+    href: "/settings/system/xero-integration",
+    icon: <Zap className="h-5 w-5" />,
+    description:
+      "Connect to Xero for seamless payroll synchronization and accounting integration",
     status: "beta",
   },
 ];

@@ -10,10 +10,8 @@ export async function GET() {
       "profile",
       "email",
       "offline_access",
-      "accounting.settings",
-      "payroll.employees",
-      "payroll.payruns",
-      "payroll.payitems",
+      "accounting.settings.read",
+      "accounting.contacts.read",
     ].join(" "),
     state: "peoplecore_xero",
   });

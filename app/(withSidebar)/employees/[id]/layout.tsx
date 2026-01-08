@@ -155,6 +155,19 @@ export default async function EmployeeLayout({
     ? await isUserSubordinateOf(employee.userId, session.user.id, session.user.companyId)
     : false;
 
+  // Debug logging for permission issues
+  console.log("[EmployeeLayout] Permission check:", {
+    viewerRole: session.user.role,
+    viewerId: session.user.id,
+    targetEmployeeId: employee.id,
+    targetUserId: employee.userId,
+    isOwnProfile,
+    isSubordinate,
+    hasCustomProfile: !!currentUser?.PermissionProfile,
+    accessibleScreensViaProfile,
+    hasFullEmployeesAccessViaProfile,
+  });
+
   // Build the full menu
   const fullMenu = [
     { href: `/employees/${id}/overview`, label: "Overview", screenKey: "employee-overview" },

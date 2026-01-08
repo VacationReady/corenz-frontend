@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -70,7 +70,27 @@ export default function EmployeeNavClient({
     return name.slice(0, 2).toUpperCase();
   };
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Redirect to first allowed screen if current path is not in the menu
+  useEffect(() => {
+    if (!pathname || menu.length === 0) return;
+    
+    // Check if current path matches any menu item
+    const isCurrentPathAllowed = menu.some(item => pathname === item.href);
+    
+    // Also check if we're on the base employee path (e.g., /employees/123)
+    const isBasePath = pathname === `/employees/${employeeId}`;
+    
+    if (!isCurrentPathAllowed || isBasePath) {
+      // Redirect to the first allowed screen
+      const firstAllowedScreen = menu[0]?.href;
+      if (firstAllowedScreen && firstAllowedScreen !== pathname) {
+        router.replace(firstAllowedScreen);
+      }
+    }
+  }, [pathname, menu, employeeId, router]);
 
   useEffect(() => {
     if (pathname?.endsWith("/performance")) {

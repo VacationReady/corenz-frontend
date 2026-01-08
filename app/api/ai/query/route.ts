@@ -12,8 +12,10 @@ import {
 } from "@/lib/ai/openai-client";
 import { generateQuery, QUICK_QUERIES } from "@/lib/ai/query-generator";
 import { getConversation, addMessage, buildContextString } from "@/lib/ai/conversation-memory";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     // Auth check
     const session = await auth();
@@ -156,7 +158,7 @@ async function executeQuickQuery(
 }
 
 // GET endpoint for available quick queries
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -194,4 +196,9 @@ export async function GET(req: NextRequest) {
     ],
   });
 }
+
+// Apply feature guard to all handlers
+const aiGuard = withFeatureGuard(FEATURE_KEYS.AI_ASSISTANT);
+export const POST = aiGuard(postHandler);
+export const GET = aiGuard(getHandler);
 

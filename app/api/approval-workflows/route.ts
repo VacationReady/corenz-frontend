@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { hasPermission } from "@/lib/permissions";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 const ApproverSchema = z
   .object({
@@ -35,7 +37,7 @@ const WorkflowSchema = z.object({
   stages: z.array(StageSchema).min(1, "At least one stage is required"),
 });
 
-export async function GET() {
+async function getHandler() {
   const session = await auth();
   if (!session?.user?.companyId) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -85,7 +87,7 @@ export async function GET() {
   return NextResponse.json({ success: true, data });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const session = await auth();
   if (!session?.user?.companyId || !session.user.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -165,3 +167,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: e.message || "Failed to create" }, { status: 500 });
   }
 }
+
+// Apply feature guard to all handlers
+const approvalsGuard = withFeatureGuard(FEATURE_KEYS.MULTI_STAGE_APPROVALS);
+export const GET = approvalsGuard(getHandler);
+export const POST = approvalsGuard(postHandler);

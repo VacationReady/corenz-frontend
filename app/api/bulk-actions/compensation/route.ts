@@ -4,6 +4,8 @@ import { z } from "zod";
 import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 const payloadSchema = z.object({
   employeeIds: z.array(z.string().uuid()).min(1),
@@ -12,7 +14,7 @@ const payloadSchema = z.object({
   reason: z.string().trim().min(3),
 });
 
-export async function POST(request: Request) {
+async function postHandler(request: Request) {
   try {
     await ensurePrismaConnected();
     const session = await auth();
@@ -158,3 +160,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// Apply feature guard
+export const POST = withFeatureGuard(FEATURE_KEYS.BULK_ACTIONS)(postHandler);

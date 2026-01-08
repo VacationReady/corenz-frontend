@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 interface RouteParams {}
 
@@ -21,7 +23,7 @@ async function getPostForCompany(slug: string, companyId: string) {
  * Record a share action for analytics
  * POST /api/news/[slug]/share
  */
-export async function POST(req: NextRequest, context: any) {
+async function postHandler(req: NextRequest, context: any) {
   const session = await auth();
 
   if (!session?.user?.id || !session.user.companyId) {
@@ -59,3 +61,6 @@ export async function POST(req: NextRequest, context: any) {
     );
   }
 }
+
+// Apply feature guard
+export const POST = withFeatureGuard(FEATURE_KEYS.NEWS)(postHandler);

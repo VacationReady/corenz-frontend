@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { generateJourneyPhasesAI, type JourneyScopingData } from "@/lib/ai/journey-assistant";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 const createJourneySchema = z.object({
   name: z.string().min(1, "Journey name is required"),
@@ -17,7 +19,7 @@ const createJourneySchema = z.object({
 });
 
 // GET /api/journeys - List all journey templates for the company
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.companyId) {
@@ -90,7 +92,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/journeys - Create a new journey template
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.companyId || !session?.user?.id) {
@@ -253,3 +255,8 @@ function generateTags(scopingData: any) {
 
   return tags;
 }
+
+// Apply feature guard
+const journeysGuard = withFeatureGuard(FEATURE_KEYS.JOURNEYS);
+export const GET = journeysGuard(getHandler);
+export const POST = journeysGuard(postHandler);

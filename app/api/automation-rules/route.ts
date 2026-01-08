@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { z } from "zod";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 // Validation schema for automation rules
 const AutomationRuleSchema = z.object({
@@ -20,7 +22,7 @@ const AutomationRuleSchema = z.object({
 });
 
 // GET: Fetch all automation rules for the company
-export async function GET() {
+async function getHandler() {
   try {
     const session = await auth();
     if (!session?.user?.companyId) {
@@ -61,7 +63,7 @@ export async function GET() {
 }
 
 // POST: Create a new automation rule
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.companyId || !session?.user?.id) {
@@ -151,3 +153,8 @@ export async function POST(req: Request) {
   }
 }
 
+
+// Apply feature guard
+const automationGuard = withFeatureGuard(FEATURE_KEYS.AUTOMATION_RULES);
+export const GET = automationGuard(getHandler);
+export const POST = automationGuard(postHandler);

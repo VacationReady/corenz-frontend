@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
+import { withFeatureGuard } from '@/lib/feature-toggles/api-guard';
+import { FEATURE_KEYS } from '@/lib/feature-toggles/types';
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const session = await auth();
 
@@ -138,3 +140,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch timesheets' }, { status: 500 });
   }
 }
+
+// Apply feature guard to all handlers
+const timesheetsGuard = withFeatureGuard(FEATURE_KEYS.TIMESHEETS);
+export const GET = timesheetsGuard(getHandler);

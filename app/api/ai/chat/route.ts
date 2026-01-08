@@ -9,8 +9,10 @@ import { isAIEnabled, validateAPIKey, checkRateLimit } from "@/lib/ai/openai-cli
 import { processUserMessage } from "@/lib/ai/orchestrator";
 import { undoAction } from "@/lib/ai/action-executor";
 import { clearConversation, getConversation, updateConversation } from "@/lib/ai/conversation-memory";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
@@ -142,7 +144,7 @@ export async function POST(req: NextRequest) {
 }
 
 // GET endpoint for capabilities
-export async function GET() {
+async function getHandler() {
   return NextResponse.json({
     capabilities: [
       {
@@ -261,4 +263,9 @@ export async function GET() {
     ],
   });
 }
+
+// Apply feature guard to all handlers
+const aiGuard = withFeatureGuard(FEATURE_KEYS.AI_ASSISTANT);
+export const POST = aiGuard(postHandler);
+export const GET = aiGuard(getHandler);
 

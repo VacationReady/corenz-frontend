@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 // ✅ GET: List all forms for the company (with optional type filtering)
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const session = await auth();
 
   if (!session?.user?.companyId) {
@@ -30,7 +32,7 @@ export async function GET(req: Request) {
 }
 
 // ✅ POST: Create a new form
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const session = await auth();
 
   if (!session?.user?.companyId) {
@@ -132,3 +134,8 @@ export async function POST(req: Request) {
   return NextResponse.json(form, { status: 201 });
 }
 
+
+// Apply feature guard to all handlers
+const formsGuard = withFeatureGuard(FEATURE_KEYS.FORMS);
+export const GET = formsGuard(getHandler);
+export const POST = formsGuard(postHandler);

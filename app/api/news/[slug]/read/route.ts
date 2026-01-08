@@ -3,8 +3,10 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
-export async function POST(req: NextRequest, context: any) {
+async function postHandler(req: NextRequest, context: any) {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest, context: any) {
   }
 }
 
-export async function DELETE(req: NextRequest, context: any) {
+async function deleteHandler(req: NextRequest, context: any) {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
@@ -112,3 +114,8 @@ export async function DELETE(req: NextRequest, context: any) {
     );
   }
 }
+
+// Apply feature guard
+const newsGuard = withFeatureGuard(FEATURE_KEYS.NEWS);
+export const POST = newsGuard(postHandler);
+export const DELETE = newsGuard(deleteHandler);

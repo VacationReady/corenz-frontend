@@ -14,8 +14,10 @@ import {
   removeCustomField,
   listCustomFields,
 } from "@/lib/ai/field-generator";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
@@ -105,7 +107,7 @@ export async function POST(req: NextRequest) {
 }
 
 // GET list of custom fields
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.companyId) {
@@ -126,4 +128,9 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+// Apply feature guard to all handlers
+const aiGuard = withFeatureGuard(FEATURE_KEYS.AI_ASSISTANT);
+export const POST = aiGuard(postHandler);
+export const GET = aiGuard(getHandler);
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { withFeatureGuard } from '@/lib/feature-toggles/api-guard';
+import { FEATURE_KEYS } from '@/lib/feature-toggles/types';
 
 // Validation schema for creating/updating rota groups
 const rotaGroupSchema = z.object({
@@ -19,7 +21,7 @@ const rotaGroupSchema = z.object({
 });
 
 // GET /api/rota-groups - List all rota groups for the company
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
   try {
     const session = await auth();
     
@@ -106,7 +108,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/rota-groups - Create a new rota group
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const session = await auth();
     
@@ -216,3 +218,8 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply feature guard to all handlers
+const rotaShiftsGuard = withFeatureGuard(FEATURE_KEYS.ROTA_SHIFTS);
+export const GET = rotaShiftsGuard(getHandler);
+export const POST = rotaShiftsGuard(postHandler);

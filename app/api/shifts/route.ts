@@ -5,6 +5,8 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { calculateShiftCost } from '@/lib/timesheet-calculations';
 import { startOfDay, endOfDay, getDay, eachDayOfInterval, format as formatDate } from 'date-fns';
+import { withFeatureGuard } from '@/lib/feature-toggles/api-guard';
+import { FEATURE_KEYS } from '@/lib/feature-toggles/types';
 
 const shiftInclude = {
   Template: true,
@@ -247,7 +249,7 @@ async function generateVirtualShiftsFromPattern(
   return virtualShifts;
 }
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const session = await auth();
 
@@ -520,7 +522,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const session = await auth();
 
@@ -622,3 +624,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to create shift' }, { status: 500 });
   }
 }
+
+// Apply feature guard to all handlers
+const rotaShiftsGuard = withFeatureGuard(FEATURE_KEYS.ROTA_SHIFTS);
+export const GET = rotaShiftsGuard(getHandler);
+export const POST = rotaShiftsGuard(postHandler);

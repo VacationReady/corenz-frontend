@@ -4,9 +4,11 @@ import { auth } from "@/lib/auth-options";
 import { createTemplate, updateTemplate, TemplateConflictError } from "./actions";
 import { hasPermission } from "@/lib/permissions";
 import { fetchTenantTemplates, serializeTemplate, templateSelect } from "./tenantScopedFetch";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 // ✅ GET - Fetch Templates
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const session = await auth();
   if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -52,7 +54,7 @@ export async function GET(req: Request) {
 }
 
 // ✅ POST - Create Template
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const session = await auth();
   if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -86,7 +88,7 @@ export async function POST(req: Request) {
 }
 
 // ✅ PUT - Update Template (Includes Publish/Unpublish)
-export async function PUT(req: Request) {
+async function putHandler(req: Request) {
   const session = await auth();
   if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -125,7 +127,7 @@ export async function PUT(req: Request) {
 }
 
 // ✅ DELETE - Delete Template (Steps cascade manually)
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const session = await auth();
   if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -162,3 +164,10 @@ export async function DELETE(req: Request) {
   }
 }
 
+
+// Apply feature guard
+const onboardingGuard = withFeatureGuard(FEATURE_KEYS.ONBOARDING);
+export const GET = onboardingGuard(getHandler);
+export const POST = onboardingGuard(postHandler);
+export const PUT = onboardingGuard(putHandler);
+export const DELETE = onboardingGuard(deleteHandler);

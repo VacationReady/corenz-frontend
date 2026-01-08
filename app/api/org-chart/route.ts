@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 type OrgRole = "ADMIN" | "MANAGER" | "EMPLOYEE";
 
@@ -35,7 +37,7 @@ const getSignedProfileUrl = async (path: string | null | undefined) => {
   }
 };
 
-export async function GET() {
+async function getHandler() {
   const session = await auth();
 
   if (!session?.user?.companyId) {
@@ -131,3 +133,6 @@ export async function GET() {
     );
   }
 }
+
+// Apply feature guard
+export const GET = withFeatureGuard(FEATURE_KEYS.ORG_CHART)(getHandler);

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 // GET: Fetch all event rules for the company
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.companyId) {
@@ -26,7 +28,7 @@ export async function GET(req: Request) {
 }
 
 // POST: Create or update an event rule
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.companyId || session.user.role !== "ADMIN") {
@@ -99,3 +101,8 @@ export async function POST(req: Request) {
   }
 }
 
+
+// Apply feature guard
+const eventRulesGuard = withFeatureGuard(FEATURE_KEYS.EVENT_RULES);
+export const GET = eventRulesGuard(getHandler);
+export const POST = eventRulesGuard(postHandler);

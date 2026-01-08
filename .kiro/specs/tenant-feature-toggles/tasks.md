@@ -142,30 +142,31 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - **Property 4: Settings Card Filtering**
     - **Validates: Requirements 3.4, 6.3, 6.5**
 
-- [ ] 8. Checkpoint - UI Complete
+- [x] 8. Checkpoint - UI Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. API Guards Implementation
-  - [ ] 9.1 Create withFeatureGuard higher-order function
+- [x] 9. API Guards Implementation
+  - [x] 9.1 Create withFeatureGuard higher-order function
     - Create `lib/feature-toggles/api-guard.ts`
     - Implement HOF that wraps route handlers
     - Return 403 with feature disabled message
     - _Requirements: 4.1, 4.2_
 
-  - [ ] 9.2 Apply guards to AI Assistant routes
+  - [x] 9.2 Apply guards to AI Assistant routes
     - Wrap /api/ai/* route handlers with withFeatureGuard('ai_assistant')
     - _Requirements: 4.3_
 
-  - [ ] 9.3 Apply guards to News routes
+  - [x] 9.3 Apply guards to News routes
     - Wrap /api/news/* route handlers with withFeatureGuard('news')
     - _Requirements: 4.3_
 
-  - [ ] 9.4 Apply guards to Performance routes
+  - [x] 9.4 Apply guards to Performance routes
     - Wrap /api/performance/* route handlers with withFeatureGuard('performance_management')
     - _Requirements: 4.3_
 
-  - [ ] 9.5 Apply guards to remaining feature routes
+  - [x] 9.5 Apply guards to remaining feature routes
     - Apply guards to: bulk-actions, journeys, onboarding, automation-rules, event-rules, org-chart, surveys, forms, timesheets, rota-groups, shifts, reconciliation, approval-workflows, analytics
+    - Note: reconciliation and analytics routes don't exist yet - guards will be added when routes are created
     - _Requirements: 4.3_
 
   - [ ] 9.6 Write property test for API guard enforcement

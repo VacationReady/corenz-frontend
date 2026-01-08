@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 import { randomUUID } from "crypto";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const session = await auth();
     const companyId = session?.user?.companyId;
@@ -56,3 +58,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to upload attachment" }, { status: 500 });
   }
 }
+
+// Apply feature guard
+export const POST = withFeatureGuard(FEATURE_KEYS.NEWS)(postHandler);

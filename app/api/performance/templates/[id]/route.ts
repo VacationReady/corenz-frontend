@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
 import { z } from "zod";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 const updateTemplateSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
@@ -57,7 +59,7 @@ function isManagerOrAdmin(role?: string | null) {
   return role === "ADMIN" || role === "SUPER_ADMIN" || role === "MANAGER" || role === "HR";
 }
 
-export async function GET(
+async function getHandler(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -103,7 +105,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
+async function putHandler(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -228,7 +230,7 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
+async function deleteHandler(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -287,3 +289,9 @@ export async function DELETE(
     );
   }
 }
+
+// Apply feature guard
+const performanceGuard = withFeatureGuard(FEATURE_KEYS.PERFORMANCE_MANAGEMENT);
+export const GET = performanceGuard(getHandler);
+export const PUT = performanceGuard(putHandler);
+export const DELETE = performanceGuard(deleteHandler);

@@ -8,8 +8,10 @@ import { auth } from "@/lib/auth-options";
 import { hasPermission } from "@/lib/permissions";
 import supabase from "@/lib/supabase-admin";
 import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
@@ -130,7 +132,7 @@ export async function POST(req: NextRequest) {
   }
  }
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const limit = parseInt(searchParams.get("limit") || "5", 10);
   const page = parseInt(searchParams.get("page") || "1", 10);
@@ -494,3 +496,8 @@ async function generateUniqueSlug(title: string, companyId: string) {
   return slug;
 }
 
+
+// Apply feature guard to all handlers
+const newsGuard = withFeatureGuard(FEATURE_KEYS.NEWS);
+export const POST = newsGuard(postHandler);
+export const GET = newsGuard(getHandler);

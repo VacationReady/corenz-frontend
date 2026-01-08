@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
 import { z } from "zod";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 const meetingSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -21,7 +23,7 @@ function isManagerOrAdmin(role?: string | null) {
   return role === "ADMIN" || role === "SUPER_ADMIN" || role === "MANAGER" || role === "HR";
 }
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
@@ -95,7 +97,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
@@ -186,3 +188,8 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+// Apply feature guard
+const performanceGuard = withFeatureGuard(FEATURE_KEYS.PERFORMANCE_MANAGEMENT);
+export const GET = performanceGuard(getHandler);
+export const POST = performanceGuard(postHandler);

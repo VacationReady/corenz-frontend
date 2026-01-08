@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getMobileSession } from "@/lib/mobile-session";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 const createSurveySchema = z.object({
   name: z.string().min(1),
@@ -27,7 +29,7 @@ const createSurveySchema = z.object({
   }).optional(),
 });
 
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
   try {
     const session = await getMobileSession(request);
     if (!session?.user?.companyId) {
@@ -99,7 +101,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const session = await getMobileSession(request);
     if (!session?.user?.companyId) {
@@ -169,3 +171,8 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply feature guard
+const surveysGuard = withFeatureGuard(FEATURE_KEYS.SURVEYS);
+export const GET = surveysGuard(getHandler);
+export const POST = surveysGuard(postHandler);

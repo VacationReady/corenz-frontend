@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 interface RouteParams {}
 
@@ -28,7 +30,7 @@ async function getPostForCompany(slug: string, companyId: string) {
   });
 }
 
-export async function POST(req: NextRequest, context: any) {
+async function postHandler(req: NextRequest, context: any) {
   const session = await auth();
 
   if (!session?.user?.id || !session.user.companyId) {
@@ -78,7 +80,7 @@ export async function POST(req: NextRequest, context: any) {
   });
 }
 
-export async function DELETE(req: NextRequest, context: any) {
+async function deleteHandler(req: NextRequest, context: any) {
   const session = await auth();
 
   if (!session?.user?.id || !session.user.companyId) {
@@ -111,4 +113,9 @@ export async function DELETE(req: NextRequest, context: any) {
     userReaction: null,
   });
 }
+
+// Apply feature guard
+const newsGuard = withFeatureGuard(FEATURE_KEYS.NEWS);
+export const POST = newsGuard(postHandler);
+export const DELETE = newsGuard(deleteHandler);
 

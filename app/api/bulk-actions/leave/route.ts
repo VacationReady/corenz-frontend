@@ -10,6 +10,8 @@ import { notifyApproversForStage } from "@/lib/approvalNotifications";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
 import { createLeaveApprovalActionItem } from "@/lib/action-items-helper";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 const payloadSchema = z.object({
   employeeIds: z.array(z.string().uuid()).min(1),
@@ -21,7 +23,7 @@ const payloadSchema = z.object({
   forceApprove: z.boolean().optional().default(true), // Default to auto-approve for admin bulk actions
 });
 
-export async function POST(request: Request) {
+async function postHandler(request: Request) {
   try {
     await ensurePrismaConnected();
     const session = await auth();
@@ -376,3 +378,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// Apply feature guard
+export const POST = withFeatureGuard(FEATURE_KEYS.BULK_ACTIONS)(postHandler);

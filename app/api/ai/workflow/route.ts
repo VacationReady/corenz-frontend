@@ -16,8 +16,10 @@ import {
   handleNodeDiscovery,
 } from "@/lib/ai/workflow-generator";
 import { prisma } from "@/lib/prisma";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
@@ -180,7 +182,7 @@ async function saveWorkflow(workflow: any, user: any) {
 }
 
 // GET examples
-export async function GET() {
+async function getHandler() {
   return NextResponse.json({
     examples: [
       "Send a reminder to managers 5 days before probation ends",
@@ -204,4 +206,9 @@ export async function GET() {
     ],
   });
 }
+
+// Apply feature guard to all handlers
+const aiGuard = withFeatureGuard(FEATURE_KEYS.AI_ASSISTANT);
+export const POST = aiGuard(postHandler);
+export const GET = aiGuard(getHandler);
 

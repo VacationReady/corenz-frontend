@@ -3,11 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { sendNewsEmail } from "@/lib/news/sendNewsEmail";
 import { isEmailRateLimited, getEmailRateLimitError } from "@/lib/email-rate-limit";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 interface Params {}
 
 // GET: Fetch a single news post
-export async function GET(req: NextRequest, context: any) {
+async function getHandler(req: NextRequest, context: any) {
   const session = await auth();
 
   if (!session?.user) {
@@ -37,7 +39,7 @@ export async function GET(req: NextRequest, context: any) {
 }
 
 // PUT: Update a news post
-export async function PUT(req: NextRequest, context: any) {
+async function putHandler(req: NextRequest, context: any) {
   const session = await auth();
 
   if (!session?.user) {
@@ -132,7 +134,7 @@ export async function PUT(req: NextRequest, context: any) {
 }
 
 // DELETE: Delete a news post
-export async function DELETE(req: NextRequest, context: any) {
+async function deleteHandler(req: NextRequest, context: any) {
   const session = await auth();
 
   if (!session?.user) {
@@ -182,3 +184,9 @@ function mapNewsPost<T extends NewsPostRecord>(post: T) {
     coverImage: coverImageUrl ?? null,
   } as Omit<T, "coverImageUrl"> & { coverImage: string | null };
 }
+
+// Apply feature guard to all handlers
+const newsGuard = withFeatureGuard(FEATURE_KEYS.NEWS);
+export const GET = newsGuard(getHandler);
+export const PUT = newsGuard(putHandler);
+export const DELETE = newsGuard(deleteHandler);

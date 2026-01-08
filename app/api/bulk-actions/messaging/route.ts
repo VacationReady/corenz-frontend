@@ -5,6 +5,8 @@ import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 import { auditLog } from "@/lib/audit";
+import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 const payloadSchema = z.object({
   employeeIds: z.array(z.string().uuid()),
@@ -21,7 +23,7 @@ const payloadSchema = z.object({
   { message: "At least one employee must be selected", path: ["employeeIds"] }
 );
 
-export async function POST(request: Request) {
+async function postHandler(request: Request) {
   try {
     await ensurePrismaConnected();
     const session = await auth();
@@ -269,3 +271,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// Apply feature guard
+export const POST = withFeatureGuard(FEATURE_KEYS.BULK_ACTIONS)(postHandler);

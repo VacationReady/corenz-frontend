@@ -30,6 +30,7 @@ export default function XeroIntegrationPage() {
   const searchParams = useSearchParams();
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     message: string;
@@ -80,8 +81,58 @@ export default function XeroIntegrationPage() {
   };
 
   const handleDisconnect = async () => {
-    // TODO: Implement disconnect logic
-    setIsConnected(false);
+    if (!confirm("Are you sure you want to disconnect from Xero? This will remove all stored credentials.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/xero/disconnect", {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        setIsConnected(false);
+        setStatusMessage({
+          type: "success",
+          message: "Successfully disconnected from Xero",
+        });
+      } else {
+        throw new Error("Failed to disconnect");
+      }
+    } catch (error) {
+      console.error("Disconnect error:", error);
+      setStatusMessage({
+        type: "error",
+        message: "Failed to disconnect from Xero",
+      });
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    setStatusMessage(null);
+
+    try {
+      const res = await fetch("/api/xero/test");
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setStatusMessage({
+          type: "success",
+          message: `Connection successful! Connected to: ${data.organization?.Name || "Xero"}`,
+        });
+      } else {
+        throw new Error(data.error || "Test failed");
+      }
+    } catch (error) {
+      console.error("Test error:", error);
+      setStatusMessage({
+        type: "error",
+        message: `Connection test failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   const systemBreadcrumb = breadcrumbConfigs.settingsSection("System Settings");
@@ -200,10 +251,21 @@ export default function XeroIntegrationPage() {
                     </Button>
                     <Button
                       variant="ghost"
+                      onClick={handleTestConnection}
+                      disabled={isTesting}
                       className="flex items-center gap-2"
                     >
-                      <Settings className="h-4 w-4" />
-                      Sync Settings
+                      {isTesting ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <Settings className="h-4 w-4" />
+                          Test Connection
+                        </>
+                      )}
                     </Button>
                   </div>
                 </>

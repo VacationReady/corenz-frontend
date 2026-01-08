@@ -126,19 +126,19 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - **Property 3: Navigation Filtering Consistency**
     - **Validates: Requirements 3.1, 3.2, 3.3**
 
-- [ ] 7. Settings Page Updates
-  - [ ] 7.1 Move Onboarding to Forms & Data Collection section
+- [x] 7. Settings Page Updates
+  - [x] 7.1 Move Onboarding to Forms & Data Collection section
     - Update settings page to include Onboarding in formSettings array
     - Remove from workflowSettings if present
     - _Requirements: 6.1, 6.2_
 
-  - [ ] 7.2 Filter settings cards based on feature toggles
+  - [x] 7.2 Filter settings cards based on feature toggles
     - Import useFeatureToggles hook
     - Filter holidaySettings, formSettings, workflowSettings, documentSettings
     - Hide cards for disabled features
     - _Requirements: 3.4, 6.3, 6.4, 6.5_
 
-  - [ ] 7.3 Write property test for settings card filtering
+  - [x] 7.3 Write property test for settings card filtering
     - **Property 4: Settings Card Filtering**
     - **Validates: Requirements 3.4, 6.3, 6.5**
 

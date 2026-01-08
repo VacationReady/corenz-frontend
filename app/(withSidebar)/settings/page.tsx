@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
@@ -46,125 +46,163 @@ import { ContextualHelpAssistant } from "@/components/settings/ContextualHelpAss
 import { SmartTooltip, QuickHelp } from "@/components/ui/SmartTooltip";
 import { Badge } from "@/components/ui/Badge";
 import { useSession } from "next-auth/react";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { FeatureKey, FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
-const holidaySettings = [
+/**
+ * Settings item interface with optional feature key for filtering
+ */
+interface SettingsItem {
+  title: string;
+  href: string;
+  icon: React.ReactNode;
+  description: string;
+  featureKey?: FeatureKey; // Optional - items without featureKey are always shown
+  helpPreset?: string;
+}
+
+const holidaySettings: SettingsItem[] = [
   {
     title: "Working Patterns",
     href: "/settings/working-patterns",
     icon: <Clock className="h-5 w-5" />,
     description: "Define schedules and contracted hours for every team",
+    // No featureKey - always visible (core functionality)
   },
   {
     title: "Public Holiday Templates",
     href: "/settings/public-holidays",
     icon: <Calendar className="h-5 w-5" />,
     description: "Sync region-specific statutory holidays automatically",
+    // No featureKey - always visible (core functionality)
   },
   {
     title: "Expiry Alerts",
     href: "/settings/expiry-alerts",
     icon: <AlertTriangle className="h-5 w-5" />,
     description: "Automate reminders before important dates lapse",
+    // No featureKey - always visible (core functionality)
   },
   {
     title: "Event Rules",
     href: "/settings/event-rules",
     icon: <Shield className="h-5 w-5" />,
     description: "Configure triggers that keep people informed",
+    featureKey: FEATURE_KEYS.EVENT_RULES,
   },
   {
     title: "Event Manager",
     href: "/settings/event-manager",
     icon: <Bell className="h-5 w-5" />,
     description: "Orchestrate notifications for key company events",
+    // No featureKey - always visible (core functionality)
   },
   {
     title: "Leave Policies",
     href: "/settings/leave-policies",
     icon: <FileText className="h-5 w-5" />,
     description: "Control entitlements, carryover rules, and approvals",
+    // No featureKey - always visible (core functionality)
   },
   {
     title: "Multi-stage Approvals",
     href: "/settings/multi-stage-approvals",
     icon: <Share2 className="h-5 w-5" />,
     description: "Design layered approval chains for complex workflows",
+    featureKey: FEATURE_KEYS.MULTI_STAGE_APPROVALS,
   },
   {
     title: "Time Tracking",
     href: "/admin/settings/time-tracking",
     icon: <Clock className="h-5 w-5" />,
     description: "Configure timesheet, shift, and clock in/out settings",
+    featureKey: FEATURE_KEYS.TIMESHEETS,
   },
   {
     title: "Locations",
     href: "/admin/locations",
     icon: <MapPin className="h-5 w-5" />,
     description: "Manage work locations and geofence boundaries for time tracking",
+    featureKey: FEATURE_KEYS.TIMESHEETS, // Locations are part of time tracking
   },
 ];
 
-const formSettings = [
+const formSettings: SettingsItem[] = [
   {
     title: "Forms",
     href: "/settings/forms",
     icon: <ClipboardList className="h-5 w-5" />,
     description: "Build custom forms and data tables for employees",
+    featureKey: FEATURE_KEYS.FORMS,
   },
   {
     title: "Exit Interviews",
     href: "/settings/forms/exit-interview",
     icon: <UserMinus className="h-5 w-5" />,
     description: "Manage exit interview templates and offboarding",
+    featureKey: FEATURE_KEYS.FORMS, // Part of forms functionality
   },
   {
     title: "Surveys",
     href: "/settings/surveys",
     icon: <FileText className="h-5 w-5" />,
     description: "Create one-time surveys distributed through action items",
+    featureKey: FEATURE_KEYS.SURVEYS,
+  },
+  {
+    title: "Onboarding",
+    href: "/settings/onboarding",
+    icon: <UserPlus className="h-5 w-5" />,
+    description: "Design onboarding templates and new employee workflows",
+    featureKey: FEATURE_KEYS.ONBOARDING,
   },
 ];
 
-// Onboarding is now integrated into Journey Designer
+// Onboarding is now in Forms & Data Collection section (Requirement 6.1)
 // const onboardingSettings = [];
 
-const documentSettings = [
+const documentSettings: SettingsItem[] = [
   {
     title: "Document Types",
     href: "/settings/document-types",
     icon: <FolderKanban className="h-5 w-5" />,
     description: "Organise, categorise, and secure uploaded files",
+    // No featureKey - always visible (core functionality)
   },
 ];
 
-const workflowSettings = [
+const workflowSettings: SettingsItem[] = [
   {
     title: "Automation Rules",
     href: "/settings/automation-rules",
     icon: <Repeat className="h-5 w-5" />,
     description: "Automate repetitive tasks with smart triggers",
+    featureKey: FEATURE_KEYS.AUTOMATION_RULES,
   },
   {
-    title: "Journeys & Onboarding",
+    title: "Journeys",
     href: "/settings/journeys",
     icon: <Sailboat className="h-5 w-5" />,
-    description: "Design employee journeys and manage onboarding templates with AI assistance",
+    description: "Design employee journey workflows with AI assistance",
+    featureKey: FEATURE_KEYS.JOURNEYS,
   },
   {
     title: "Transactional Notifications",
     href: "/settings/workflows/notifications",
     icon: <Bell className="h-5 w-5" />,
     description: "Personalise the operational messages employees receive",
+    // No featureKey - always visible (core functionality)
   },
 ];
 
-function getSystemSettings(role?: string) {
-  const base = [
+function getSystemSettings(role?: string): SettingsItem[] {
+  const base: SettingsItem[] = [
     {
       title: "Platform Settings",
       href: "/settings/system",
       icon: <Cog className="h-5 w-5" />,
       description: "Manage tenant-wide preferences, branding, and access",
+      // No featureKey - always visible (core functionality)
     },
   ];
   return base;
@@ -181,13 +219,7 @@ function SettingSection({
 }: {
   id: string;
   label: string;
-  items: {
-    title: string;
-    href: string;
-    icon: React.ReactNode;
-    description?: string;
-    helpPreset?: string;
-  }[];
+  items: SettingsItem[];
   icon: React.ReactNode;
   description?: string;
   completionStatus?: { completed: number; total: number };
@@ -197,6 +229,11 @@ function SettingSection({
     completionStatus && completionStatus.total > 0
       ? Math.round((completionStatus.completed / completionStatus.total) * 100)
       : 0;
+
+  // Don't render the section if there are no items
+  if (items.length === 0) {
+    return null;
+  }
 
   return (
     <AccordionItem
@@ -295,6 +332,7 @@ function SettingSection({
 export default function SettingsIndexPage() {
   const { data: session } = useSession();
   const role = session?.user?.role;
+  const { isFeatureEnabled, isLoading: featureTogglesLoading } = useFeatureToggles();
   const [completionData, setCompletionData] = useState<
     Record<string, { completed: number; total: number }>
   >({});
@@ -307,14 +345,55 @@ export default function SettingsIndexPage() {
       setCompletionData({
         holidays: { completed: 2, total: 8 }, // Updated to include time tracking
         documents: { completed: 0, total: 1 },
-        workflows: { completed: 1, total: 3 }, // Updated to include onboarding in journeys
-        forms: { completed: 0, total: 3 },
+        workflows: { completed: 1, total: 3 },
+        forms: { completed: 0, total: 4 }, // Updated to include onboarding
         system: { completed: 1, total: 2 },
       });
     }
   }, []);
 
-  const holidaySettingsWithHelp = holidaySettings.map((item) => ({
+  /**
+   * Filter settings items based on feature toggles
+   * Items without a featureKey are always shown (core functionality)
+   * Items with a featureKey are only shown if that feature is enabled
+   */
+  const filterSettingsByFeature = (items: SettingsItem[]): SettingsItem[] => {
+    return items.filter((item) => {
+      // If no featureKey, always show (core functionality)
+      if (!item.featureKey) return true;
+      // Otherwise, check if the feature is enabled
+      return isFeatureEnabled(item.featureKey);
+    });
+  };
+
+  // Filter all settings arrays based on feature toggles
+  const filteredHolidaySettings = useMemo(
+    () => filterSettingsByFeature(holidaySettings),
+    [isFeatureEnabled]
+  );
+
+  const filteredFormSettings = useMemo(
+    () => filterSettingsByFeature(formSettings),
+    [isFeatureEnabled]
+  );
+
+  const filteredDocumentSettings = useMemo(
+    () => filterSettingsByFeature(documentSettings),
+    [isFeatureEnabled]
+  );
+
+  const filteredWorkflowSettings = useMemo(
+    () => filterSettingsByFeature(workflowSettings),
+    [isFeatureEnabled]
+  );
+
+  const filteredSystemSettings = useMemo(
+    () => filterSettingsByFeature(getSystemSettings(role)),
+    [role, isFeatureEnabled]
+  );
+
+  // Add help presets to filtered settings
+  const holidaySettingsWithHelp = filteredHolidaySettings.map((item) => ({
     ...item,
     helpPreset:
       item.title === "Working Patterns"
@@ -334,7 +413,7 @@ export default function SettingsIndexPage() {
         : undefined,
   }));
 
-  const workflowSettingsWithHelp = workflowSettings.map((item) => ({
+  const workflowSettingsWithHelp = filteredWorkflowSettings.map((item) => ({
     ...item,
     helpPreset:
       item.title === "Automation Rules"
@@ -344,9 +423,9 @@ export default function SettingsIndexPage() {
         : undefined,
   }));
 
-  // Onboarding is now integrated into Journey Designer
+  // Onboarding is now in Forms & Data Collection section
 
-  const documentSettingsWithHelp = documentSettings.map((item) => ({
+  const documentSettingsWithHelp = filteredDocumentSettings.map((item) => ({
     ...item,
     helpPreset: item.title === "Document Types" ? "documentTypes" : undefined,
   }));
@@ -424,7 +503,7 @@ export default function SettingsIndexPage() {
               label="Forms & Data Collection"
               description="Design and deploy custom forms, data tables, and surveys"
               icon={<ClipboardList className="w-5 h-5" />}
-              items={formSettings}
+              items={filteredFormSettings}
               completionStatus={completionData.forms}
             />
             <SettingSection
@@ -432,7 +511,7 @@ export default function SettingsIndexPage() {
               label="System"
               description="Core platform settings and administrative controls"
               icon={<Settings className="w-5 h-5" />}
-              items={getSystemSettings(role)}
+              items={filteredSystemSettings}
               completionStatus={completionData.system}
               showProgressBar={false}
             />

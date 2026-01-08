@@ -543,9 +543,12 @@ export type EmployeeProfileScreen = typeof EMPLOYEE_PROFILE_SCREENS[number];
  * Access rules:
  * - ADMIN and SUPER_ADMIN can access any employee in their company
  * - A user can access their own employee record
- * - A MANAGER can access employees whose user.managerId = requestor.id
- * - A user with "employees" read permission via their permission profile can access any employee
- * - A user with ANY employee-* screen read permission can access employee profiles (limited to those screens)
+ * - A MANAGER can access employees in their reporting chain (direct + indirect reports)
+ * - An EMPLOYEE with "employees" read permission via profile can access any employee
+ * - An EMPLOYEE with ANY employee-* screen permission can access employee profiles
+ * 
+ * SECURITY NOTE: Managers are ALWAYS restricted to their subordinates, even with permission profiles.
+ * Permission profiles for managers only expand WHAT screens they can see, not WHO they can access.
  */
 export async function canAccessEmployee(
   requestor: {
@@ -572,47 +575,94 @@ export async function canAccessEmployee(
 
   if (!target) return false;
 
-  // Self-access
+  // Self-access - always allowed
   if (target.userId === requestor.id) return true;
 
-  // Check if user has "employees" or any "employee-*" read permission via their permission profile
-  const requestorUser = await prisma.user.findUnique({
-    where: { id: requestor.id },
-    include: {
-      PermissionProfile: true,
-    },
-  });
-
-  if (requestorUser) {
-    const userWithProfile: UserWithProfile = {
-      ...requestorUser,
-      permissionProfile: requestorUser.PermissionProfile,
-    };
+  // MANAGER access: restricted to subordinates (direct + indirect reports)
+  // This check happens BEFORE permission profiles to ensure managers can never
+  // access employees outside their reporting chain
+  if (requestor.role === "MANAGER") {
+    const isSubordinate = await isUserSubordinateOf(
+      target.userId,
+      requestor.id,
+      requestor.companyId
+    );
     
-    // If user has "employees" read permission via profile, allow full access
-    if (hasPermission(userWithProfile, "employees", "read")) {
-      return true;
-    }
-    
-    // Check if user has ANY employee-* screen permission - if so, allow access to profile
-    // (individual pages should then check their specific permissions)
-    for (const screen of EMPLOYEE_PROFILE_SCREENS) {
-      if (hasPermission(userWithProfile, screen, "read")) {
-        return true;
-      }
-    }
+    // Managers can only access their subordinates
+    // Permission profiles expand WHAT they can see, not WHO
+    return isSubordinate;
   }
 
+  // EMPLOYEE access: check permission profiles
   if (requestor.role === "EMPLOYEE") {
+    const requestorUser = await prisma.user.findUnique({
+      where: { id: requestor.id },
+      include: {
+        PermissionProfile: true,
+      },
+    });
+
+    if (requestorUser) {
+      const userWithProfile: UserWithProfile = {
+        ...requestorUser,
+        permissionProfile: requestorUser.PermissionProfile,
+      };
+      
+      // If user has "employees" read permission via profile, allow full access
+      if (hasPermission(userWithProfile, "employees", "read")) {
+        return true;
+      }
+      
+      // Check if user has ANY employee-* screen permission - if so, allow access to profile
+      // (individual pages should then check their specific permissions)
+      for (const screen of EMPLOYEE_PROFILE_SCREENS) {
+        if (hasPermission(userWithProfile, screen, "read")) {
+          return true;
+        }
+      }
+    }
+    
     return false;
   }
 
-  // Manager access (only if they directly manage the target)
-  // NOTE: For managers, we rely on the User.managerId relation
-  if (requestor.role === "MANAGER") {
-    return target.User?.managerId === requestor.id;
-  }
+  return false;
+}
 
+/**
+ * Checks if a target user is a subordinate (direct or indirect) of a manager.
+ * Uses iterative approach to traverse the reporting chain upward from the target.
+ */
+async function isUserSubordinateOf(
+  targetUserId: string | null,
+  managerUserId: string,
+  companyId: string
+): Promise<boolean> {
+  if (!targetUserId) return false;
+  
+  // Walk up the management chain from the target to see if we reach the manager
+  let currentUserId: string | null = targetUserId;
+  const visited = new Set<string>();
+  
+  while (currentUserId) {
+    // Prevent infinite loops
+    if (visited.has(currentUserId)) break;
+    visited.add(currentUserId);
+    
+    const subordinateUser: { managerId: string | null } | null = await prisma.user.findUnique({
+      where: { id: currentUserId, companyId },
+      select: { managerId: true },
+    });
+    
+    if (!subordinateUser) break;
+    
+    // Found the manager in the chain
+    if (subordinateUser.managerId === managerUserId) {
+      return true;
+    }
+    
+    currentUserId = subordinateUser.managerId;
+  }
+  
   return false;
 }
 

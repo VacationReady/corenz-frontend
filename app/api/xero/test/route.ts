@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { xeroApiRequest } from "@/lib/xero";
+import { isAdmin } from "@/lib/roles";
 
 /**
  * Test endpoint to verify Xero connection and token refresh
@@ -11,6 +12,14 @@ export async function GET() {
     const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is admin
+    if (!isAdmin(session.user)) {
+      return NextResponse.json(
+        { error: "Forbidden - Admin access required" },
+        { status: 403 }
+      );
     }
 
     // Make a test API call to Xero - fetch organization details

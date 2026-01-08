@@ -25,8 +25,11 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { isAdmin } from "@/lib/roles";
 
 export default function XeroIntegrationPage() {
+  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -36,6 +39,55 @@ export default function XeroIntegrationPage() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+
+  // Check if user is admin
+  const userIsAdmin = session?.user ? isAdmin(session.user) : false;
+
+  // Show loading state while checking auth
+  if (status === "loading") {
+    return (
+      <PageShell
+        title="Xero Integration"
+        description="Loading..."
+        breadcrumbs={breadcrumbConfigs.settingsSection("Xero Integration")}
+        showHomeIcon={false}
+      >
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Show access denied if not admin
+  if (!userIsAdmin) {
+    return (
+      <PageShell
+        title="Xero Integration"
+        description="Access Denied"
+        breadcrumbs={breadcrumbConfigs.settingsSection("Xero Integration")}
+        showHomeIcon={false}
+      >
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900">
+          <CardHeader>
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-red-100 dark:bg-red-900 p-2 text-red-600 dark:text-red-400">
+                <AlertCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base text-red-900 dark:text-red-100">
+                  Access Denied
+                </CardTitle>
+                <CardDescription className="text-sm mt-2 text-red-800 dark:text-red-200">
+                  Only administrators can access system integration settings. Please contact your system administrator if you need access.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+      </PageShell>
+    );
+  }
 
   useEffect(() => {
     // Fetch connection status
@@ -150,18 +202,29 @@ export default function XeroIntegrationPage() {
           message: `${data.message}! Found ${data.employeeCount} employee${data.employeeCount !== 1 ? 's' : ''} in Xero Payroll.`,
         });
       } else if (res.status === 403) {
+        // Expected for uncertified apps - show as info, not error
         setStatusMessage({
           type: "error",
           message: data.message || "Payroll access restricted. This requires Xero partner certification.",
         });
+      } else if (res.status === 401) {
+        // Authentication issue
+        setStatusMessage({
+          type: "error",
+          message: data.message || "Authentication failed. Try reconnecting to Xero.",
+        });
       } else {
-        throw new Error(data.message || data.error || "Payroll test failed");
+        // Other errors
+        setStatusMessage({
+          type: "error",
+          message: data.message || data.error || "Payroll test failed",
+        });
       }
     } catch (error) {
       console.error("Payroll test error:", error);
       setStatusMessage({
         type: "error",
-        message: `Payroll test failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Unexpected error: ${error instanceof Error ? error.message : "Unknown error"}`,
       });
     } finally {
       setIsTestingPayroll(false);

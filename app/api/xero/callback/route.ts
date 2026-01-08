@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { isAdmin } from "@/lib/roles";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -27,6 +28,13 @@ export async function GET(req: NextRequest) {
     if (!session?.user?.companyId) {
       return NextResponse.redirect(
         new URL("/settings/system/xero-integration?error=no_session", req.url)
+      );
+    }
+
+    // Check if user is admin
+    if (!isAdmin(session.user)) {
+      return NextResponse.redirect(
+        new URL("/settings/system/xero-integration?error=admin_required", req.url)
       );
     }
 

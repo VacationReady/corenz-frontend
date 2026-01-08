@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { canAccessEmployee } from "@/lib/permissions";
 
 export async function GET(
   req: NextRequest,
@@ -9,7 +10,7 @@ export async function GET(
   const { id } = await context.params;
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session?.user?.companyId) {
       return NextResponse.json({ acknowledged: false });
     }
 
@@ -30,18 +31,23 @@ export async function GET(
     let checkEmployeeId = currentEmployee.id;
     
     if (targetEmployeeId && targetEmployeeId !== currentEmployee.id) {
-      // Verify the target employee belongs to the same company
-      const targetEmployee = await prisma.employee.findFirst({
-        where: {
-          id: targetEmployeeId,
-          companyId: currentEmployee.companyId,
+      // Verify the requesting user has permission to access the target employee's data
+      const canAccess = await canAccessEmployee(
+        {
+          id: session.user.id,
+          role: session.user.role as "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN",
+          companyId: session.user.companyId,
         },
-        select: { id: true },
-      });
+        targetEmployeeId
+      );
       
-      if (targetEmployee) {
-        checkEmployeeId = targetEmployee.id;
+      if (!canAccess) {
+        // User doesn't have permission to view this employee's acknowledgment status
+        // Return false rather than 403 to avoid leaking information about employee existence
+        return NextResponse.json({ acknowledged: false });
       }
+      
+      checkEmployeeId = targetEmployeeId;
     }
 
     const document = await prisma.document.findFirst({

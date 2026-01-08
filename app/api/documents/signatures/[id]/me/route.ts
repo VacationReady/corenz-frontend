@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
+import { canAccessEmployee } from "@/lib/permissions";
 
 export async function GET(
   req: NextRequest,
@@ -28,17 +29,33 @@ export async function GET(
     let checkEmployee = currentEmployee;
     
     if (targetEmployeeId && targetEmployeeId !== currentEmployee.id) {
-      // Verify the target employee belongs to the same company
-      const targetEmployee = await prisma.employee.findFirst({
-        where: {
-          id: targetEmployeeId,
+      // Verify the requesting user has permission to access the target employee's data
+      const canAccess = await canAccessEmployee(
+        {
+          id: session.user.id,
+          role: session.user.role as "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN",
           companyId: session.user.companyId,
         },
-        select: { id: true, departmentId: true, jobRoleId: true },
-      });
+        targetEmployeeId
+      );
       
-      if (targetEmployee) {
-        checkEmployee = targetEmployee;
+      if (!canAccess) {
+        // User doesn't have permission to view this employee's signature status
+        // Return current user's status to avoid information disclosure
+        checkEmployee = currentEmployee;
+      } else {
+        // Fetch the target employee's details for eligibility check
+        const targetEmployee = await prisma.employee.findFirst({
+          where: {
+            id: targetEmployeeId,
+            companyId: session.user.companyId,
+          },
+          select: { id: true, departmentId: true, jobRoleId: true },
+        });
+        
+        if (targetEmployee) {
+          checkEmployee = targetEmployee;
+        }
       }
     }
 

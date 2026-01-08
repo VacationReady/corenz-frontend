@@ -5,6 +5,7 @@ import {
   documentStatusCache,
   generateDocumentStatusCacheKey,
 } from "@/lib/cache";
+import { canAccessEmployee } from "@/lib/permissions";
 
 /**
  * POST /api/documents/status
@@ -79,23 +80,27 @@ export async function POST(req: NextRequest) {
     }
 
     // Determine which employee's status to check
-    // If targetEmployeeId is provided and different from current user, verify it belongs to same company
+    // If targetEmployeeId is provided and different from current user, verify authorization
     let checkEmployeeId = currentEmployee.id;
     
     if (targetEmployeeId && targetEmployeeId !== currentEmployee.id) {
-      // Verify the target employee belongs to the same company
-      const targetEmployee = await prisma.employee.findFirst({
-        where: {
-          id: targetEmployeeId,
+      // Verify the requesting user has permission to access the target employee's data
+      const canAccess = await canAccessEmployee(
+        {
+          id: session.user.id,
+          role: session.user.role as "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN",
           companyId: session.user.companyId,
         },
-        select: { id: true },
-      });
+        targetEmployeeId
+      );
       
-      if (targetEmployee) {
-        checkEmployeeId = targetEmployee.id;
+      if (!canAccess) {
+        // User doesn't have permission to view this employee's document status
+        // Fall back to current user's status to avoid information disclosure
+        checkEmployeeId = currentEmployee.id;
+      } else {
+        checkEmployeeId = targetEmployeeId;
       }
-      // If target employee not found or not in same company, fall back to current user
     }
 
     // 4. Check cache before database queries

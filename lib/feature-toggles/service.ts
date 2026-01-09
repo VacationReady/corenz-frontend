@@ -15,6 +15,7 @@ import {
   FeatureKey,
   FeatureToggleState,
   ALL_FEATURE_KEYS,
+  FEATURES_DISABLED_BY_DEFAULT,
   isValidFeatureKey,
 } from "./types";
 import { AuditEntityType, AuditAction, AuditActorType } from "@prisma/client";
@@ -72,8 +73,9 @@ class FeatureToggleService implements IFeatureToggleService {
    */
   async isFeatureEnabled(companyId: string, featureKey: FeatureKey): Promise<boolean> {
     const features = await this.getEnabledFeatures(companyId);
-    // Default to true if not found (fail-open for better UX)
-    return features[featureKey] ?? true;
+    // Default based on FEATURES_DISABLED_BY_DEFAULT if not found
+    const defaultValue = !FEATURES_DISABLED_BY_DEFAULT.includes(featureKey);
+    return features[featureKey] ?? defaultValue;
   }
 
   /**
@@ -104,11 +106,13 @@ class FeatureToggleService implements IFeatureToggleService {
       select: { featureKey: true, isEnabled: true },
     });
 
-    // Build state object, defaulting to true for missing features
+    // Build state object, defaulting based on FEATURES_DISABLED_BY_DEFAULT
     const state: FeatureToggleState = {};
     for (const key of ALL_FEATURE_KEYS) {
       const toggle = toggles.find((t: { featureKey: string; isEnabled: boolean }) => t.featureKey === key);
-      state[key] = toggle?.isEnabled ?? true;
+      // Default to false for features in FEATURES_DISABLED_BY_DEFAULT, true otherwise
+      const defaultValue = !FEATURES_DISABLED_BY_DEFAULT.includes(key);
+      state[key] = toggle?.isEnabled ?? defaultValue;
     }
 
     // Cache the result
@@ -150,7 +154,9 @@ class FeatureToggleService implements IFeatureToggleService {
         where: { companyId_featureKey: { companyId, featureKey } },
         select: { isEnabled: true },
       });
-      oldValue = currentToggle?.isEnabled ?? true; // Default to true if not found
+      // Default based on FEATURES_DISABLED_BY_DEFAULT if not found
+      const defaultValue = !FEATURES_DISABLED_BY_DEFAULT.includes(featureKey);
+      oldValue = currentToggle?.isEnabled ?? defaultValue;
     }
 
     await prisma.tenantFeatureToggle.upsert({
@@ -246,7 +252,8 @@ class FeatureToggleService implements IFeatureToggleService {
    * Initialize default toggles for a new tenant
    * 
    * Creates toggle records for all features. If enabledFeatures is provided,
-   * only those features are enabled; otherwise all features are enabled.
+   * only those features are enabled; otherwise features are enabled based on
+   * FEATURES_DISABLED_BY_DEFAULT (most enabled, beta features disabled).
    * (Requirement 1.2, 2.7)
    * Optionally logs changes to audit log (Requirement 7.6)
    * 
@@ -262,8 +269,10 @@ class FeatureToggleService implements IFeatureToggleService {
     const toggleData = ALL_FEATURE_KEYS.map(featureKey => ({
       companyId,
       featureKey,
-      // If enabledFeatures is provided, only enable those; otherwise enable all
-      isEnabled: enabledFeatures ? enabledFeatures.includes(featureKey) : true,
+      // If enabledFeatures is provided, only enable those; otherwise use defaults
+      isEnabled: enabledFeatures 
+        ? enabledFeatures.includes(featureKey) 
+        : !FEATURES_DISABLED_BY_DEFAULT.includes(featureKey),
     }));
 
     // Use createMany with skipDuplicates to handle re-initialization gracefully
@@ -274,16 +283,18 @@ class FeatureToggleService implements IFeatureToggleService {
 
     // Create audit log entries for initialization (Requirement 7.6)
     if (auditOptions?.actorId) {
-      const auditPromises = toggleData.map(toggle =>
-        this.createAuditLogEntry(
+      const auditPromises = toggleData.map(toggle => {
+        // Default value before initialization depends on FEATURES_DISABLED_BY_DEFAULT
+        const defaultValue = !FEATURES_DISABLED_BY_DEFAULT.includes(toggle.featureKey as FeatureKey);
+        return this.createAuditLogEntry(
           companyId,
           toggle.featureKey as FeatureKey,
-          true, // Default value before initialization
+          defaultValue,
           toggle.isEnabled,
           auditOptions,
           AuditAction.CREATED
-        )
-      );
+        );
+      });
       await Promise.all(auditPromises);
     }
 

@@ -26,6 +26,7 @@ export const FEATURE_KEYS = {
   ROTA_SHIFTS: 'rota_shifts',
   MULTI_STAGE_APPROVALS: 'multi_stage_approvals',
   ANALYTICS: 'analytics',
+  BUG_REPORTING: 'bug_reporting',
 } as const;
 
 /**
@@ -37,6 +38,14 @@ export type FeatureKey = typeof FEATURE_KEYS[keyof typeof FEATURE_KEYS];
  * Array of all feature keys for iteration
  */
 export const ALL_FEATURE_KEYS: FeatureKey[] = Object.values(FEATURE_KEYS);
+
+/**
+ * Features that should default to disabled for new tenants
+ * These are typically beta features or features requiring explicit opt-in
+ */
+export const FEATURES_DISABLED_BY_DEFAULT: FeatureKey[] = [
+  FEATURE_KEYS.BUG_REPORTING,
+];
 
 /**
  * Interface representing the toggle state for all features
@@ -113,6 +122,13 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
       { key: FEATURE_KEYS.AI_ASSISTANT, label: 'AI Assistant', description: 'AI-powered HR assistant' },
     ],
   },
+  {
+    name: 'Beta Features',
+    description: 'Features in beta testing',
+    features: [
+      { key: FEATURE_KEYS.BUG_REPORTING, label: 'Bug Reporting', description: 'Allow users to submit bug reports' },
+    ],
+  },
 ];
 
 /**
@@ -135,6 +151,7 @@ export const FEATURE_TO_PATHS: Record<FeatureKey, string[]> = {
   [FEATURE_KEYS.ROTA_SHIFTS]: ['/rota', '/admin/reconciliation', '/employee/schedule', '/api/rota-groups', '/api/shifts', '/api/reconciliation'],
   [FEATURE_KEYS.MULTI_STAGE_APPROVALS]: ['/settings/multi-stage-approvals', '/api/approval-workflows'],
   [FEATURE_KEYS.ANALYTICS]: ['/analytics', '/api/analytics'],
+  [FEATURE_KEYS.BUG_REPORTING]: ['/bugs', '/api/bugs'],
 };
 
 /**
@@ -165,11 +182,12 @@ export function getPathsForFeature(featureKey: FeatureKey): string[] {
 }
 
 /**
- * Get the default toggle state (all features enabled)
+ * Get the default toggle state for new tenants
+ * Most features are enabled by default, except those in FEATURES_DISABLED_BY_DEFAULT
  */
 export function getDefaultToggleState(): FeatureToggleState {
   return ALL_FEATURE_KEYS.reduce((acc, key) => {
-    acc[key] = true;
+    acc[key] = !FEATURES_DISABLED_BY_DEFAULT.includes(key);
     return acc;
   }, {} as FeatureToggleState);
 }

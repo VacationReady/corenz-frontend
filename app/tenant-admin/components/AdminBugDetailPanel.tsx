@@ -29,10 +29,12 @@ import { Badge } from "@/components/ui/Badge";
 import {
   BugReportWithTenant,
   BugAttachment,
+  BugComment,
   BugStatus,
   STATUS_INFO,
   SEVERITY_INFO,
 } from "@/types/bugs";
+import { BugComments } from "@/components/bugs/BugComments";
 
 interface AdminBugDetailPanelProps {
   bug: BugReportWithTenant | null;
@@ -60,6 +62,7 @@ export function AdminBugDetailPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [downloadingAttachment, setDownloadingAttachment] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [comments, setComments] = useState<BugComment[]>(bug?.comments || []);
 
   // Reset form when bug changes
   useEffect(() => {
@@ -67,8 +70,13 @@ export function AdminBugDetailPanel({
       setStatus(bug.status);
       setAdminNotes(bug.adminNotes || "");
       setHasChanges(false);
+      setComments(bug.comments || []);
     }
   }, [bug]);
+
+  const handleCommentAdded = useCallback((comment: BugComment) => {
+    setComments((prev) => [...prev, comment]);
+  }, []);
 
   // Track changes
   useEffect(() => {
@@ -377,6 +385,15 @@ export function AdminBugDetailPanel({
                   </div>
                 </div>
               )}
+
+              {/* Comments Section */}
+              <BugComments
+                bugId={bug.id}
+                comments={comments}
+                onCommentAdded={handleCommentAdded}
+                isAdmin={true}
+                apiBasePath="/api/tenant-admin/bugs"
+              />
             </>
           ) : (
             <div className="flex items-center justify-center h-full">

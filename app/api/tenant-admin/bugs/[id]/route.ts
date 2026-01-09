@@ -10,30 +10,24 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth-options";
+import { cookies } from "next/headers";
+import { verifySignedToken, TENANT_ADMIN_COOKIE_NAME } from "@/lib/tenant-admin-auth";
 import { getBugByIdForAdmin, updateBugStatus } from "@/lib/bugs/service";
 import { sanitizeText } from "@/lib/bugs/validation";
 import type { UpdateBugRequest, BugStatus } from "@/types/bugs";
 import { isBugStatus } from "@/types/bugs";
 
 /**
- * Check if the user has tenant admin permission
+ * Check if the user has tenant admin permission via cookie-based auth
  * 
- * Requirement 9.3: Require canManageTenants permission
+ * Requirement 9.3: Verify tenant admin authentication
  */
-async function checkTenantAdminPermission(): Promise<{ authorized: boolean; userId?: string }> {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return { authorized: false };
-  }
-  
-  // Check canManageTenants permission (Requirement 9.3)
-  if (!session.user.canManageTenants) {
-    return { authorized: false };
-  }
-  
-  return { authorized: true, userId: session.user.id };
+async function isAuthenticated(): Promise<boolean> {
+  const cookieStore = await cookies();
+  const session = cookieStore.get(TENANT_ADMIN_COOKIE_NAME);
+  if (!session?.value) return false;
+  const { valid } = verifySignedToken(session.value);
+  return valid;
 }
 
 /**
@@ -41,17 +35,17 @@ async function checkTenantAdminPermission(): Promise<{ authorized: boolean; user
  * 
  * Requirements:
  * - 8.5: Allow tenant admins to view any bug report
- * - 9.3: Require canManageTenants permission
+ * - 9.3: Require tenant admin authentication
  */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check tenant admin permission (Requirement 9.3)
-    const { authorized } = await checkTenantAdminPermission();
+    // Check tenant admin authentication (Requirement 9.3)
+    const authenticated = await isAuthenticated();
     
-    if (!authorized) {
+    if (!authenticated) {
       return NextResponse.json(
         { error: "Forbidden", code: "FORBIDDEN" },
         { status: 403 }
@@ -87,7 +81,7 @@ export async function GET(
  * - 8.4: Expose PATCH endpoint for updating bug status and adminNotes
  * - 8.5: Only allow updating: status, adminNotes
  * - 8.6: Auto-set resolvedAt when status changes to RESOLVED or CLOSED
- * - 9.3: Require canManageTenants permission
+ * - 9.3: Require tenant admin authentication
  * - 9.4: Create audit log entry for status changes
  */
 export async function PATCH(
@@ -95,10 +89,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check tenant admin permission (Requirement 9.3)
-    const { authorized, userId } = await checkTenantAdminPermission();
+    // Check tenant admin authentication (Requirement 9.3)
+    const authenticated = await isAuthenticated();
     
-    if (!authorized || !userId) {
+    if (!authenticated) {
       return NextResponse.json(
         { error: "Forbidden", code: "FORBIDDEN" },
         { status: 403 }
@@ -166,11 +160,12 @@ export async function PATCH(
     }
 
     // Update bug with audit logging (Requirements 8.4, 8.5, 8.6, 9.4)
+    // Note: actorId is "tenant-admin" since cookie-based auth doesn't have user identity
     const updatedBug = await updateBugStatus({
       bugId,
       status: validatedStatus,
       adminNotes: sanitizedAdminNotes,
-      actorId: userId,
+      actorId: "tenant-admin",
     });
 
     return NextResponse.json({ bug: updatedBug });

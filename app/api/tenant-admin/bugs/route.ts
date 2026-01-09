@@ -9,29 +9,23 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth-options";
+import { cookies } from "next/headers";
+import { verifySignedToken, TENANT_ADMIN_COOKIE_NAME } from "@/lib/tenant-admin-auth";
 import { listAllBugs } from "@/lib/bugs/service";
 import type { AdminListBugsQuery, BugSeverity, BugStatus } from "@/types/bugs";
 import { isBugSeverity, isBugStatus } from "@/types/bugs";
 
 /**
- * Check if the user has tenant admin permission
+ * Check if the user has tenant admin permission via cookie-based auth
  * 
- * Requirement 8.2: Verify canManageTenants permission
+ * Requirement 8.2: Verify tenant admin authentication
  */
-async function checkTenantAdminPermission(): Promise<{ authorized: boolean; userId?: string }> {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return { authorized: false };
-  }
-  
-  // Check canManageTenants permission (Requirement 9.3)
-  if (!session.user.canManageTenants) {
-    return { authorized: false };
-  }
-  
-  return { authorized: true, userId: session.user.id };
+async function isAuthenticated(): Promise<boolean> {
+  const cookieStore = await cookies();
+  const session = cookieStore.get(TENANT_ADMIN_COOKIE_NAME);
+  if (!session?.value) return false;
+  const { valid } = verifySignedToken(session.value);
+  return valid;
 }
 
 /**
@@ -39,16 +33,16 @@ async function checkTenantAdminPermission(): Promise<{ authorized: boolean; user
  * 
  * Requirements:
  * - 8.1: Expose GET /api/tenant-admin/bugs endpoint
- * - 8.2: Verify canManageTenants permission
+ * - 8.2: Verify tenant admin authentication
  * - 8.3: Support query parameters: companyId, status, severity, dateFrom, dateTo, page, limit, sortBy, sortOrder
  * - Include bug statistics in response
  */
 export async function GET(req: NextRequest) {
   try {
-    // Check tenant admin permission (Requirement 8.2)
-    const { authorized } = await checkTenantAdminPermission();
+    // Check tenant admin authentication (Requirement 8.2)
+    const authenticated = await isAuthenticated();
     
-    if (!authorized) {
+    if (!authenticated) {
       return NextResponse.json(
         { error: "Forbidden", code: "FORBIDDEN" },
         { status: 403 }

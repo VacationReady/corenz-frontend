@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -12,26 +12,25 @@ import {
   Download,
   FileText,
   Image as ImageIcon,
-  ExternalLink,
   Loader2,
   X,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
 import {
   BugReport,
   BugAttachment,
+  BugComment,
   STATUS_INFO,
   SEVERITY_INFO,
 } from "@/types/bugs";
+import { BugComments } from "./BugComments";
 
 interface BugDetailModalProps {
   bug: BugReport | null;
@@ -45,6 +44,18 @@ export default function BugDetailModal({
   onClose,
 }: BugDetailModalProps) {
   const [downloadingAttachment, setDownloadingAttachment] = useState<string | null>(null);
+  const [comments, setComments] = useState<BugComment[]>(bug?.comments || []);
+
+  // Update comments when bug changes
+  useEffect(() => {
+    if (bug?.comments) {
+      setComments(bug.comments);
+    }
+  }, [bug?.comments]);
+
+  const handleCommentAdded = useCallback((comment: BugComment) => {
+    setComments((prev) => [...prev, comment]);
+  }, []);
 
   const formatDate = (date: Date | string | null | undefined) => {
     if (!date) return "-";
@@ -241,6 +252,15 @@ export default function BugDetailModal({
               </div>
             </div>
           )}
+
+          {/* Comments Section */}
+          <BugComments
+            bugId={bug.id}
+            comments={comments}
+            onCommentAdded={handleCommentAdded}
+            isAdmin={false}
+            apiBasePath="/api/bugs"
+          />
         </div>
 
         {/* Footer */}

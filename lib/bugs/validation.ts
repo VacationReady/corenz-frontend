@@ -326,5 +326,51 @@ export function validateAdminNotes(
   return { isValid: true };
 }
 
+// ============================================
+// COMMENT VALIDATION
+// ============================================
+
+/**
+ * Maximum length for comment content
+ */
+const COMMENT_MAX_LENGTH = 5000;
+
+/**
+ * Validate comment content
+ * 
+ * Requirements: 11.2
+ * 
+ * @param content - The comment content to validate
+ * @returns Validation result with error message if invalid
+ */
+export function validateCommentContent(
+  content: string | undefined | null
+): { valid: boolean; error?: string } {
+  if (!content || content.trim().length === 0) {
+    return { valid: false, error: "Comment content is required" };
+  }
+
+  const trimmed = content.trim();
+
+  if (trimmed.length > COMMENT_MAX_LENGTH) {
+    return {
+      valid: false,
+      error: `Comment must be ${COMMENT_MAX_LENGTH} characters or less`,
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Sanitize input text (alias for sanitizeText for cleaner imports)
+ * 
+ * @param input - The raw input string
+ * @returns Sanitized string
+ */
+export function sanitizeInput(input: string | undefined | null): string {
+  return sanitizeText(input);
+}
+
 // Export validation constants for use in other modules
 export { BUG_VALIDATION };

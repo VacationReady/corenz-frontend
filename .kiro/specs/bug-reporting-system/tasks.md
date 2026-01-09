@@ -259,27 +259,27 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - Use Bug icon from lucide-react
     - _Requirements: 7.1_
 
-- [ ] 13. Checkpoint - Ensure all tests pass
+- [x] 13. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Implement Bug Comments (Optional Enhancement)
-  - [ ]* 14.1 Create comment service
+- [x] 14. Implement Bug Comments (Optional Enhancement)
+  - [x]* 14.1 Create comment service
     - Create `lib/bugs/comments.ts`
     - Implement addComment with tenant check
     - Implement listComments with admin-only filtering
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
-  - [ ]* 14.2 Write property tests for comments
+  - [x]* 14.2 Write property tests for comments
     - **Property 16: Comment Tenant Isolation**
     - **Property 17: Admin-Only Comment Visibility**
     - **Validates: Requirements 11.1, 11.4, 11.5**
 
-  - [ ]* 14.3 Create comment API endpoints
+  - [x]* 14.3 Create comment API endpoints
     - POST /api/bugs/[id]/comments
     - GET /api/bugs/[id]/comments
     - _Requirements: 11.1, 11.2, 11.3_
 
-  - [ ]* 14.4 Add comment UI to bug detail views
+  - [x]* 14.4 Add comment UI to bug detail views
     - Add comment list and form to BugDetailModal
     - Add admin-only toggle for tenant admins
     - _Requirements: 11.3, 11.5_

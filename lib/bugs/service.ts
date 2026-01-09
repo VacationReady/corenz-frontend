@@ -673,6 +673,3 @@ function mapBugReportToResponse(bug: any, includeAdminNotes: boolean = false): B
 
   return response;
 }
-
-// Export types for use in other modules
-export type { CreateBugParams, ListBugsResult, AdminListBugsResult, UpdateBugParams };

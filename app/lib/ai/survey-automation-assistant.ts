@@ -203,7 +203,7 @@ async function handleRecurringSurveyWithEmail(
     preview,
     data: { workflowSpec, components },
     suggestions: [
-      "Customize the reminder schedule",
+      "Customise the reminder schedule",
       "Add specific departments", 
       "Change email recipients"
     ]
@@ -340,7 +340,7 @@ async function buildComplexAutomationWorkflow(
     preview,
     data: { workflowSteps, components, complexity: "enterprise" },
     suggestions: [
-      "Customize anonymization rules",
+      "Customise anonymisation rules",
       "Add department-specific questions",
       "Set up executive dashboard"
     ]

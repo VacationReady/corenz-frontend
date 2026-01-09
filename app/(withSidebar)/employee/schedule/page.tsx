@@ -23,6 +23,8 @@ import { Dialog, DialogAction, DialogContent } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { FeatureGuardedPage } from '@/components/FeatureGuardedPage';
+import { FEATURE_KEYS } from '@/lib/feature-toggles/types';
 
 interface Shift {
   id: string;
@@ -418,7 +420,8 @@ export default function EmployeeSchedulePage() {
     swapDecisionAction === 'accept' ? 'primary' : swapDecisionAction === 'reject' ? 'danger' : 'danger';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-6">
+    <FeatureGuardedPage featureKey={FEATURE_KEYS.ROTA_SHIFTS}>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6">
@@ -844,5 +847,6 @@ export default function EmployeeSchedulePage() {
         />
       )}
     </div>
+    </FeatureGuardedPage>
   );
 }

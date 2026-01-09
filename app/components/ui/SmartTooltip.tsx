@@ -171,7 +171,7 @@ export function SmartTooltip({
 export const tooltipPresets = {
   workingPattern: {
     title: "Working Patterns",
-    description: "Define standard work schedules for your organization. This affects leave calculations and availability tracking.",
+    description: "Define standard work schedules for your organisation. This affects leave calculations and availability tracking.",
     example: "Mon-Fri 9-5 with 1-hour lunch break",
     tips: [
       "Create multiple patterns for different departments",

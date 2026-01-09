@@ -577,7 +577,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
   {
     id: "role-specific-onboarding",
     name: "Role-Specific Onboarding Paths",
-    description: "Customized onboarding based on job role",
+    description: "Customised onboarding based on job role",
     category: workflowCategories[0],
     tags: ["onboarding", "customization", "roles"],
     icon: "🎭",

@@ -198,7 +198,7 @@ async function handleIntegratedAutomation(
     integrations: automation.integrations,
     smartActions: automation.smartActions,
     suggestions: [
-      "Customize the automation flow",
+      "Customise the automation flow",
       "Add more integration points",
       "Set up advanced analytics",
       "Configure approval workflows"

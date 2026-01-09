@@ -66,7 +66,7 @@ export function FeatureGuardedPage({
   featureKey,
   children,
   redirectTo = "/dashboard",
-  disabledMessage = "This feature is not available for your organization",
+  disabledMessage = "This feature is not available for your organisation",
   loadingComponent,
 }: FeatureGuardedPageProps) {
   const router = useRouter();

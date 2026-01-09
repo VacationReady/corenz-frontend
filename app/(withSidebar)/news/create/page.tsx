@@ -654,7 +654,7 @@ export default function CreateNewsPostPage() {
                   Create Story
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Share updates with your organization
+                Share updates with your organisation
                 </p>
               </div>
             </div>

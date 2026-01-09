@@ -481,7 +481,7 @@ function ManagerNewsSection() {
     return (
       <DashboardWidget title="Latest News" icon={Megaphone}>
         <div className="flex items-center justify-center h-full text-muted-foreground text-sm py-8">
-          News feature is not enabled for your organization
+          News feature is not enabled for your organisation
         </div>
       </DashboardWidget>
     );

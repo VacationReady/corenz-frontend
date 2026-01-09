@@ -246,7 +246,7 @@ export default function TimeTrackingSettingsPage() {
                         <p className="font-medium text-blue-900 dark:text-blue-100">Default Approval Workflow</p>
                         <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                           A default timesheet approval workflow (Manager Approval - Sequential) is automatically created and assigned to your company. 
-                          To customize workflows, visit <a href="/settings/multi-stage-approvals" className="underline font-medium hover:text-blue-600">Settings → Multi-Stage Approvals</a> and look for the "Timesheet Approval" workflow.
+                          To customise workflows, visit <a href="/settings/multi-stage-approvals" className="underline font-medium hover:text-blue-600">Settings → Multi-Stage Approvals</a> and look for the "Timesheet Approval" workflow.
                         </p>
                       </div>
                     </div>

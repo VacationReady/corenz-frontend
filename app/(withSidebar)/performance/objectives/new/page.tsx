@@ -280,7 +280,7 @@ function CreateObjectivePageContent() {
                 Define clear, measurable goals
               </h2>
               <p className="text-xs text-slate-600 max-w-lg">
-                Set objectives with key results to track progress and drive alignment across your organization.
+                Set objectives with key results to track progress and drive alignment across your organisation.
               </p>
             </div>
           </motion.div>

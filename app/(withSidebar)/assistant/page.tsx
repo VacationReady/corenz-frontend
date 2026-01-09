@@ -44,6 +44,8 @@ import { WorkflowCanvas } from "@/(withSidebar)/settings/automation-rules/compon
 import { PageShell } from "@/components/ui/PageShell";
 import { createPortal } from "react-dom";
 import DataVisualization from "@/components/ai/DataVisualization";
+import { FeatureGuardedPage } from "@/components/FeatureGuardedPage";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 type MessageRole = "user" | "assistant" | "system";
 type ActionType = "query" | "workflow" | "field" | "info";
@@ -1801,20 +1803,23 @@ Don't worry - your data is safe. This is likely a temporary glitch.
   // Check if AI is enabled - only ADMIN and SUPER_ADMIN can access
   if (!session?.user || !["ADMIN", "SUPER_ADMIN"].includes((session.user as any).role)) {
     return (
-      <PageShell title="AI Assistant" icon={<Bot className="w-6 h-6" />}>
-        <div className="flex items-center justify-center h-96">
-          <Card className="p-6 max-w-md text-center">
-            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-amber-500" />
-            <h2 className="text-lg font-semibold mb-2">Admin Access Required</h2>
-            <p className="text-sm text-muted-foreground">AI Assistant features are only available to administrators.</p>
-          </Card>
-        </div>
-      </PageShell>
+      <FeatureGuardedPage featureKey={FEATURE_KEYS.AI_ASSISTANT}>
+        <PageShell title="AI Assistant" icon={<Bot className="w-6 h-6" />}>
+          <div className="flex items-center justify-center h-96">
+            <Card className="p-6 max-w-md text-center">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-amber-500" />
+              <h2 className="text-lg font-semibold mb-2">Admin Access Required</h2>
+              <p className="text-sm text-muted-foreground">AI Assistant features are only available to administrators.</p>
+            </Card>
+          </div>
+        </PageShell>
+      </FeatureGuardedPage>
     );
   }
 
   return (
-    <PageShell
+    <FeatureGuardedPage featureKey={FEATURE_KEYS.AI_ASSISTANT}>
+      <PageShell
       title="AI Assistant"
       description="Natural language HR automation powered by AI"
       icon={<Bot className="w-6 h-6" />}
@@ -2623,5 +2628,6 @@ Don't worry - your data is safe. This is likely a temporary glitch.
         </div>
       </div>
     </PageShell>
+    </FeatureGuardedPage>
   );
 }

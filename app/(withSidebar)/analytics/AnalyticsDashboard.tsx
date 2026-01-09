@@ -809,7 +809,7 @@ export default function AnalyticsDashboard() {
                 </motion.div>
                 <h3 className="text-2xl font-bold text-foreground mb-2">No people data yet</h3>
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  Add employees to your organization to unlock powerful workforce analytics and insights.
+                  Add employees to your organisation to unlock powerful workforce analytics and insights.
                 </p>
                 <Button asChild className="bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90">
                   <Link href="/employees/new">
@@ -1282,7 +1282,7 @@ export default function AnalyticsDashboard() {
                     <SectionHeader
                       icon={Clock3}
                       title="Tenure Distribution"
-                      description="Experience levels across your organization"
+                      description="Experience levels across your organisation"
                       iconColor="text-indigo-500"
                     />
                   </CardHeader>

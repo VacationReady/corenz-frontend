@@ -341,7 +341,7 @@ export function ImpactPreview({
                 Impact Analysis
               </CardTitle>
               <CardDescription>
-                Preview how this change will affect your organization
+                Preview how this change will affect your organisation
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-xs">

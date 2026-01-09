@@ -189,7 +189,7 @@ export default function AudienceCampaignPanel({
   };
 
   const calculateEstimatedReach = () => {
-    if (value.type === "all") return "Everyone in your organization";
+    if (value.type === "all") return "Everyone in your organisation";
     
     let count = 0;
     if (value.departments?.length) count += value.departments.length * 50;

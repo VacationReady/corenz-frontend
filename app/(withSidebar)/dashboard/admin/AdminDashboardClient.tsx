@@ -1035,7 +1035,7 @@ function NewsSection() {
       <div className="h-full flex flex-col">
         <DashboardWidget title="Latest News" icon={Megaphone} className="h-full">
           <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-            News feature is not enabled for your organization
+            News feature is not enabled for your organisation
           </div>
         </DashboardWidget>
       </div>

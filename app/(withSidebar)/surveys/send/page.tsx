@@ -935,7 +935,7 @@ function SendSurveyPageContent() {
                                 <Sparkles className="w-5 h-5 text-emerald-200" />
                               </h3>
                               <p className="text-emerald-100 mt-1">
-                                Survey will be sent to all <span className="font-semibold">{employees.length}</span> active employees in your organization
+                                Survey will be sent to all <span className="font-semibold">{employees.length}</span> active employees in your organisation
                               </p>
                             </div>
                             <div className="hidden lg:flex flex-col items-center">

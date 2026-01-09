@@ -10,6 +10,8 @@ import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { Calendar } from "lucide-react";
 import Link from "next/link";
 import { EnhancedWidget } from "@/components/ui/EnhancedWidget";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -86,11 +88,16 @@ export default function EmployeeDashboardClient({
   employeeId?: string;
   section?: "top" | "bottom";
 }) {
+  const { isFeatureEnabled } = useFeatureToggles();
+  
+  // Check if time tracking features are enabled (either timesheets or rota/shifts)
+  const showTimeTracking = isFeatureEnabled(FEATURE_KEYS.TIMESHEETS) || isFeatureEnabled(FEATURE_KEYS.ROTA_SHIFTS);
+
   // Top row: Today's Shift + Upcoming Leave
   if (section === "top") {
     return (
       <>
-        {employeeId && (
+        {employeeId && showTimeTracking && (
           <EnhancedWidget size="small" delay={0.1}>
             <TodaysShiftWidgetCompact employeeId={employeeId} />
           </EnhancedWidget>
@@ -120,7 +127,7 @@ export default function EmployeeDashboardClient({
   // Default: render all (backwards compatibility)
   return (
     <>
-      {employeeId && (
+      {employeeId && showTimeTracking && (
         <EnhancedWidget size="small" delay={0.1}>
           <TodaysShiftWidgetCompact employeeId={employeeId} />
         </EnhancedWidget>

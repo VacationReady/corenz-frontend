@@ -75,7 +75,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
       { key: FEATURE_KEYS.PERFORMANCE_MANAGEMENT, label: 'Performance', description: 'Performance reviews and objectives' },
       { key: FEATURE_KEYS.SURVEYS, label: 'Surveys', description: 'Employee surveys and feedback' },
       { key: FEATURE_KEYS.FORMS, label: 'Forms', description: 'Custom forms builder' },
-      { key: FEATURE_KEYS.ORG_CHART, label: 'Org Chart', description: 'Organization visualization' },
+      { key: FEATURE_KEYS.ORG_CHART, label: 'Org Chart', description: 'Organisation visualisation' },
       { key: FEATURE_KEYS.ANALYTICS, label: 'Analytics', description: 'HR analytics and insights' },
     ],
   },
@@ -120,7 +120,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
  * Used for navigation filtering and API guards
  */
 export const FEATURE_TO_PATHS: Record<FeatureKey, string[]> = {
-  [FEATURE_KEYS.AI_ASSISTANT]: ['/api/ai'],
+  [FEATURE_KEYS.AI_ASSISTANT]: ['/assistant', '/api/ai'],
   [FEATURE_KEYS.NEWS]: ['/news', '/api/news'],
   [FEATURE_KEYS.BULK_ACTIONS]: ['/bulk-actions', '/api/bulk-actions'],
   [FEATURE_KEYS.PERFORMANCE_MANAGEMENT]: ['/performance', '/api/performance'],
@@ -131,8 +131,8 @@ export const FEATURE_TO_PATHS: Record<FeatureKey, string[]> = {
   [FEATURE_KEYS.ORG_CHART]: ['/org-chart', '/api/org-chart'],
   [FEATURE_KEYS.SURVEYS]: ['/surveys', '/settings/surveys', '/api/surveys'],
   [FEATURE_KEYS.FORMS]: ['/settings/forms', '/api/forms'],
-  [FEATURE_KEYS.TIMESHEETS]: ['/admin/timesheets', '/api/timesheets'],
-  [FEATURE_KEYS.ROTA_SHIFTS]: ['/rota', '/admin/reconciliation', '/api/rota-groups', '/api/shifts', '/api/reconciliation'],
+  [FEATURE_KEYS.TIMESHEETS]: ['/admin/timesheets', '/employee/timesheet', '/api/timesheets'],
+  [FEATURE_KEYS.ROTA_SHIFTS]: ['/rota', '/admin/reconciliation', '/employee/schedule', '/api/rota-groups', '/api/shifts', '/api/reconciliation'],
   [FEATURE_KEYS.MULTI_STAGE_APPROVALS]: ['/settings/multi-stage-approvals', '/api/approval-workflows'],
   [FEATURE_KEYS.ANALYTICS]: ['/analytics', '/api/analytics'],
 };

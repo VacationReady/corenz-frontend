@@ -167,7 +167,7 @@ export function PermissionEditor({
                   <TooltipContent className="max-w-sm">
                     <div className="space-y-2">
                       <p>
-                        <strong>Important:</strong> These permissions grant access to <strong>ALL employees</strong> in the organization for the specific sections selected.
+                        <strong>Important:</strong> These permissions grant access to <strong>ALL employees</strong> in the organisation for the specific sections selected.
                       </p>
                       <p>
                         For example, granting "Employee Bank & Payroll" read access allows viewing bank details for all employees, not just their department.

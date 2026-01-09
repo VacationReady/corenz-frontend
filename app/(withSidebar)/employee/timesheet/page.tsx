@@ -11,6 +11,8 @@ import CurrentPeriodEntries from '@/components/time-tracking/CurrentPeriodEntrie
 import { useToast } from '@/hooks/use-toast';
 import TimesheetSubmissionSuccess from '@/components/time-tracking/TimesheetSubmissionSuccess';
 import { PageShell } from '@/components/ui/PageShell';
+import { FeatureGuardedPage } from '@/components/FeatureGuardedPage';
+import { FEATURE_KEYS } from '@/lib/feature-toggles/types';
 
 export default function EmployeeTimesheetPage() {
   const { status } = useSession();
@@ -188,7 +190,7 @@ export default function EmployeeTimesheetPage() {
   // Show loading state
   if (status === 'loading' || loading) {
     return (
-      <>
+      <FeatureGuardedPage featureKey={FEATURE_KEYS.TIMESHEETS}>
         <TimesheetSubmissionSuccess
           open={showSuccess}
           onClose={() => setShowSuccess(false)}
@@ -209,14 +211,14 @@ export default function EmployeeTimesheetPage() {
             </div>
           </div>
         </PageShell>
-      </>
+      </FeatureGuardedPage>
     );
   }
 
   // Show detail view if a timesheet is selected
   if (selectedTimesheet) {
     return (
-      <>
+      <FeatureGuardedPage featureKey={FEATURE_KEYS.TIMESHEETS}>
         <TimesheetSubmissionSuccess
           open={showSuccess}
           onClose={() => setShowSuccess(false)}
@@ -248,13 +250,13 @@ export default function EmployeeTimesheetPage() {
             />
           </div>
         </PageShell>
-      </>
+      </FeatureGuardedPage>
     );
   }
 
   // Show main timesheet list view
   return (
-    <>
+    <FeatureGuardedPage featureKey={FEATURE_KEYS.TIMESHEETS}>
       <TimesheetSubmissionSuccess
         open={showSuccess}
         onClose={() => setShowSuccess(false)}
@@ -356,6 +358,6 @@ export default function EmployeeTimesheetPage() {
           />
         </div>
       </PageShell>
-    </>
+    </FeatureGuardedPage>
   );
 }

@@ -43,6 +43,47 @@ export default function XeroIntegrationPage() {
   // Check if user is admin
   const userIsAdmin = session?.user ? isAdmin(session.user) : false;
 
+  // useEffect must be called before any conditional returns to maintain hook order
+  useEffect(() => {
+    // Skip if not admin or still loading
+    if (status === "loading" || !userIsAdmin) return;
+    // Fetch connection status
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch("/api/xero/status");
+        const data = await res.json();
+        if (data.connected) {
+          setIsConnected(true);
+        }
+      } catch (error) {
+        console.error("Failed to fetch Xero status:", error);
+      }
+    };
+
+    fetchStatus();
+
+    // Check for OAuth callback parameters
+    const success = searchParams.get("success");
+    const error = searchParams.get("error");
+
+    if (success === "true") {
+      setIsConnected(true);
+      setStatusMessage({
+        type: "success",
+        message: "Successfully connected to Xero!",
+      });
+      window.history.replaceState({}, "", "/settings/system/xero-integration");
+    } else if (error) {
+      setStatusMessage({
+        type: "error",
+        message: `Connection failed: ${error.replace(/_/g, " ")}`,
+      });
+      setTimeout(() => {
+        window.history.replaceState({}, "", "/settings/system/xero-integration");
+      }, 100);
+    }
+  }, [searchParams, status, userIsAdmin]);
+
   // Show loading state while checking auth
   if (status === "loading") {
     return (
@@ -88,44 +129,6 @@ export default function XeroIntegrationPage() {
       </PageShell>
     );
   }
-
-  useEffect(() => {
-    // Fetch connection status
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch("/api/xero/status");
-        const data = await res.json();
-        if (data.connected) {
-          setIsConnected(true);
-        }
-      } catch (error) {
-        console.error("Failed to fetch Xero status:", error);
-      }
-    };
-
-    fetchStatus();
-
-    // Check for OAuth callback parameters
-    const success = searchParams.get("success");
-    const error = searchParams.get("error");
-
-    if (success === "true") {
-      setIsConnected(true);
-      setStatusMessage({
-        type: "success",
-        message: "Successfully connected to Xero!",
-      });
-      window.history.replaceState({}, "", "/settings/system/xero-integration");
-    } else if (error) {
-      setStatusMessage({
-        type: "error",
-        message: `Connection failed: ${error.replace(/_/g, " ")}`,
-      });
-      setTimeout(() => {
-        window.history.replaceState({}, "", "/settings/system/xero-integration");
-      }, 100);
-    }
-  }, [searchParams]);
 
   const handleConnect = async () => {
     setIsConnecting(true);

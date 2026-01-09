@@ -14,6 +14,7 @@ const mockBookmarkCreate = test.mock.fn();
 const mockBookmarkDelete = test.mock.fn();
 const mockBookmarkCount = test.mock.fn();
 const mockIsFeatureEnabled = test.mock.fn();
+const mockNewsReadUpsert = test.mock.fn();
 
 const originalLoad = (Module as any)._load;
 (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
@@ -37,6 +38,9 @@ const originalLoad = (Module as any)._load;
           create: mockBookmarkCreate,
           delete: mockBookmarkDelete,
           count: mockBookmarkCount,
+        },
+        newsRead: {
+          upsert: mockNewsReadUpsert,
         },
       },
     };
@@ -99,6 +103,7 @@ test("POST /api/news/[slug]/view increments view count", async () => {
   mockFindFirst.mock.resetCalls();
   mockUpdate.mock.resetCalls();
   mockIsFeatureEnabled.mock.resetCalls();
+  mockNewsReadUpsert.mock.resetCalls();
 
   // Use mockImplementation (not Once) since feature guard also calls auth()
   // Feature guard requires both id and companyId
@@ -111,6 +116,9 @@ test("POST /api/news/[slug]/view increments view count", async () => {
   );
   mockUpdate.mock.mockImplementationOnce(() =>
     Promise.resolve({ viewCount: 5 }),
+  );
+  mockNewsReadUpsert.mock.mockImplementationOnce(() =>
+    Promise.resolve({ id: "read-1" }),
   );
 
   const { view } = await routesPromise;

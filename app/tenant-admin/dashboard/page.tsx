@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Plus, LogOut, Building2, Users, UserCheck } from "lucide-react";
+import { Trash2, Plus, LogOut, Building2, Users, UserCheck, Bug } from "lucide-react";
 import { FunctionalitySection } from "@/tenant-admin/components/FunctionalitySection";
 import { FeatureToggleState, ALL_FEATURE_KEYS, FeatureKey } from "@/lib/feature-toggles/types";
 
@@ -243,6 +243,13 @@ export default function TenantAdminDashboard() {
               loading={isRefreshing}
             >
               Refresh
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => router.push("/tenant-admin/bugs")}
+              icon={<Bug className="h-4 w-4" />}
+            >
+              Bug Reports
             </Button>
             <Button onClick={() => setShowCreateDialog(true)} icon={<Plus className="h-4 w-4" />}>
               Create Tenant

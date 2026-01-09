@@ -114,7 +114,8 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - Create audit log entry
     - _Requirements: 8.4, 8.5, 8.6, 9.4_
 
-  - [ ]* 7.4 Write property test for status change audit logging
+  - [x] 7.4 Write property test for status change audit logging
+
     - **Property 11: Status Change Audit Logging**
     - **Property 12: Resolved Date Auto-Population**
     - **Validates: Requirements 8.6, 9.4**

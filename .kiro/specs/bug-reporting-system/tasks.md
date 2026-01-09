@@ -52,7 +52,8 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - Implement XSS sanitization using DOMPurify
     - _Requirements: 4.7, 9.5_
 
-  - [ ]* 4.4 Write property test for input sanitization
+  - [x] 4.4 Write property test for input sanitization
+
     - **Property 5: Input Sanitization**
     - **Validates: Requirements 4.7, 9.5**
 

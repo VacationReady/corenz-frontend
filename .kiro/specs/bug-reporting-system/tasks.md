@@ -57,8 +57,8 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - **Property 5: Input Sanitization**
     - **Validates: Requirements 4.7, 9.5**
 
-- [ ] 5. Implement User Bug API Endpoints
-  - [ ] 5.1 Create POST /api/bugs endpoint
+- [x] 5. Implement User Bug API Endpoints
+  - [x] 5.1 Create POST /api/bugs endpoint
     - Implement authentication check
     - Implement feature toggle check
     - Validate request body
@@ -71,7 +71,7 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - **Property 7: Valid Bug Creation**
     - **Validates: Requirements 2.4, 2.5, 4.3, 4.4, 4.8**
 
-  - [ ] 5.3 Create GET /api/bugs endpoint
+  - [x] 5.3 Create GET /api/bugs endpoint
     - Implement tenant-scoped query
     - Support status, severity, page, limit, sortBy, sortOrder params
     - Exclude adminNotes from response
@@ -83,7 +83,7 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - **Property 15: Pagination Correctness**
     - **Validates: Requirements 5.4, 5.5, 5.7, 7.4, 7.5**
 
-  - [ ] 5.5 Create GET /api/bugs/[id] endpoint
+  - [x] 5.5 Create GET /api/bugs/[id] endpoint
     - Verify bug belongs to user's tenant
     - Exclude adminNotes from response
     - _Requirements: 6.4, 6.5, 6.6_

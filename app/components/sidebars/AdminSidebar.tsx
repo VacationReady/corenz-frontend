@@ -23,6 +23,7 @@ import {
   ClipboardList,
   CalendarClock,
   GitCompare,
+  Bug,
 } from "lucide-react";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 import {
@@ -168,6 +169,7 @@ const hrToolsLinks = [
   { href: "/org-chart", icon: Network, label: "Org Chart" },
   { href: "/news", icon: Megaphone, label: "News" },
   { href: "/surveys", icon: BarChart3, label: "Surveys" },
+  { href: "/bugs", icon: Bug, label: "Bug Reports" },
 ];
 
 const bulkActionLinks = [

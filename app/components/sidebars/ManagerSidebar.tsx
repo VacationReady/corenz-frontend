@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { LogOut, X, LayoutDashboard, Calendar, Users as UsersIcon, Target, ClipboardList, CalendarClock, GitCompare, Network, FileText } from "lucide-react";
+import { LogOut, X, LayoutDashboard, Calendar, Users as UsersIcon, Target, ClipboardList, CalendarClock, GitCompare, Network, FileText, Bug } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { getLogoutCallbackUrl } from "@/lib/logout-url";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
@@ -50,6 +50,7 @@ export default function ManagerSidebar({
     { label: "Documents", href: "/documents", icon: <FileText size={16} /> },
     { label: "Performance", href: "/performance", icon: <Target size={16} /> },
     { label: "Org Chart", href: "/org-chart", icon: <Network size={16} /> },
+    { label: "Bug Reports", href: "/bugs", icon: <Bug size={16} /> },
   ];
 
   // Filter navigation items based on feature toggles

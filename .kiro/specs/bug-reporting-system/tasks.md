@@ -185,8 +185,8 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - Only visible to ADMIN and MANAGER roles
     - _Requirements: 2.1_
 
-- [ ] 11. Implement User Bug Dashboard
-  - [ ] 11.1 Create BugReportTable component
+- [x] 11. Implement User Bug Dashboard
+  - [x] 11.1 Create BugReportTable component
     - Create `app/components/bugs/BugReportTable.tsx`
     - Display columns: Title, Status, Severity, Date Submitted, Resolved Date, Comments Count
     - Implement sorting controls
@@ -194,19 +194,19 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - Implement pagination
     - _Requirements: 5.2, 5.4, 5.5, 5.7_
 
-  - [ ] 11.2 Create BugDetailModal component
+  - [x] 11.2 Create BugDetailModal component
     - Create `app/components/bugs/BugDetailModal.tsx`
     - Display all bug information except adminNotes
     - Show attachments with download links
     - _Requirements: 5.6_
 
-  - [ ] 11.3 Create User Bug Dashboard page
+  - [x] 11.3 Create User Bug Dashboard page
     - Create `app/(withSidebar)/bugs/page.tsx`
     - Wrap with FeatureGuardedPage for BUG_REPORTING
     - Integrate BugReportTable and BugDetailModal
     - _Requirements: 5.1_
 
-  - [ ] 11.4 Add navigation link for Bug Reports
+  - [x] 11.4 Add navigation link for Bug Reports
     - Add to sidebar navigation
     - Conditionally show based on feature toggle
     - _Requirements: 5.1_

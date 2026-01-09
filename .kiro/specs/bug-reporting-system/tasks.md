@@ -120,8 +120,8 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - **Property 12: Resolved Date Auto-Population**
     - **Validates: Requirements 8.6, 9.4**
 
-- [ ] 8. Implement Attachment Handling
-  - [ ] 8.1 Create attachment service
+- [x] 8. Implement Attachment Handling
+  - [x] 8.1 Create attachment service
     - Create `lib/bugs/attachments.ts`
     - Implement MIME type validation
     - Implement file size validation
@@ -135,18 +135,18 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - **Property 10: Attachment Count Limit**
     - **Validates: Requirements 9.6, 10.1, 10.2, 10.3**
 
-  - [ ] 8.3 Create POST /api/bugs/[id]/attachments endpoint
+  - [x] 8.3 Create POST /api/bugs/[id]/attachments endpoint
     - Validate file before upload
     - Store in cloud storage
     - Create BugAttachment record
     - _Requirements: 10.4_
 
-  - [ ] 8.4 Create GET /api/bugs/attachments/[id]/download endpoint
+  - [x] 8.4 Create GET /api/bugs/attachments/[id]/download endpoint
     - Generate time-limited signed URL
     - Verify user has access to parent bug
     - _Requirements: 10.5_
 
-  - [ ] 8.5 Implement cascade deletion for attachments
+  - [x] 8.5 Implement cascade deletion for attachments
     - Delete storage files when bug is deleted
     - _Requirements: 10.6_
 

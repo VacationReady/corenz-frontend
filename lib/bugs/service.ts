@@ -12,6 +12,7 @@ import "server-only";
 import { prisma } from "../../app/lib/prisma";
 import { AuditEntityType, AuditAction, AuditActorType, BugStatus, BugSeverity } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { deleteAttachmentsForBug } from "./attachments";
 import type {
   BugReport,
   BugReportWithTenant,
@@ -587,6 +588,60 @@ async function calculateBugStats(companyId?: string): Promise<BugStats> {
   };
 
   return stats;
+}
+
+/**
+ * Delete a bug report with cascade deletion of attachments from storage
+ * 
+ * Requirements: 10.6
+ * 
+ * Note: Database records (attachments, comments) are deleted via Prisma cascade.
+ * This function ensures storage files are also cleaned up.
+ * 
+ * @param bugId - The bug report ID to delete
+ * @param actorId - The user performing the deletion (for audit logging)
+ * @returns True if deleted successfully
+ */
+export async function deleteBug(bugId: string, actorId: string): Promise<boolean> {
+  // Get bug to verify it exists and get companyId for audit log
+  const bug = await prisma.bugReport.findUnique({
+    where: { id: bugId },
+    select: { id: true, companyId: true, title: true },
+  });
+
+  if (!bug) {
+    return false;
+  }
+
+  // Delete attachments from storage BEFORE deleting the bug
+  // (DB records will be cascade deleted, but we need to clean up storage)
+  await deleteAttachmentsForBug(bugId);
+
+  // Delete the bug report (cascades to attachments and comments in DB)
+  await prisma.$transaction([
+    prisma.bugReport.delete({
+      where: { id: bugId },
+    }),
+    // Create audit log entry
+    prisma.globalAuditLog.create({
+      data: {
+        id: randomUUID(),
+        companyId: bug.companyId,
+        entityType: AuditEntityType.BUG_REPORT,
+        entityId: bugId,
+        action: AuditAction.DELETED,
+        actorId,
+        actorType: AuditActorType.USER,
+        changes: { title: bug.title },
+        metadata: {
+          source: "tenant-admin",
+        },
+      },
+    }),
+  ]);
+
+  console.log(`[bug-service] Deleted bug ${bugId} with attachments`);
+  return true;
 }
 
 // ============================================

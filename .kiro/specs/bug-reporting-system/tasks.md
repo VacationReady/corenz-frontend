@@ -93,11 +93,11 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - **Property 4: Admin Notes Exclusion for Non-Admins**
     - **Validates: Requirements 5.6, 6.6**
 
-- [ ] 6. Checkpoint - Ensure all tests pass
+- [x] 6. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement Tenant Admin Bug API Endpoints
-  - [ ] 7.1 Create GET /api/tenant-admin/bugs endpoint
+- [x] 7. Implement Tenant Admin Bug API Endpoints
+  - [x] 7.1 Create GET /api/tenant-admin/bugs endpoint
     - Verify canManageTenants permission
     - Support all filter params including companyId, dateFrom, dateTo
     - Include bug statistics in response
@@ -107,7 +107,7 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - **Property 3: Tenant Admin Permission Enforcement**
     - **Validates: Requirements 7.2, 8.2, 8.7, 9.3**
 
-  - [ ] 7.3 Create PATCH /api/tenant-admin/bugs/[id] endpoint
+  - [x] 7.3 Create PATCH /api/tenant-admin/bugs/[id] endpoint
     - Verify canManageTenants permission
     - Only allow updating status, adminNotes
     - Auto-set resolvedAt when status changes to RESOLVED/CLOSED

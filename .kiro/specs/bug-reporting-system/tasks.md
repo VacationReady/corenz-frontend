@@ -88,7 +88,8 @@ This implementation plan breaks down the Bug Reporting System into incremental c
     - Exclude adminNotes from response
     - _Requirements: 6.4, 6.5, 6.6_
 
-  - [ ]* 5.6 Write property test for admin notes exclusion
+  - [x] 5.6 Write property test for admin notes exclusion
+
     - **Property 4: Admin Notes Exclusion for Non-Admins**
     - **Validates: Requirements 5.6, 6.6**
 

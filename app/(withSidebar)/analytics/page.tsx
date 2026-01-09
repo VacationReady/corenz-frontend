@@ -1,4 +1,6 @@
 import AnalyticsDashboard from "./AnalyticsDashboard";
+import { FeatureGuardedPage } from "@/components/FeatureGuardedPage";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 export const metadata = {
   title: "People Analytics",
@@ -6,5 +8,9 @@ export const metadata = {
 };
 
 export default function AnalyticsPage() {
-  return <AnalyticsDashboard />;
+  return (
+    <FeatureGuardedPage featureKey={FEATURE_KEYS.ANALYTICS}>
+      <AnalyticsDashboard />
+    </FeatureGuardedPage>
+  );
 }

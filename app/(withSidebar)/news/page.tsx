@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import NewsPageClient from "@/components/news/NewsPageClient"; // ✅ Missing import added
 import { redirect } from "next/navigation";
+import { FeatureGuardedPage } from "@/components/FeatureGuardedPage";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 export const dynamic = "force-dynamic";
 
@@ -67,5 +69,9 @@ export default async function NewsPage() {
   }
 
   // Render the refactored client-side NewsPage with server-fetched props
-  return <NewsPageClient posts={transformedPosts} canPost={canPost} />;
+  return (
+    <FeatureGuardedPage featureKey={FEATURE_KEYS.NEWS}>
+      <NewsPageClient posts={transformedPosts} canPost={canPost} />
+    </FeatureGuardedPage>
+  );
 }

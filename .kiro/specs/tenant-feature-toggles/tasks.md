@@ -177,24 +177,24 @@ This implementation plan creates a tenant-level feature toggle system integrated
     - **Property 6: Core Routes Always Accessible**
     - **Validates: Requirements 4.4**
 
-- [ ] 10. Graceful Degradation
-  - [ ] 10.1 Create FeatureGuardedPage wrapper component
+- [x] 10. Graceful Degradation
+  - [x] 10.1 Create FeatureGuardedPage wrapper component
     - Create `app/components/FeatureGuardedPage.tsx`
     - Check if feature is enabled on mount
     - Redirect to dashboard if disabled
     - Show toast message
     - _Requirements: 8.1, 8.2_
 
-  - [ ] 10.2 Apply FeatureGuardedPage to feature pages
+  - [x] 10.2 Apply FeatureGuardedPage to feature pages
     - Wrap Performance, Surveys, News, Org Chart, Analytics, Bulk Actions pages
     - Wrap Timesheets, Rota, Reconciliation pages
     - _Requirements: 8.1_
 
-  - [ ] 10.3 Update dashboard to hide disabled feature widgets
+  - [x] 10.3 Update dashboard to hide disabled feature widgets
     - Filter dashboard widgets based on enabled features
     - _Requirements: 8.5_
 
-  - [ ] 10.4 Write property test for direct URL redirect
+  - [x] 10.4 Write property test for direct URL redirect
     - **Property 13: Direct URL Redirect**
     - **Validates: Requirements 8.1**
 

@@ -44,6 +44,8 @@ import { useSession } from "next-auth/react";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { mutate as swrMutate } from "swr";
 import { EmployeeListModal } from "@/components/analytics/EmployeeListModal";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 function usePageVisibility() {
   const [visible, setVisible] = useState(true);
@@ -986,13 +988,11 @@ export default function AdminDashboardClient({
     );
   }
 
-  // News Section
+  // News Section - only show if news feature is enabled
   if (section === "news") {
-    return (
-      <div className="h-full flex flex-col">
-        <NewsWidget />
-      </div>
-    );
+    // Use the hook at the component level - this is safe because the section check
+    // happens after all hooks are called
+    return <NewsSection />;
   }
 
   // Action Items Section
@@ -1006,4 +1006,45 @@ export default function AdminDashboardClient({
 
   // Default fallback - should not happen  
   return null;
+}
+
+/**
+ * News section component that checks feature toggle
+ * Separated to ensure hooks are called consistently
+ */
+function NewsSection() {
+  const { isFeatureEnabled, isLoading } = useFeatureToggles();
+  
+  // Show loading skeleton while checking feature status
+  if (isLoading) {
+    return (
+      <div className="h-full flex flex-col">
+        <DashboardWidget title="Latest News" icon={Megaphone} className="h-full">
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        </DashboardWidget>
+      </div>
+    );
+  }
+  
+  // If news feature is disabled, show a placeholder message
+  if (!isFeatureEnabled(FEATURE_KEYS.NEWS)) {
+    return (
+      <div className="h-full flex flex-col">
+        <DashboardWidget title="Latest News" icon={Megaphone} className="h-full">
+          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+            News feature is not enabled for your organization
+          </div>
+        </DashboardWidget>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="h-full flex flex-col">
+      <NewsWidget />
+    </div>
+  );
 }

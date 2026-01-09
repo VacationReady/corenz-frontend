@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/Select';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { FeatureGuardedPage } from '@/components/FeatureGuardedPage';
+import { FEATURE_KEYS } from '@/lib/feature-toggles/types';
 import { 
   ReconciliationStats,
   ShiftActualComparison, 
@@ -428,6 +430,7 @@ export default function ReconciliationHubPage() {
   }
 
   return (
+    <FeatureGuardedPage featureKey={FEATURE_KEYS.ROTA_SHIFTS}>
     <div className="space-y-6 pb-10">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -978,6 +981,7 @@ export default function ReconciliationHubPage() {
         />
       )}
     </div>
+    </FeatureGuardedPage>
   );
 }
 

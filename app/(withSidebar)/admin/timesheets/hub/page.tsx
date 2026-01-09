@@ -19,6 +19,8 @@ import MyTimesheetsPanel from "@/components/time-tracking/MyTimesheetsPanel";
 import EditTimesheetEntryDialog from "@/components/time-tracking/EditTimesheetEntryDialog";
 import TimesheetAuditTrail from "@/components/time-tracking/TimesheetAuditTrail";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, subWeeks, subMonths, subQuarters } from "date-fns";
+import { FeatureGuardedPage } from "@/components/FeatureGuardedPage";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 type ShiftInfo = {
   id: string;
@@ -417,6 +419,7 @@ export default function AdminTimesheetHubPage() {
   }
 
   return (
+    <FeatureGuardedPage featureKey={FEATURE_KEYS.TIMESHEETS}>
     <div className="container mx-auto max-w-7xl space-y-8 p-6">
       <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-blue-600/70 via-blue-700/60 to-indigo-800/70 p-8 shadow-2xl backdrop-blur">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -1118,5 +1121,6 @@ export default function AdminTimesheetHubPage() {
         onOpenChange={setShowAuditTrail}
       />
     </div>
+    </FeatureGuardedPage>
   );
 }

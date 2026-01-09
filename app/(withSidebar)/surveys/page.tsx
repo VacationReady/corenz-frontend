@@ -42,6 +42,8 @@ import {
   ensureDefaultSurveyTemplates,
   findTemplateMetaBySlug,
 } from "@/lib/survey-templates";
+import { FeatureGuardedPage } from "@/components/FeatureGuardedPage";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 interface SurveyStats {
   totalSurveys: number;
@@ -179,6 +181,7 @@ export default function SurveysDashboard() {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   return (
+    <FeatureGuardedPage featureKey={FEATURE_KEYS.SURVEYS}>
     <PageShell
       title="Surveys Dashboard"
       description="Manage surveys, track responses, and analyse feedback"
@@ -559,5 +562,6 @@ export default function SurveysDashboard() {
         </Card>
       </div>
     </PageShell>
+    </FeatureGuardedPage>
   );
 }

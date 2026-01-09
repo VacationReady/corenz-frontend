@@ -58,6 +58,8 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
+import { FeatureGuardedPage } from '@/components/FeatureGuardedPage';
+import { FEATURE_KEYS } from '@/lib/feature-toggles/types';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -649,6 +651,7 @@ export default function RotaPage() {
   ];
 
   return (
+    <FeatureGuardedPage featureKey={FEATURE_KEYS.ROTA_SHIFTS}>
     <div className="w-full min-h-screen bg-content-panel">
       <div className="sticky top-0 z-10">
         <div className="relative overflow-hidden rounded-b-3xl border border-white/30 bg-gradient-to-r from-primary/10 via-sky-100/40 to-transparent shadow-xl backdrop-blur-sm dark:border-slate-800/80 dark:from-primary/30 dark:via-slate-900/80">
@@ -1317,5 +1320,6 @@ export default function RotaPage() {
         />
       )}
     </div>
+    </FeatureGuardedPage>
   );
 }

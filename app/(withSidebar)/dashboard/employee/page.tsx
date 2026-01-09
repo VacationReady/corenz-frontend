@@ -1,5 +1,5 @@
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
-import { NewsWidget } from "@/components/dashboard/NewsWidget";
+import { EmployeeNewsSection } from "./EmployeeNewsSection";
 import EmployeeDashboardClient from "./EmployeeDashboardClient";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
@@ -121,7 +121,7 @@ export default async function EmployeeDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <EmployeeDashboardClient employeeId={employeeId} section="bottom" />
             <EnhancedWidget size="medium" delay={0.2}>
-              <NewsWidget limit={4} />
+              <EmployeeNewsSection limit={4} />
             </EnhancedWidget>
           </div>
         </div>

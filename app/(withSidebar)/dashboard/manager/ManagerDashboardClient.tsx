@@ -17,6 +17,7 @@ import {
   User,
   Calendar,
   X,
+  Megaphone,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
@@ -25,6 +26,9 @@ import { Badge } from "@/components/ui/Badge";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -453,6 +457,39 @@ function TeamAbsenceOverview() {
   );
 }
 
+/**
+ * News section component that checks feature toggle
+ * Separated to ensure hooks are called consistently
+ */
+function ManagerNewsSection() {
+  const { isFeatureEnabled, isLoading } = useFeatureToggles();
+  
+  // Show loading skeleton while checking feature status
+  if (isLoading) {
+    return (
+      <DashboardWidget title="Latest News" icon={Megaphone}>
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+      </DashboardWidget>
+    );
+  }
+  
+  // If news feature is disabled, show a placeholder message
+  if (!isFeatureEnabled(FEATURE_KEYS.NEWS)) {
+    return (
+      <DashboardWidget title="Latest News" icon={Megaphone}>
+        <div className="flex items-center justify-center h-full text-muted-foreground text-sm py-8">
+          News feature is not enabled for your organization
+        </div>
+      </DashboardWidget>
+    );
+  }
+  
+  return <NewsWidget limit={3} />;
+}
+
 
 interface ManagerDashboardClientProps {
   firstName?: string | null;
@@ -542,7 +579,7 @@ export default function ManagerDashboardClient({
             </EnhancedWidget>
 
             <EnhancedWidget size="small" delay={0.3}>
-              <NewsWidget limit={3} />
+              <ManagerNewsSection />
             </EnhancedWidget>
           </div>
         </div>

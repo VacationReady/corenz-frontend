@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { FeatureGuardedPage } from "@/components/FeatureGuardedPage";
+import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 export default async function BulkActionsPage() {
   const session = await auth();
@@ -32,5 +34,9 @@ export default async function BulkActionsPage() {
     redirect("/unauthorized");
   }
 
-  return <BulkActionsPageClient />;
+  return (
+    <FeatureGuardedPage featureKey={FEATURE_KEYS.BULK_ACTIONS}>
+      <BulkActionsPageClient />
+    </FeatureGuardedPage>
+  );
 }

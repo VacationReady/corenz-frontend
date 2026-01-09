@@ -4,7 +4,7 @@
  * Provides cached access to tenant-level feature toggles with automatic
  * cache invalidation on updates.
  * 
- * Requirements: 2.3, 5.1, 5.2, 5.3, 5.4
+ * Requirements: 2.3, 5.1, 5.2, 5.3, 5.4, 7.6
  */
 
 import "server-only";
@@ -17,6 +17,8 @@ import {
   ALL_FEATURE_KEYS,
   isValidFeatureKey,
 } from "./types";
+import { AuditEntityType, AuditAction, AuditActorType } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 // Cache configuration
 const CACHE_KEY_PREFIX = "feature-toggles";
@@ -30,14 +32,27 @@ function getCacheKey(companyId: string): string {
 }
 
 /**
+ * Options for audit logging when changing feature toggles
+ * Requirement 7.6
+ */
+export interface AuditOptions {
+  /** The user ID performing the action (required for audit logging) */
+  actorId: string;
+  /** The type of actor (defaults to SYSTEM for service-level changes) */
+  actorType?: AuditActorType;
+  /** Source of the change (e.g., 'tenant-admin', 'api', 'migration') */
+  source?: string;
+}
+
+/**
  * Interface for the Feature Toggle Service
  */
 export interface IFeatureToggleService {
   isFeatureEnabled(companyId: string, featureKey: FeatureKey): Promise<boolean>;
   getEnabledFeatures(companyId: string): Promise<FeatureToggleState>;
-  setFeatureEnabled(companyId: string, featureKey: FeatureKey, enabled: boolean): Promise<void>;
-  bulkSetFeatures(companyId: string, features: Partial<FeatureToggleState>): Promise<void>;
-  initializeDefaultToggles(companyId: string, enabledFeatures?: FeatureKey[]): Promise<void>;
+  setFeatureEnabled(companyId: string, featureKey: FeatureKey, enabled: boolean, auditOptions?: AuditOptions): Promise<void>;
+  bulkSetFeatures(companyId: string, features: Partial<FeatureToggleState>, auditOptions?: AuditOptions): Promise<void>;
+  initializeDefaultToggles(companyId: string, enabledFeatures?: FeatureKey[], auditOptions?: AuditOptions): Promise<void>;
   invalidateCache(companyId: string): Promise<void>;
 }
 
@@ -111,18 +126,31 @@ class FeatureToggleService implements IFeatureToggleService {
    * Set a single feature toggle for a tenant
    * 
    * Persists to database and invalidates cache (Requirement 2.3, 5.2)
+   * Optionally logs changes to audit log (Requirement 7.6)
    * 
    * @param companyId - The tenant's company ID
    * @param featureKey - The feature to update
    * @param enabled - Whether the feature should be enabled
+   * @param auditOptions - Optional audit logging configuration
    */
   async setFeatureEnabled(
     companyId: string,
     featureKey: FeatureKey,
-    enabled: boolean
+    enabled: boolean,
+    auditOptions?: AuditOptions
   ): Promise<void> {
     if (!isValidFeatureKey(featureKey)) {
       throw new Error(`Invalid feature key: ${featureKey}`);
+    }
+
+    // Get current value for audit logging
+    let oldValue: boolean | undefined;
+    if (auditOptions?.actorId) {
+      const currentToggle = await prisma.tenantFeatureToggle.findUnique({
+        where: { companyId_featureKey: { companyId, featureKey } },
+        select: { isEnabled: true },
+      });
+      oldValue = currentToggle?.isEnabled ?? true; // Default to true if not found
     }
 
     await prisma.tenantFeatureToggle.upsert({
@@ -133,6 +161,17 @@ class FeatureToggleService implements IFeatureToggleService {
       create: { companyId, featureKey, isEnabled: enabled },
     });
 
+    // Create audit log entry if audit options provided and value changed (Requirement 7.6)
+    if (auditOptions?.actorId && oldValue !== enabled) {
+      await this.createAuditLogEntry(
+        companyId,
+        featureKey,
+        oldValue ?? true,
+        enabled,
+        auditOptions
+      );
+    }
+
     // Invalidate cache immediately (Requirement 5.2)
     await this.invalidateCache(companyId);
   }
@@ -141,13 +180,16 @@ class FeatureToggleService implements IFeatureToggleService {
    * Bulk update multiple feature toggles for a tenant
    * 
    * Only updates specified features, preserving others (Requirement 7.4)
+   * Optionally logs changes to audit log (Requirement 7.6)
    * 
    * @param companyId - The tenant's company ID
    * @param features - Partial object with features to update
+   * @param auditOptions - Optional audit logging configuration
    */
   async bulkSetFeatures(
     companyId: string,
-    features: Partial<FeatureToggleState>
+    features: Partial<FeatureToggleState>,
+    auditOptions?: AuditOptions
   ): Promise<void> {
     const updates = Object.entries(features).filter(
       ([key]) => isValidFeatureKey(key)
@@ -155,6 +197,12 @@ class FeatureToggleService implements IFeatureToggleService {
 
     if (updates.length === 0) {
       return;
+    }
+
+    // Get current values for audit logging
+    let currentState: FeatureToggleState = {};
+    if (auditOptions?.actorId) {
+      currentState = await this.getEnabledFeatures(companyId);
     }
 
     // Use transaction for atomicity
@@ -170,6 +218,26 @@ class FeatureToggleService implements IFeatureToggleService {
       )
     );
 
+    // Create audit log entries for changed values (Requirement 7.6)
+    if (auditOptions?.actorId) {
+      const auditPromises: Promise<void>[] = [];
+      for (const [featureKey, newValue] of updates) {
+        const oldValue = currentState[featureKey] ?? true;
+        if (oldValue !== newValue) {
+          auditPromises.push(
+            this.createAuditLogEntry(
+              companyId,
+              featureKey as FeatureKey,
+              oldValue,
+              newValue as boolean,
+              auditOptions
+            )
+          );
+        }
+      }
+      await Promise.all(auditPromises);
+    }
+
     // Invalidate cache immediately (Requirement 5.2)
     await this.invalidateCache(companyId);
   }
@@ -180,13 +248,16 @@ class FeatureToggleService implements IFeatureToggleService {
    * Creates toggle records for all features. If enabledFeatures is provided,
    * only those features are enabled; otherwise all features are enabled.
    * (Requirement 1.2, 2.7)
+   * Optionally logs changes to audit log (Requirement 7.6)
    * 
    * @param companyId - The tenant's company ID
    * @param enabledFeatures - Optional array of features to enable (others disabled)
+   * @param auditOptions - Optional audit logging configuration
    */
   async initializeDefaultToggles(
     companyId: string,
-    enabledFeatures?: FeatureKey[]
+    enabledFeatures?: FeatureKey[],
+    auditOptions?: AuditOptions
   ): Promise<void> {
     const toggleData = ALL_FEATURE_KEYS.map(featureKey => ({
       companyId,
@@ -200,6 +271,21 @@ class FeatureToggleService implements IFeatureToggleService {
       data: toggleData,
       skipDuplicates: true,
     });
+
+    // Create audit log entries for initialization (Requirement 7.6)
+    if (auditOptions?.actorId) {
+      const auditPromises = toggleData.map(toggle =>
+        this.createAuditLogEntry(
+          companyId,
+          toggle.featureKey as FeatureKey,
+          true, // Default value before initialization
+          toggle.isEnabled,
+          auditOptions,
+          AuditAction.CREATED
+        )
+      );
+      await Promise.all(auditPromises);
+    }
 
     // Invalidate cache to ensure fresh state
     await this.invalidateCache(companyId);
@@ -220,6 +306,54 @@ class FeatureToggleService implements IFeatureToggleService {
     } catch (error) {
       console.warn(`Feature toggle cache invalidation error for ${companyId}:`, error);
       // Non-fatal, cache will expire naturally
+    }
+  }
+
+  /**
+   * Create an audit log entry for a feature toggle change
+   * 
+   * Logs companyId, featureKey, oldValue, newValue, timestamp, userId
+   * (Requirement 7.6)
+   * 
+   * @param companyId - The tenant's company ID
+   * @param featureKey - The feature that was changed
+   * @param oldValue - The previous value
+   * @param newValue - The new value
+   * @param auditOptions - Audit logging configuration
+   * @param action - The audit action (defaults to UPDATED)
+   */
+  private async createAuditLogEntry(
+    companyId: string,
+    featureKey: FeatureKey,
+    oldValue: boolean,
+    newValue: boolean,
+    auditOptions: AuditOptions,
+    action: AuditAction = AuditAction.UPDATED
+  ): Promise<void> {
+    try {
+      await prisma.globalAuditLog.create({
+        data: {
+          id: randomUUID(),
+          companyId,
+          entityType: AuditEntityType.FEATURE_TOGGLE,
+          entityId: featureKey,
+          action,
+          actorId: auditOptions.actorId,
+          actorType: auditOptions.actorType ?? AuditActorType.SYSTEM,
+          changes: {
+            featureKey,
+            isEnabled: { from: oldValue, to: newValue },
+          },
+          metadata: {
+            source: auditOptions.source ?? 'service',
+            oldValue,
+            newValue,
+          },
+        },
+      });
+    } catch (error) {
+      // Log but don't throw - audit logging failures shouldn't break the main operation
+      console.error(`Failed to create audit log for feature toggle ${featureKey}:`, error);
     }
   }
 }

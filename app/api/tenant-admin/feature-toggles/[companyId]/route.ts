@@ -20,8 +20,7 @@ import {
   isValidFeatureKey 
 } from "@/lib/feature-toggles/types";
 import { featureToggleService } from "@/lib/feature-toggles/service";
-import { randomUUID } from "crypto";
-import { AuditEntityType, AuditAction, AuditActorType } from "@prisma/client";
+import { AuditActorType } from "@prisma/client";
 
 /**
  * Check if the request is authenticated as tenant admin
@@ -156,76 +155,46 @@ export async function PATCH(
       );
     }
 
-    // Get current toggle states for audit logging (Requirement 7.6)
-    const currentToggles = await prisma.tenantFeatureToggle.findMany({
-      where: { companyId },
-      select: { featureKey: true, isEnabled: true },
-    });
+    // Get current toggle states to calculate changes count
+    const currentToggles = await featureToggleService.getEnabledFeatures(companyId);
 
-    const currentState: FeatureToggleState = {};
-    for (const toggle of currentToggles) {
-      currentState[toggle.featureKey] = toggle.isEnabled;
-    }
-
-    // Build changes for audit log
-    const changes: Record<string, { from: boolean; to: boolean }> = {};
+    // Calculate how many changes will be applied
+    let changesCount = 0;
     for (const [key, newValue] of Object.entries(updates)) {
-      const oldValue = currentState[key] ?? true; // Default to true if not set
+      const oldValue = currentToggles[key] ?? true;
       if (oldValue !== newValue) {
-        changes[key] = { from: oldValue, to: newValue as boolean };
+        changesCount++;
       }
     }
 
     // Only proceed if there are actual changes
-    if (Object.keys(changes).length === 0) {
-      // No changes needed, return current state
-      const toggles: FeatureToggleState = {};
-      for (const key of ALL_FEATURE_KEYS) {
-        toggles[key] = currentState[key] ?? true;
-      }
+    if (changesCount === 0) {
       return NextResponse.json({
         companyId: company.id,
         companyName: company.name,
-        toggles,
+        toggles: currentToggles,
         changesApplied: 0,
       });
     }
 
-    // Apply updates using the service (handles cache invalidation)
-    await featureToggleService.bulkSetFeatures(companyId, updates);
-
-    // Get a system user for audit logging (use first admin user of the company or create system entry)
+    // Get a system user for audit logging (use first admin user of the company)
     // For tenant-admin operations, we'll use a special system actor
     const systemUser = await prisma.user.findFirst({
       where: { companyId, role: "ADMIN" },
       select: { id: true },
     });
 
-    // Log changes to audit log (Requirement 7.6)
-    if (systemUser) {
-      const auditEntries = Object.entries(changes).map(([featureKey, change]) => ({
-        id: randomUUID(),
-        companyId,
-        entityType: AuditEntityType.FEATURE_TOGGLE,
-        entityId: featureKey,
-        action: AuditAction.UPDATED,
+    // Apply updates using the service (handles cache invalidation and audit logging)
+    // Requirement 7.6: Audit logging is now handled by the service
+    await featureToggleService.bulkSetFeatures(
+      companyId, 
+      updates,
+      systemUser ? {
         actorId: systemUser.id,
         actorType: AuditActorType.SYSTEM,
-        changes: {
-          featureKey,
-          isEnabled: change,
-        },
-        metadata: {
-          source: "tenant-admin",
-          oldValue: change.from,
-          newValue: change.to,
-        },
-      }));
-
-      await prisma.globalAuditLog.createMany({
-        data: auditEntries,
-      });
-    }
+        source: 'tenant-admin',
+      } : undefined
+    );
 
     // Fetch updated state
     const updatedToggles = await featureToggleService.getEnabledFeatures(companyId);
@@ -234,7 +203,7 @@ export async function PATCH(
       companyId: company.id,
       companyName: company.name,
       toggles: updatedToggles,
-      changesApplied: Object.keys(changes).length,
+      changesApplied: changesCount,
     });
   } catch (error) {
     console.error("Tenant admin - update feature toggles error:", error);

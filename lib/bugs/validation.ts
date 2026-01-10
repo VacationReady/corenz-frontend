@@ -58,24 +58,43 @@ export function sanitizeText(input: string | undefined | null): string {
     ALLOWED_ATTR: [], // No attributes allowed
   });
 
-  // Additional cleanup: decode HTML entities and trim
-  return decodeHtmlEntities(sanitized).trim();
+  // Decode safe HTML entities only (not < and > which could re-introduce tags)
+  const decoded = decodeSafeHtmlEntities(sanitized);
+  
+  // Final pass: remove any remaining dangerous patterns that might have slipped through
+  const cleaned = removeDangerousPatterns(decoded);
+
+  return cleaned.trim();
 }
 
 /**
- * Decode common HTML entities
+ * Decode safe HTML entities (not < and > which could re-introduce XSS)
  */
-function decodeHtmlEntities(text: string): string {
+function decodeSafeHtmlEntities(text: string): string {
   const entities: Record<string, string> = {
     "&amp;": "&",
-    "&lt;": "<",
-    "&gt;": ">",
     "&quot;": '"',
     "&#39;": "'",
     "&nbsp;": " ",
   };
 
-  return text.replace(/&(?:amp|lt|gt|quot|#39|nbsp);/g, (match) => entities[match] || match);
+  return text.replace(/&(?:amp|quot|#39|nbsp);/g, (match) => entities[match] || match);
+}
+
+/**
+ * Remove dangerous patterns that could execute JavaScript
+ */
+function removeDangerousPatterns(text: string): string {
+  // Remove javascript: URLs (case-insensitive, with possible whitespace/encoding tricks)
+  let result = text.replace(/javascript\s*:/gi, "");
+  
+  // Remove data: URLs that could contain scripts
+  result = result.replace(/data\s*:\s*text\/html/gi, "");
+  
+  // Remove event handler patterns (on* = )
+  result = result.replace(/\bon\w+\s*=/gi, "");
+  
+  return result;
 }
 
 /**

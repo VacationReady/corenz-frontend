@@ -18,12 +18,9 @@ export default function FloatingBugButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  // Don't render if feature is disabled or still loading
-  if (isLoading) {
-    return null;
-  }
-
-  if (!isFeatureEnabled(FEATURE_KEYS.BUG_REPORTING)) {
+  // Don't render if feature is disabled (but show while loading for better UX)
+  // isFeatureEnabled returns true by default when loading (fail-open)
+  if (!isLoading && !isFeatureEnabled(FEATURE_KEYS.BUG_REPORTING)) {
     return null;
   }
 

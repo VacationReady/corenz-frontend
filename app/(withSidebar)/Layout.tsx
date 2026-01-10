@@ -4,7 +4,6 @@ import AdminSidebar from "@/components/sidebars/AdminSidebar";
 import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
 import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
 import WithSidebarChromeClient from "./WithSidebarChromeClient";
-import FloatingBugButton from "@/components/bugs/FloatingBugButton";
 
 type UserRole = "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN";
 
@@ -44,8 +43,6 @@ export default async function WithSidebarLayout({
           {children}
         </main>
       </div>
-      {/* Floating Bug Report Button - visible when feature is enabled */}
-      <FloatingBugButton />
     </div>
   );
 }

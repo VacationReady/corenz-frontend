@@ -14,7 +14,6 @@ import {
 import { AddTenantDialog } from "./AddTenantDialog";
 import { Bell, Menu, Search } from "lucide-react";
 import { toast } from "sonner";
-import ReportBugButton from "@/components/bugs/ReportBugButton";
 
 interface TopBarProps {
   onOpenMobileSidebar?: () => void;
@@ -297,10 +296,7 @@ export default function TopBar({
                 <span className="absolute right-2 top-2 block h-2 w-2 rounded-full bg-destructive animate-pulse shadow-glow-sm" />
               </button>
 
-              {/* Bug Report Button - Only visible to ADMIN, SUPER_ADMIN, and MANAGER roles */}
-              {(role === "ADMIN" || role === "SUPER_ADMIN" || role === "MANAGER") && (
-                <ReportBugButton />
-              )}
+
 
               <div className="glass-strong flex items-center gap-3 rounded-2xl px-3 py-2 shadow-depth-1 hover-lift transition-glass">
                 <Avatar

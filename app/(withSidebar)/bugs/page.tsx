@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { Bug, Plus } from "lucide-react";
+import { Bug, Plus, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { FeatureGuardedPage } from "@/components/FeatureGuardedPage";
 import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 import BugReportTable from "@/components/bugs/BugReportTable";
@@ -16,6 +17,7 @@ import {
 } from "@/types/bugs";
 
 function BugDashboardContent() {
+  const router = useRouter();
   // Data state
   const [bugs, setBugs] = useState<BugReport[]>([]);
   const [total, setTotal] = useState(0);
@@ -125,6 +127,13 @@ function BugDashboardContent() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <div className="p-2.5 rounded-2xl bg-red-500/10 text-red-600 dark:text-red-400">
             <Bug className="w-6 h-6" />
           </div>

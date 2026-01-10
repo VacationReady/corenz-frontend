@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { Bug } from "lucide-react";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
@@ -11,15 +12,23 @@ import BugSubmissionModal from "./BugSubmissionModal";
  * 
  * A floating chat-style button fixed to the bottom-right corner
  * that opens the bug submission modal when clicked.
- * Only renders when the BUG_REPORTING feature is enabled for the tenant.
+ * Only renders when:
+ * 1. User is authenticated (has a session with companyId)
+ * 2. BUG_REPORTING feature is enabled for the tenant
  */
 export default function FloatingBugButton() {
+  const { data: session, status } = useSession();
   const { isFeatureEnabled, isLoading } = useFeatureToggles();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  // Don't render if feature is disabled (but show while loading for better UX)
-  // isFeatureEnabled returns true by default when loading (fail-open)
+  // Don't render if not authenticated or no companyId (not in a tenant context)
+  const companyId = (session as any)?.user?.companyId;
+  if (status !== "authenticated" || !companyId) {
+    return null;
+  }
+
+  // Don't render if feature is disabled
   if (!isLoading && !isFeatureEnabled(FEATURE_KEYS.BUG_REPORTING)) {
     return null;
   }

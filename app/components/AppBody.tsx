@@ -3,6 +3,7 @@
 import { CSSProperties, ReactNode } from "react";
 import { useTenantTheme } from "../lib/tenant-theme";
 import { createTenantCssVariables } from "../lib/tenant-theme-config";
+import FloatingBugButton from "./bugs/FloatingBugButton";
 
 export function AppBody({
   children,
@@ -64,6 +65,9 @@ export function AppBody({
         {children}
         {/* Toaster and CommandPaletteMount are mounted in Providers to avoid duplicates */}
       </div>
+
+      {/* Global Floating Bug Report Button */}
+      <FloatingBugButton />
     </body>
   );
 }

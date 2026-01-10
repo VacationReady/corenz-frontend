@@ -7,7 +7,6 @@ import TopBar from "@/components/navigation/TopBar";
 import AdminSidebar from "@/components/sidebars/AdminSidebar";
 import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
 import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
-import FloatingBugButton from "@/components/bugs/FloatingBugButton";
 
 type UserRole = "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN";
 
@@ -64,9 +63,6 @@ export default function WithSidebarChromeClient({
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
-
-      {/* Floating Bug Report Button */}
-      <FloatingBugButton />
     </>
   );
 }

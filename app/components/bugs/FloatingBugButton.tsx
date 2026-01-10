@@ -29,18 +29,7 @@ export default function FloatingBugButton() {
   const [isHovered, setIsHovered] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Don't render if not authenticated or no companyId (not in a tenant context)
-  const companyId = (session as any)?.user?.companyId;
-  if (status !== "authenticated" || !companyId) {
-    return null;
-  }
-
-  // Don't render if feature is disabled
-  if (!isLoading && !isFeatureEnabled(FEATURE_KEYS.BUG_REPORTING)) {
-    return null;
-  }
-
-  // Close menu when clicking outside
+  // Close menu when clicking outside - must be before any conditional returns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -56,6 +45,17 @@ export default function FloatingBugButton() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isMenuOpen]);
+
+  // Don't render if not authenticated or no companyId (not in a tenant context)
+  const companyId = (session as any)?.user?.companyId;
+  if (status !== "authenticated" || !companyId) {
+    return null;
+  }
+
+  // Don't render if feature is disabled
+  if (!isLoading && !isFeatureEnabled(FEATURE_KEYS.BUG_REPORTING)) {
+    return null;
+  }
 
   const handleReportBug = () => {
     setIsMenuOpen(false);

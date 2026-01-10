@@ -222,10 +222,19 @@ export function AdminBugDetailPanel({
                 </label>
                 <Select
                   value={status}
-                  onValueChange={(val) => setStatus(val as BugStatus)}
+                  onValueChange={(val: string) => {
+                    setStatus(val as BugStatus);
+                  }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue placeholder="Select status">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2 h-2 rounded-full ${STATUS_INFO[status].bgColor}`}
+                        />
+                        {STATUS_INFO[status].label}
+                      </div>
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {(Object.keys(STATUS_INFO) as BugStatus[]).map((s) => (

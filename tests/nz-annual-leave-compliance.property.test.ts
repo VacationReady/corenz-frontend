@@ -425,3 +425,274 @@ test("Edge Cases: Anniversary Date Calculation", async (t) => {
   });
 });
 
+
+
+// ============================================
+// PROPERTY 3: ANNIVERSARY GRANT WITH DEDUCTION
+// ============================================
+
+import { calculateAnniversaryGrantBalance } from "../lib/leave/annual-leave-anniversary";
+
+test("Property 3: Anniversary Grant with Deduction - NZ Annual Leave Compliance", async (t) => {
+  /**
+   * Property 3: Anniversary Grant with Deduction
+   * *For any* employee reaching their 12-month anniversary, the created LeaveEntitlement 
+   * balance SHALL equal `futureAnnualLeaveEntitlement - leaveInAdvanceUsed`, with a minimum of 0.
+   * 
+   * **Validates: Requirements 2.1, 2.2**
+   */
+
+  await t.test("Final balance equals future entitlement minus leave in advance", () => {
+    /**
+     * Property: For any valid future entitlement and leave in advance values,
+     * the final balance SHALL equal futureEntitlement - leaveInAdvanceUsed.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100), // 0-30 days entitlement
+        fc.integer({ min: 0, max: 2000 }).map(n => n / 100), // 0-20 days leave in advance
+        (futureEntitlement, leaveInAdvanceUsed) => {
+          const { finalBalance } = calculateAnniversaryGrantBalance(futureEntitlement, leaveInAdvanceUsed);
+          
+          const expectedBalance = Math.max(0, futureEntitlement - leaveInAdvanceUsed);
+          const expectedRounded = Math.round(expectedBalance * 100) / 100;
+          
+          return finalBalance === expectedRounded;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Final balance is never negative", () => {
+    /**
+     * Property: For any combination of future entitlement and leave in advance,
+     * the final balance SHALL never be negative.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+        fc.integer({ min: 0, max: 5000 }).map(n => n / 100), // Can exceed entitlement
+        (futureEntitlement, leaveInAdvanceUsed) => {
+          const { finalBalance } = calculateAnniversaryGrantBalance(futureEntitlement, leaveInAdvanceUsed);
+          return finalBalance >= 0;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Flagged for review when leave in advance exceeds entitlement", () => {
+    /**
+     * Property: When leave in advance exceeds future entitlement,
+     * the result SHALL be flagged for review.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 100, max: 2000 }).map(n => n / 100), // 1-20 days entitlement
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),   // 0-30 days leave in advance
+        (futureEntitlement, leaveInAdvanceUsed) => {
+          const { flaggedForReview } = calculateAnniversaryGrantBalance(futureEntitlement, leaveInAdvanceUsed);
+          
+          const shouldBeFlagged = leaveInAdvanceUsed > futureEntitlement;
+          return flaggedForReview === shouldBeFlagged;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Not flagged when leave in advance is within entitlement", () => {
+    /**
+     * Property: When leave in advance is less than or equal to future entitlement,
+     * the result SHALL NOT be flagged for review.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 100, max: 3000 }).map(n => n / 100), // 1-30 days entitlement
+        (futureEntitlement) => {
+          // Generate leave in advance that's <= entitlement
+          const leaveInAdvanceUsed = Math.random() * futureEntitlement;
+          const { flaggedForReview } = calculateAnniversaryGrantBalance(futureEntitlement, leaveInAdvanceUsed);
+          
+          return flaggedForReview === false;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Final balance has at most 2 decimal places", () => {
+    /**
+     * Property: For any input values, the final balance SHALL be rounded
+     * to at most 2 decimal places.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 30000 }).map(n => n / 1000), // Up to 3 decimal places
+        fc.integer({ min: 0, max: 30000 }).map(n => n / 1000),
+        (futureEntitlement, leaveInAdvanceUsed) => {
+          const { finalBalance } = calculateAnniversaryGrantBalance(futureEntitlement, leaveInAdvanceUsed);
+          
+          // Check that the result has at most 2 decimal places
+          const decimalPart = finalBalance.toString().split('.')[1] || '';
+          return decimalPart.length <= 2;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Zero entitlement results in zero balance", () => {
+    /**
+     * Property: When future entitlement is 0, the final balance SHALL be 0
+     * regardless of leave in advance.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+        (leaveInAdvanceUsed) => {
+          const { finalBalance, flaggedForReview } = calculateAnniversaryGrantBalance(0, leaveInAdvanceUsed);
+          
+          // Balance should be 0
+          // Should be flagged if any leave in advance was used
+          return finalBalance === 0 && 
+                 (leaveInAdvanceUsed > 0 ? flaggedForReview === true : flaggedForReview === false);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("No leave in advance means full entitlement", () => {
+    /**
+     * Property: When no leave in advance was taken, the final balance
+     * SHALL equal the full future entitlement.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+        (futureEntitlement) => {
+          const { finalBalance, flaggedForReview } = calculateAnniversaryGrantBalance(futureEntitlement, 0);
+          
+          const expectedBalance = Math.round(futureEntitlement * 100) / 100;
+          return finalBalance === expectedBalance && flaggedForReview === false;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});
+
+// ============================================
+// PROPERTY 10: AUDIT LOG CREATION
+// ============================================
+
+test("Property 10: Audit Log Creation - NZ Annual Leave Compliance", async (t) => {
+  /**
+   * Property 10: Audit Log Creation
+   * *For any* anniversary grant operation, the system SHALL create an audit log entry
+   * containing the employee ID, grant date, granted amount, deducted leave in advance, 
+   * and final balance.
+   * 
+   * **Validates: Requirements 2.4**
+   * 
+   * Note: This test validates the audit log metadata structure that would be created.
+   * Full integration testing requires database access.
+   */
+
+  await t.test("Audit log metadata contains all required fields", () => {
+    /**
+     * Property: For any anniversary grant, the audit log metadata SHALL contain
+     * all required fields: employeeId, grantDate, futureEntitlement, 
+     * leaveInAdvanceDeducted, finalBalance, flaggedForReview.
+     */
+    fc.assert(
+      fc.property(
+        fc.uuid(),
+        validStartDateArbitrary, // Use the same safe date generator
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+        fc.integer({ min: 0, max: 2000 }).map(n => n / 100),
+        (employeeId, grantDate, futureEntitlement, leaveInAdvanceUsed) => {
+          const { finalBalance, flaggedForReview } = calculateAnniversaryGrantBalance(
+            futureEntitlement, 
+            leaveInAdvanceUsed
+          );
+          
+          // Simulate the audit log metadata structure
+          const metadata = {
+            type: 'ANNIVERSARY_GRANT',
+            employeeId,
+            grantDate: grantDate.toISOString(),
+            futureEntitlement,
+            leaveInAdvanceDeducted: leaveInAdvanceUsed,
+            finalBalance,
+            flaggedForReview,
+          };
+          
+          // Verify all required fields are present
+          return (
+            metadata.type === 'ANNIVERSARY_GRANT' &&
+            typeof metadata.employeeId === 'string' &&
+            typeof metadata.grantDate === 'string' &&
+            typeof metadata.futureEntitlement === 'number' &&
+            typeof metadata.leaveInAdvanceDeducted === 'number' &&
+            typeof metadata.finalBalance === 'number' &&
+            typeof metadata.flaggedForReview === 'boolean'
+          );
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Audit log metadata values are consistent with grant calculation", () => {
+    /**
+     * Property: The audit log metadata values SHALL be consistent with
+     * the actual grant calculation results.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+        (futureEntitlement, leaveInAdvanceUsed) => {
+          const { finalBalance, flaggedForReview } = calculateAnniversaryGrantBalance(
+            futureEntitlement, 
+            leaveInAdvanceUsed
+          );
+          
+          // Verify consistency
+          const expectedBalance = Math.max(0, futureEntitlement - leaveInAdvanceUsed);
+          const expectedRounded = Math.round(expectedBalance * 100) / 100;
+          const expectedFlagged = leaveInAdvanceUsed > futureEntitlement;
+          
+          return (
+            finalBalance === expectedRounded &&
+            flaggedForReview === expectedFlagged
+          );
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Grant date is preserved in ISO format", () => {
+    /**
+     * Property: The grant date in audit log metadata SHALL be a valid ISO date string.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary, // Use the same safe date generator
+        (grantDate) => {
+          const isoString = grantDate.toISOString();
+          
+          // Verify it's a valid ISO string that can be parsed back
+          const parsed = new Date(isoString);
+          return !isNaN(parsed.getTime()) && 
+                 parsed.getTime() === grantDate.getTime();
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});

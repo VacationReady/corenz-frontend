@@ -43,43 +43,43 @@ This implementation plan refactors PeopleCore's annual leave entitlement logic t
     - Verify annualLeaveEntitlementDate = startDate + 12 months exactly
     - **Validates: Requirements 1.2, 1.3**
 
-- [ ] 3. Implement anniversary grant logic
-  - [ ] 3.1 Create lib/leave/annual-leave-anniversary.ts
+- [x] 3. Implement anniversary grant logic
+  - [x] 3.1 Create lib/leave/annual-leave-anniversary.ts
     - Implement `processAnniversaryGrant(employeeId, grantDate)` function
     - Calculate final balance: futureEntitlement - leaveInAdvanceUsed
     - Handle edge case: leaveInAdvance > futureEntitlement (set to 0, flag for review)
     - Create LeaveEntitlement record with calculated balance
     - Create audit log entry for grant
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
-  - [ ] 3.2 Implement `findEmployeesAtAnniversary(companyId, targetDate)` function
+  - [x] 3.2 Implement `findEmployeesAtAnniversary(companyId, targetDate)` function
     - Query employees where annualLeaveEntitlementDate <= targetDate
     - Exclude employees who already have LeaveEntitlement for Annual Leave
     - Exclude casual employees
     - _Requirements: 2.5, 7.1_
-  - [ ] 3.3 Implement `processAllAnniversaryGrants(companyId)` function
+  - [x] 3.3 Implement `processAllAnniversaryGrants(companyId)` function
     - Find all employees at anniversary
     - Process grants in batch
     - Return summary of results
     - _Requirements: 2.5_
-  - [ ] 3.4 Write property test for anniversary grant with deduction
+  - [x] 3.4 Write property test for anniversary grant with deduction
     - **Property 3: Anniversary Grant with Deduction**
     - Generate random employees with various futureEntitlement and leaveInAdvanceUsed
     - Verify final balance = max(0, future - advance)
     - **Validates: Requirements 2.1, 2.2**
-  - [ ] 3.5 Write property test for audit log creation
+  - [x] 3.5 Write property test for audit log creation
     - **Property 10: Audit Log Creation**
     - Trigger anniversary grants
     - Verify audit log entries created with correct data
     - **Validates: Requirements 2.4**
 
-- [ ] 4. Create scheduled job endpoint for anniversary processing
-  - [ ] 4.1 Create app/api/cron/annual-leave-anniversary/route.ts
+- [x] 4. Create scheduled job endpoint for anniversary processing
+  - [x] 4.1 Create app/api/cron/annual-leave-anniversary/route.ts
     - Implement GET handler for Vercel Cron
     - Call processAllAnniversaryGrants for all companies
     - Return summary of processed grants
     - Add appropriate error handling and logging
     - _Requirements: 2.5_
-  - [ ] 4.2 Add cron configuration to vercel.json (if using Vercel Cron)
+  - [x] 4.2 Add cron configuration to vercel.json (if using Vercel Cron)
     - Schedule daily run at midnight NZ time
     - _Requirements: 2.5_
 

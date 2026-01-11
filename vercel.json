@@ -13,6 +13,9 @@
     },
     "app/api/cron/process-automations/route.js": {
       "maxDuration": 300
+    },
+    "app/api/cron/annual-leave-anniversary/route.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -31,6 +34,10 @@
     {
       "path": "/api/cron/automation-triggers",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/annual-leave-anniversary",
+      "schedule": "0 12 * * *"
     }
   ],
   "headers": [

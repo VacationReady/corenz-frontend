@@ -99,7 +99,8 @@ async function postHandler(request: Request) {
     for (const employee of employees) {
       try {
         // Bulk actions by admins should bypass warnings automatically
-        await validateLeaveRequest({
+        // NZ Holidays Act 2003: This also classifies if the request is "leave in advance"
+        const validationResult = await validateLeaveRequest({
           employeeId: employee.id,
           eventCategoryId,
           startDate: start,
@@ -109,6 +110,8 @@ async function postHandler(request: Request) {
           isAdmin: true,
           bypassWarnings: true, // Bulk actions always bypass warnings
         });
+        
+        // Note: validationResult.isLeaveInAdvance available if needed for tracking
 
         const leaveRequest = await prisma.leaveRequest.create({
           data: {

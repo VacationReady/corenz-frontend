@@ -696,3 +696,285 @@ test("Property 10: Audit Log Creation - NZ Annual Leave Compliance", async (t) =
     );
   });
 });
+
+
+// ============================================
+// PROPERTY 4: LEAVE IN ADVANCE CLASSIFICATION
+// ============================================
+
+import { classifyLeaveInAdvance } from "../app/lib/validateLeaveRequest";
+
+test("Property 4: Leave In Advance Classification - NZ Annual Leave Compliance", async (t) => {
+  /**
+   * Property 4: Leave In Advance Classification
+   * *For any* annual leave request from an employee with less than 12 months service 
+   * (no LeaveEntitlement record), the request SHALL be classified as leave in advance 
+   * and recorded in `leaveInAdvanceUsed` upon approval.
+   * 
+   * **Validates: Requirements 3.1, 3.2**
+   */
+
+  await t.test("Pre-12-month employees with future entitlement are classified as leave in advance", () => {
+    /**
+     * Property: For any employee with a futureAnnualLeaveEntitlement stored,
+     * their annual leave requests SHALL be classified as leave in advance.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        fc.integer({ min: 100, max: 3000 }).map(n => n / 100), // 1-30 days future entitlement
+        (startDate, futureEntitlement) => {
+          // Create employee data with future entitlement (pre-12-month)
+          const employee = {
+            employmentStartDate: startDate,
+            startDate: startDate,
+            annualLeaveEntitlementDate: calculateAnniversaryDate(startDate),
+            futureAnnualLeaveEntitlement: futureEntitlement,
+            isCasualEmployee: false,
+          };
+
+          // Request date is before anniversary (within first 12 months)
+          const requestDate = new Date(startDate);
+          requestDate.setMonth(requestDate.getMonth() + 6); // 6 months after start
+
+          const result = classifyLeaveInAdvance(employee, requestDate);
+
+          // Should be classified as leave in advance
+          return result.isLeaveInAdvance === true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Post-12-month employees without future entitlement are NOT classified as leave in advance", () => {
+    /**
+     * Property: For any employee without a futureAnnualLeaveEntitlement (entitlement crystallised),
+     * their annual leave requests SHALL NOT be classified as leave in advance.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        (startDate) => {
+          // Create employee data without future entitlement (post-12-month)
+          const employee = {
+            employmentStartDate: startDate,
+            startDate: startDate,
+            annualLeaveEntitlementDate: null, // Cleared after crystallisation
+            futureAnnualLeaveEntitlement: null, // Cleared after crystallisation
+            isCasualEmployee: false,
+          };
+
+          // Request date is after anniversary (past 12 months)
+          const requestDate = new Date(startDate);
+          requestDate.setFullYear(requestDate.getFullYear() + 2); // 2 years after start
+
+          const result = classifyLeaveInAdvance(employee, requestDate);
+
+          // Should NOT be classified as leave in advance
+          return result.isLeaveInAdvance === false;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Casual employees are never classified as leave in advance", () => {
+    /**
+     * Property: For any casual employee, regardless of tenure,
+     * they SHALL NOT be classified as leave in advance (they can't request annual leave).
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        fc.integer({ min: 100, max: 3000 }).map(n => n / 100),
+        (startDate, futureEntitlement) => {
+          // Create casual employee data
+          const employee = {
+            employmentStartDate: startDate,
+            startDate: startDate,
+            annualLeaveEntitlementDate: calculateAnniversaryDate(startDate),
+            futureAnnualLeaveEntitlement: futureEntitlement,
+            isCasualEmployee: true, // Casual employee
+          };
+
+          const requestDate = new Date(startDate);
+          requestDate.setMonth(requestDate.getMonth() + 3);
+
+          const result = classifyLeaveInAdvance(employee, requestDate);
+
+          // Casual employees should not be classified as leave in advance
+          // (they receive 8% holiday pay instead)
+          return result.isLeaveInAdvance === false;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Tenure months is calculated correctly based on start date", () => {
+    /**
+     * Property: For any employee with a valid start date,
+     * the tenure months SHALL be calculated correctly.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        fc.integer({ min: 0, max: 24 }), // 0-24 months tenure
+        (startDate, monthsToAdd) => {
+          const employee = {
+            employmentStartDate: startDate,
+            startDate: startDate,
+            annualLeaveEntitlementDate: calculateAnniversaryDate(startDate),
+            futureAnnualLeaveEntitlement: 20,
+            isCasualEmployee: false,
+          };
+
+          // Request date is monthsToAdd months after start
+          const requestDate = new Date(startDate);
+          requestDate.setMonth(requestDate.getMonth() + monthsToAdd);
+
+          const result = classifyLeaveInAdvance(employee, requestDate);
+
+          // Tenure should be approximately monthsToAdd (within 1 month tolerance for edge cases)
+          return Math.abs(result.tenureMonths - monthsToAdd) <= 1;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Classification is based on entitlement date, not just tenure", () => {
+    /**
+     * Property: For any employee where annualLeaveEntitlementDate is in the future,
+     * they SHALL be classified as leave in advance, even if tenure > 12 months.
+     * This handles edge cases like casual-to-permanent conversions.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        (startDate) => {
+          // Create employee with future entitlement date (e.g., casual-to-permanent conversion)
+          const futureEntitlementDate = new Date(startDate);
+          futureEntitlementDate.setFullYear(futureEntitlementDate.getFullYear() + 2);
+
+          const employee = {
+            employmentStartDate: startDate,
+            startDate: startDate,
+            annualLeaveEntitlementDate: futureEntitlementDate,
+            futureAnnualLeaveEntitlement: 20,
+            isCasualEmployee: false,
+          };
+
+          // Request date is after original start but before entitlement date
+          const requestDate = new Date(startDate);
+          requestDate.setMonth(requestDate.getMonth() + 18); // 18 months after start
+
+          const result = classifyLeaveInAdvance(employee, requestDate);
+
+          // Should be classified as leave in advance because entitlement date is in future
+          return result.isLeaveInAdvance === true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Missing start date returns zero tenure and no leave in advance", () => {
+    /**
+     * Property: For any employee without a start date,
+     * the classification SHALL return isLeaveInAdvance=false and tenureMonths=0.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        (requestDate) => {
+          // Create employee without start date
+          const employee = {
+            employmentStartDate: null,
+            startDate: null,
+            annualLeaveEntitlementDate: null,
+            futureAnnualLeaveEntitlement: null,
+            isCasualEmployee: false,
+          };
+
+          const result = classifyLeaveInAdvance(employee, requestDate);
+
+          // Should return defaults when no start date
+          return result.isLeaveInAdvance === false && result.tenureMonths === 0;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Classification is deterministic", () => {
+    /**
+     * Property: For any employee and request date,
+     * calling classifyLeaveInAdvance multiple times SHALL produce the same result.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        fc.integer({ min: 100, max: 3000 }).map(n => n / 100),
+        fc.boolean(),
+        (startDate, futureEntitlement, isCasual) => {
+          const employee = {
+            employmentStartDate: startDate,
+            startDate: startDate,
+            annualLeaveEntitlementDate: calculateAnniversaryDate(startDate),
+            futureAnnualLeaveEntitlement: isCasual ? null : futureEntitlement,
+            isCasualEmployee: isCasual,
+          };
+
+          const requestDate = new Date(startDate);
+          requestDate.setMonth(requestDate.getMonth() + 6);
+
+          const result1 = classifyLeaveInAdvance(employee, requestDate);
+          const result2 = classifyLeaveInAdvance(employee, requestDate);
+          const result3 = classifyLeaveInAdvance(employee, requestDate);
+
+          return (
+            result1.isLeaveInAdvance === result2.isLeaveInAdvance &&
+            result2.isLeaveInAdvance === result3.isLeaveInAdvance &&
+            result1.tenureMonths === result2.tenureMonths &&
+            result2.tenureMonths === result3.tenureMonths
+          );
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("12-month boundary: exactly at anniversary date", () => {
+    /**
+     * Property: For any employee at exactly their 12-month anniversary,
+     * if they still have futureAnnualLeaveEntitlement, they are still leave in advance.
+     * (The entitlement crystallises at the anniversary, but until processed, they're still pre-12-month)
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        (startDate) => {
+          const anniversaryDate = calculateAnniversaryDate(startDate);
+
+          const employee = {
+            employmentStartDate: startDate,
+            startDate: startDate,
+            annualLeaveEntitlementDate: anniversaryDate,
+            futureAnnualLeaveEntitlement: 20, // Still has future entitlement
+            isCasualEmployee: false,
+          };
+
+          // Request exactly on anniversary date
+          const result = classifyLeaveInAdvance(employee, anniversaryDate);
+
+          // Should still be leave in advance until entitlement is processed
+          // (annualLeaveEntitlementDate is NOT in the future, but futureAnnualLeaveEntitlement exists)
+          return result.isLeaveInAdvance === true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});

@@ -853,7 +853,8 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
     // This ensures no duplication - uses your existing validation, workflows, notifications
     try {
       // Step 1: Validate using existing validation function
-      await validateLeaveRequest({
+      // NZ Holidays Act 2003: This also classifies if the request is "leave in advance"
+      const validationResult = await validateLeaveRequest({
         employeeId: pending.data.employeeId,
         eventCategoryId: category.id,
         startDate: new Date(pending.data.startDate),
@@ -862,6 +863,8 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
         isAdmin: true, // AI Assistant is admin action
         companyId: action.companyId,
       });
+      
+      // Note: isLeaveInAdvance flag available in validationResult if needed for UI
 
       // Step 2: Calculate leave deduction before transaction
       const startDateObj = new Date(pending.data.startDate);
@@ -1111,6 +1114,7 @@ async function executeBulkLeaveBooking(action: AIAction, pendingData: any): Prom
   for (const employee of employees) {
     try {
       // Use the same validation and booking logic as individual leave booking
+      // NZ Holidays Act 2003: This also classifies if the request is "leave in advance"
       await validateLeaveRequest({
         employeeId: employee.id,
         eventCategoryId: categoryId,

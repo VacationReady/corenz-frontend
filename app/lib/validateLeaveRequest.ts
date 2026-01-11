@@ -1,11 +1,63 @@
 // lib/validateLeaveRequest.ts
 
 import { prisma } from "@/lib/prisma";
-import { eachDayOfInterval, subMonths, format } from "date-fns";
+import { eachDayOfInterval, subMonths, format, differenceInMonths } from "date-fns";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { checkNegativeBalanceAllowed } from "@/lib/accrualEngine";
 import { getNZPublicHolidayInfo } from "@/lib/public-holiday-checker";
 import { isEligibleForSickLeave, getSickLeaveStatus, applySickLeaveGrants } from "@/lib/leave/nz-sick-leave-ledger";
+
+/**
+ * NZ Holidays Act 2003 - Leave In Advance Classification
+ * 
+ * Determines if an employee is pre-12-month (not yet entitled to annual leave).
+ * An employee is classified as pre-12-month if:
+ * 1. They have a futureAnnualLeaveEntitlement stored (entitlement not yet crystallised), OR
+ * 2. Their annualLeaveEntitlementDate is in the future relative to the request date
+ * 
+ * @param employee - Employee data with tenure fields
+ * @param requestDate - The date of the leave request
+ * @returns Object with isPreTwelveMonth flag and tenureMonths
+ */
+export function classifyLeaveInAdvance(
+  employee: {
+    employmentStartDate?: Date | null;
+    startDate?: Date | null;
+    annualLeaveEntitlementDate?: Date | null;
+    futureAnnualLeaveEntitlement?: number | null;
+    isCasualEmployee?: boolean;
+  },
+  requestDate: Date
+): { isLeaveInAdvance: boolean; tenureMonths: number } {
+  // Casual employees cannot request annual leave
+  if (employee.isCasualEmployee) {
+    return { isLeaveInAdvance: false, tenureMonths: 0 };
+  }
+
+  // Determine the effective start date for tenure calculation
+  const effectiveStartDate = employee.employmentStartDate || employee.startDate;
+  
+  if (!effectiveStartDate) {
+    // No start date available, cannot determine tenure
+    return { isLeaveInAdvance: false, tenureMonths: 0 };
+  }
+
+  // Calculate tenure in months using date-fns for accuracy
+  const tenureMonths = differenceInMonths(requestDate, new Date(effectiveStartDate));
+
+  // Check if employee is pre-12-month (has not yet reached entitlement crystallisation)
+  // An employee is pre-12-month if:
+  // 1. They have a futureAnnualLeaveEntitlement stored (entitlement not yet crystallised), OR
+  // 2. Their annualLeaveEntitlementDate is in the future
+  const hasFutureEntitlement = employee.futureAnnualLeaveEntitlement !== null && 
+                               employee.futureAnnualLeaveEntitlement !== undefined;
+  const entitlementDateInFuture = employee.annualLeaveEntitlementDate && 
+    new Date(employee.annualLeaveEntitlementDate) > requestDate;
+  
+  const isLeaveInAdvance = hasFutureEntitlement || !!entitlementDateInFuture;
+
+  return { isLeaveInAdvance, tenureMonths };
+}
 
 /**
  * Validates a leave request against entitlement, business rules, blackout days, working pattern, and concurrency.
@@ -13,12 +65,29 @@ import { isEligibleForSickLeave, getSickLeaveStatus, applySickLeaveGrants } from
  * NOTE: Entitlement validation only applies when enforceEntitlement is true (typically only for Annual Leave).
  * For other event types (e.g., Compassionate Leave, Sick Leave), entitlement is NOT enforced.
  * Instead, they may have a maxDaysPerPeriod limit (e.g., max 5 days over 12 months).
+ * 
+ * NZ HOLIDAYS ACT 2003 COMPLIANCE:
+ * For employees with less than 12 months of continuous employment, annual leave requests
+ * are classified as "leave in advance". This is tracked separately and deducted from
+ * the employee's entitlement when it crystallises at the 12-month anniversary.
  */
 export interface LeaveValidationWarning {
   code: string;
   message: string;
   severity: "warning" | "error";
-  ruleType: "notice_period" | "max_booking_length" | "blackout_day" | "entitlement" | "overlap" | "sick_leave_eligibility" | "public_holiday" | "max_days_per_period";
+  ruleType: "notice_period" | "max_booking_length" | "blackout_day" | "entitlement" | "overlap" | "sick_leave_eligibility" | "public_holiday" | "max_days_per_period" | "leave_in_advance";
+}
+
+/**
+ * Result of leave request validation including NZ compliance classification.
+ */
+export interface LeaveValidationResult {
+  /** Validation warnings (non-blocking issues) */
+  warnings: LeaveValidationWarning[];
+  /** Whether this is a "leave in advance" request (NZ Holidays Act 2003) */
+  isLeaveInAdvance: boolean;
+  /** Employee's tenure in months (for pre-12-month employees) */
+  tenureMonths?: number;
 }
 
 export async function validateLeaveRequest({
@@ -39,7 +108,7 @@ export async function validateLeaveRequest({
   isAdmin?: boolean;
   companyId: string;
   bypassWarnings?: boolean;
-}): Promise<LeaveValidationWarning[]> {
+}): Promise<LeaveValidationResult> {
   console.log("🛠️ [validateLeaveRequest] START:", {
     employeeId,
     eventCategoryId,
@@ -52,6 +121,10 @@ export async function validateLeaveRequest({
 
   const warnings: LeaveValidationWarning[] = [];
   const effectiveDayType = dayType ?? "FULL_DAY";
+  
+  // NZ Holidays Act 2003: Track if this is a "leave in advance" request
+  let isLeaveInAdvance = false;
+  let tenureMonths: number | undefined = undefined;
 
   const eventCategory = await prisma.eventCategory.findFirst({
     where: { id: eventCategoryId, companyId },
@@ -61,6 +134,79 @@ export async function validateLeaveRequest({
   if (!eventCategory) {
     console.error("❌ Invalid eventCategoryId provided.");
     throw new Error(`Invalid event category.`);
+  }
+
+  // ── NZ HOLIDAYS ACT 2003: LEAVE IN ADVANCE CLASSIFICATION ──────────────────
+  // For annual leave requests, check if the employee has less than 12 months of
+  // continuous employment. If so, classify the request as "leave in advance".
+  // This leave will be tracked separately and deducted from entitlement at the
+  // 12-month anniversary.
+  const isAnnualLeaveRequest = eventCategory.name.toLowerCase().includes("annual leave");
+  
+  if (isAnnualLeaveRequest) {
+    // Fetch employee's tenure information
+    const employeeForTenure = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: {
+        employmentStartDate: true,
+        startDate: true,
+        annualLeaveEntitlementDate: true,
+        futureAnnualLeaveEntitlement: true,
+        isCasualEmployee: true,
+      },
+    });
+
+    if (employeeForTenure) {
+      // Casual employees cannot request annual leave (they receive 8% holiday pay instead)
+      if (employeeForTenure.isCasualEmployee) {
+        console.error("❌ Casual employee cannot request annual leave");
+        const error = new Error(
+          "Casual employees receive 8% holiday pay instead of annual leave. Please contact HR for assistance."
+        );
+        (error as any).code = "CASUAL_EMPLOYEE_NO_ANNUAL_LEAVE";
+        throw error;
+      }
+
+      // Determine the effective start date for tenure calculation
+      const effectiveStartDate = employeeForTenure.employmentStartDate || employeeForTenure.startDate;
+      
+      if (effectiveStartDate) {
+        // Calculate tenure in months
+        const startTime = new Date(effectiveStartDate).getTime();
+        const requestTime = startDate.getTime();
+        const monthsDiff = (requestTime - startTime) / (1000 * 60 * 60 * 24 * 30.44); // Average days per month
+        tenureMonths = Math.floor(monthsDiff);
+
+        // Check if employee is pre-12-month (has not yet reached entitlement crystallisation)
+        // An employee is pre-12-month if:
+        // 1. They have a futureAnnualLeaveEntitlement stored (entitlement not yet crystallised), OR
+        // 2. Their annualLeaveEntitlementDate is in the future
+        const hasFutureEntitlement = employeeForTenure.futureAnnualLeaveEntitlement !== null;
+        const entitlementDateInFuture = employeeForTenure.annualLeaveEntitlementDate && 
+          new Date(employeeForTenure.annualLeaveEntitlementDate) > startDate;
+        
+        if (hasFutureEntitlement || entitlementDateInFuture) {
+          isLeaveInAdvance = true;
+          console.log("📋 NZ Compliance: Leave in advance classification", {
+            employeeId,
+            tenureMonths,
+            hasFutureEntitlement,
+            entitlementDateInFuture,
+            annualLeaveEntitlementDate: employeeForTenure.annualLeaveEntitlementDate,
+          });
+
+          // Add informational warning about leave in advance
+          if (!bypassWarnings) {
+            warnings.push({
+              code: "LEAVE_IN_ADVANCE",
+              message: `This is a "leave in advance" request. The employee has ${tenureMonths} months of service and has not yet reached their 12-month anniversary. This leave will be deducted from their entitlement when it crystallises.`,
+              severity: "warning",
+              ruleType: "leave_in_advance",
+            });
+          }
+        }
+      }
+    }
   }
 
   // ── FULL-DAY OVERLAP CHECK ──────────────────────────────
@@ -446,9 +592,92 @@ export async function validateLeaveRequest({
   if (!enforceEntitlement) {
     console.log("ℹ️ Entitlement enforcement is disabled for this event type. Skipping entitlement check.");
     console.log("✅ [validateLeaveRequest] Validation passed successfully.");
-    return warnings;
+    return { warnings, isLeaveInAdvance, tenureMonths };
   }
 
+  // ── NZ HOLIDAYS ACT 2003: LEAVE IN ADVANCE ENTITLEMENT CHECK ──────────────
+  // For pre-12-month employees requesting annual leave (leave in advance),
+  // we check against their futureAnnualLeaveEntitlement instead of LeaveEntitlement.
+  // This allows them to request leave before their entitlement crystallises.
+  if (isLeaveInAdvance) {
+    console.log("📋 NZ Compliance: Checking leave in advance against future entitlement");
+    
+    const employeeForAdvance = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: {
+        futureAnnualLeaveEntitlement: true,
+        leaveInAdvanceUsed: true,
+      },
+    });
+
+    if (employeeForAdvance) {
+      const futureEntitlement = Number(employeeForAdvance.futureAnnualLeaveEntitlement || 0);
+      const alreadyUsedInAdvance = Number(employeeForAdvance.leaveInAdvanceUsed || 0);
+      
+      // Calculate pending leave in advance requests
+      const pendingAdvanceRequests = await prisma.leaveRequest.findMany({
+        where: {
+          employeeId,
+          eventCategoryId,
+          approvalStatus: "PENDING",
+        },
+        select: { startDate: true, endDate: true },
+      });
+
+      let pendingAdvanceDays = 0;
+      for (const leave of pendingAdvanceRequests) {
+        const leaveDates = eachDayOfInterval({ 
+          start: new Date(leave.startDate), 
+          end: new Date(leave.endDate) 
+        });
+        for (const date of leaveDates) {
+          const deduction = await calculateLeaveDeduction(employeeId, date);
+          pendingAdvanceDays += deduction;
+        }
+      }
+
+      const availableAdvance = futureEntitlement - alreadyUsedInAdvance - pendingAdvanceDays;
+      
+      console.log("📊 Leave in advance check:", {
+        futureEntitlement,
+        alreadyUsedInAdvance,
+        pendingAdvanceDays,
+        availableAdvance,
+        daysRequestedForDeduction,
+      });
+
+      // Check if negative balance is allowed via Leave Policies
+      const negativeBalanceAllowed = await checkNegativeBalanceAllowed({
+        employeeId,
+        eventCategoryId,
+        companyId,
+      });
+
+      if (daysRequestedForDeduction > availableAdvance && !negativeBalanceAllowed) {
+        const message = `Insufficient future entitlement: Requested ${daysRequestedForDeduction} days, but only ${Math.max(0, availableAdvance)} days available for leave in advance.`;
+        
+        if (isAdmin) {
+          if (!bypassWarnings) {
+            console.warn(`⚠️ Insufficient future entitlement (admin override available): ${message}`);
+            warnings.push({
+              code: "INSUFFICIENT_FUTURE_ENTITLEMENT",
+              message,
+              severity: "warning",
+              ruleType: "entitlement",
+            });
+          }
+        } else {
+          console.error("❌ Insufficient future entitlement for leave in advance.");
+          throw new Error(message);
+        }
+      }
+    }
+
+    console.log("✅ [validateLeaveRequest] Leave in advance validation passed.");
+    return { warnings, isLeaveInAdvance, tenureMonths };
+  }
+
+  // ── STANDARD ENTITLEMENT CHECK (for employees with crystallised entitlement) ──
   const entitlement = await prisma.leaveEntitlement.findFirst({
     where: {
       employeeId,
@@ -543,6 +772,6 @@ export async function validateLeaveRequest({
   }
 
   console.log("✅ [validateLeaveRequest] Validation passed successfully.");
-  return warnings;
+  return { warnings, isLeaveInAdvance, tenureMonths };
 }
 

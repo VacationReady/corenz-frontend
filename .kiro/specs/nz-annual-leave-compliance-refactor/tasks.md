@@ -88,14 +88,14 @@ This implementation plan refactors PeopleCore's annual leave entitlement logic t
   - Verify migration applied successfully
   - Test anniversary grant logic manually
 
-- [ ] 6. Extend leave request validation for leave in advance
-  - [ ] 6.1 Update app/lib/validateLeaveRequest.ts
+- [x] 6. Extend leave request validation for leave in advance
+  - [x] 6.1 Update app/lib/validateLeaveRequest.ts
     - Add check for employee tenure (< 12 months)
     - Allow annual leave requests for pre-12-month employees
     - Add flag to indicate request is "leave in advance"
     - Preserve existing validation logic
     - _Requirements: 3.1, 3.5_
-  - [ ] 6.2 Write property test for leave in advance classification
+  - [x] 6.2 Write property test for leave in advance classification
     - **Property 4: Leave In Advance Classification**
     - Generate random leave requests for employees at various tenure lengths
     - Verify correct classification based on 12-month threshold

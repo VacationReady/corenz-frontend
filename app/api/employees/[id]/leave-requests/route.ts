@@ -623,7 +623,8 @@ export async function POST(
     });
 
     // Validate entitlement and overlap using the updated validateLeaveRequest
-    const warnings = await validateLeaveRequest({
+    // NZ Holidays Act 2003: This also classifies if the request is "leave in advance"
+    const validationResult = await validateLeaveRequest({
       employeeId,
       eventCategoryId: EventCategoryId,
       startDate: startDateObj,
@@ -636,11 +637,14 @@ export async function POST(
       companyId: session.user.companyId,
       bypassWarnings: bypassWarnings === true,
     });
+    
+    const { warnings, isLeaveInAdvance } = validationResult;
 
     console.log("🔍 [LEAVE_REQUEST_DEBUG] Validation result:", {
       warningsCount: warnings.length,
       warnings: warnings.map(w => ({ code: w.code, message: w.message })),
       bypassWarnings,
+      isLeaveInAdvance,
     });
 
     // If there are warnings and user hasn't confirmed bypass, return warnings for confirmation
@@ -656,6 +660,7 @@ export async function POST(
             severity: w.severity,
             ruleType: w.ruleType,
           })),
+          isLeaveInAdvance, // Include for UI awareness
         },
         { status: 200 },
       );

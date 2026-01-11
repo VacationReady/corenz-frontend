@@ -11,8 +11,7 @@
  * @date 2026
  */
 
-import type { PrismaClient, Employee, LeaveEntitlement } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import type { PrismaClient, Employee } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 // ============================================
@@ -210,9 +209,9 @@ export async function processAnniversaryGrant(
         data: {
           id: randomUUID(),
           companyId: employee.companyId,
-          entityType: 'LEAVE_ENTITLEMENT',
+          entityType: 'LEAVE_REQUEST',
           entityId: entitlementId,
-          action: 'CREATE',
+          action: 'CREATED',
           actorId: actorId || 'SYSTEM',
           timestamp: new Date(),
           metadata: {
@@ -233,14 +232,13 @@ export async function processAnniversaryGrant(
           data: {
             id: randomUUID(),
             companyId: employee.companyId,
-            employeeId,
+            relatedEmployeeId: employeeId,
             title: 'Leave In Advance Exceeds Entitlement',
             description: `Employee's leave in advance (${leaveInAdvanceUsed} days) exceeds their annual leave entitlement (${futureEntitlement} days). Balance set to 0. Please review.`,
-            category: 'LEAVE',
+            type: 'TASK',
             priority: 'HIGH',
             status: 'PENDING',
             dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-            createdAt: new Date(),
             updatedAt: new Date(),
           },
         });

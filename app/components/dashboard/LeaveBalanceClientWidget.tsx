@@ -6,14 +6,26 @@ import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 import { useSession } from "next-auth/react";
 import { isAdminOrManager as isAdminOrManagerHelper } from "@/lib/roles";
 
+/**
+ * NZ Holidays Act 2003 Compliance Data
+ */
+interface NZComplianceData {
+  futureAnnualLeaveEntitlement: number | null;
+  annualLeaveEntitlementDate: string | null;
+  leaveInAdvanceUsed: number;
+  isCasualEmployee: boolean;
+}
+
 interface LeaveBalanceClientWidgetProps {
   employeeId: string;
   leaveEntitlements: any[]; // adjust type if you have Entitlement type
+  nzComplianceData?: NZComplianceData;
 }
 
 export default function LeaveBalanceClientWidget({
   employeeId,
   leaveEntitlements,
+  nzComplianceData,
 }: LeaveBalanceClientWidgetProps) {
   const { data: session } = useSession();
   const role = session?.user?.role ?? null;
@@ -33,6 +45,7 @@ export default function LeaveBalanceClientWidget({
           leaveEntitlements={leaveEntitlements}
           isAdminOrManager={Boolean(isAdminOrManager)}
           isBookingForSelf={isBookingForSelf}
+          nzComplianceData={nzComplianceData}
         />
         <AddLeaveRequestDialog
           employeeId={employeeId}

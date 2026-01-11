@@ -271,6 +271,16 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
     },
   }));
 
+  // Prepare NZ Holidays Act 2003 compliance data for the leave balance panel
+  const nzComplianceData = {
+    futureAnnualLeaveEntitlement: employee.futureAnnualLeaveEntitlement 
+      ? Number(employee.futureAnnualLeaveEntitlement) 
+      : null,
+    annualLeaveEntitlementDate: employee.annualLeaveEntitlementDate,
+    leaveInAdvanceUsed: Number(employee.leaveInAdvanceUsed ?? 0),
+    isCasualEmployee: employee.isCasualEmployee ?? false,
+  };
+
   return (
     <OverviewClient
       employeeId={employeeId}
@@ -307,6 +317,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           employeeId={employee.id}
           isAdminOrManager={canEditEntitlements}
           eventCategoryNameAllowList={["Annual Leave"]}
+          nzComplianceData={nzComplianceData}
         />
       }
     />

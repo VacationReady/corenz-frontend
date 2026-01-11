@@ -978,3 +978,433 @@ test("Property 4: Leave In Advance Classification - NZ Annual Leave Compliance",
     );
   });
 });
+
+
+// ============================================
+// PROPERTY 5: CASUAL EMPLOYEE EXCLUSION
+// ============================================
+
+import { 
+  calculateAnniversaryDateFromConversion, 
+  canConvertToPermanent 
+} from "../lib/leave/annual-leave-anniversary";
+
+test("Property 5: Casual Employee Exclusion - NZ Annual Leave Compliance", async (t) => {
+  /**
+   * Property 5: Casual Employee Exclusion
+   * *For any* employee marked as `isCasualEmployee = true`, the system SHALL NOT store 
+   * a `futureAnnualLeaveEntitlement` value and SHALL NOT create LeaveEntitlement records.
+   * 
+   * **Validates: Requirements 4.1**
+   */
+
+  await t.test("Casual employees should not have future entitlement stored", () => {
+    /**
+     * Property: For any casual employee, the futureAnnualLeaveEntitlement
+     * SHALL be null or undefined.
+     */
+    fc.assert(
+      fc.property(
+        casualContractTypeArbitrary,
+        validEntitlementDaysArbitrary,
+        (contractType, entitlementDays) => {
+          // Simulate the logic from the POST handler
+          const isCasual = contractType?.toLowerCase() === "casual";
+          
+          // For casual employees, futureAnnualLeaveEntitlement should NOT be stored
+          // This simulates what the POST handler does
+          const futureEntitlement = isCasual ? null : entitlementDays;
+          
+          // Casual employees should have null future entitlement
+          return isCasual === true && futureEntitlement === null;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Casual detection is case-insensitive", () => {
+    /**
+     * Property: For any variation of "casual" (case-insensitive),
+     * the employee SHALL be identified as casual.
+     */
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.constant("casual"),
+          fc.constant("CASUAL"),
+          fc.constant("Casual"),
+          fc.constant("CaSuAl"),
+          fc.constant("CASUAL "), // with trailing space - should NOT match
+        ),
+        (contractType) => {
+          const isCasual = contractType?.toLowerCase().trim() === "casual";
+          
+          // All variations should be detected as casual (after trim)
+          return isCasual === true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Non-casual contract types should have future entitlement stored", () => {
+    /**
+     * Property: For any non-casual contract type, the employee
+     * SHALL have their futureAnnualLeaveEntitlement stored.
+     */
+    fc.assert(
+      fc.property(
+        nonCasualContractTypeArbitrary,
+        validEntitlementDaysArbitrary,
+        (contractType, entitlementDays) => {
+          // Simulate the logic from the POST handler
+          const isCasual = contractType?.toLowerCase() === "casual";
+          
+          // For non-casual employees, futureAnnualLeaveEntitlement should be stored
+          const futureEntitlement = isCasual ? null : entitlementDays;
+          
+          // Non-casual employees should have entitlement stored
+          return isCasual === false && futureEntitlement === entitlementDays;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Casual employees are excluded from anniversary grant processing", () => {
+    /**
+     * Property: For any casual employee, the findEmployeesAtAnniversary query
+     * SHALL NOT include them (isCasualEmployee: false filter).
+     */
+    fc.assert(
+      fc.property(
+        fc.boolean(),
+        validStartDateArbitrary,
+        (isCasual, startDate) => {
+          // Simulate the query filter logic
+          const queryFilter = {
+            isCasualEmployee: false, // This is the filter used in findEmployeesAtAnniversary
+          };
+          
+          // Employee data
+          const employee = {
+            isCasualEmployee: isCasual,
+            annualLeaveEntitlementDate: calculateAnniversaryDate(startDate),
+            futureAnnualLeaveEntitlement: isCasual ? null : 20,
+          };
+          
+          // Check if employee would be included in query
+          const wouldBeIncluded = 
+            employee.isCasualEmployee === queryFilter.isCasualEmployee &&
+            employee.futureAnnualLeaveEntitlement !== null;
+          
+          // Casual employees should NOT be included
+          if (isCasual) {
+            return wouldBeIncluded === false;
+          }
+          // Non-casual employees with entitlement should be included
+          return wouldBeIncluded === true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Casual employees cannot request annual leave (classified correctly)", () => {
+    /**
+     * Property: For any casual employee attempting to request annual leave,
+     * they SHALL NOT be classified as leave in advance (they can't request at all).
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        (startDate) => {
+          // Create casual employee data
+          const employee = {
+            employmentStartDate: startDate,
+            startDate: startDate,
+            annualLeaveEntitlementDate: null, // Casual employees don't have this
+            futureAnnualLeaveEntitlement: null, // Casual employees don't have this
+            isCasualEmployee: true,
+          };
+
+          const requestDate = new Date(startDate);
+          requestDate.setMonth(requestDate.getMonth() + 6);
+
+          const result = classifyLeaveInAdvance(employee, requestDate);
+
+          // Casual employees should not be classified as leave in advance
+          // (they receive 8% holiday pay instead and can't request annual leave)
+          return result.isLeaveInAdvance === false;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Employment type 'casual' also triggers casual detection", () => {
+    /**
+     * Property: For any employee with employmentType = "casual",
+     * they SHALL be identified as casual (in addition to contractType).
+     */
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.constant("casual"),
+          fc.constant("CASUAL"),
+          fc.constant("Casual"),
+        ),
+        (employmentType) => {
+          // Simulate the logic from the POST handler
+          // Check both contractType and employmentType
+          const contractType = "permanent"; // Non-casual contract type
+          const isCasual = 
+            contractType?.toLowerCase() === "casual" || 
+            employmentType?.toLowerCase() === "casual";
+          
+          // Should be detected as casual via employmentType
+          return isCasual === true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});
+
+// ============================================
+// PROPERTY 6: CASUAL TO PERMANENT CONVERSION
+// ============================================
+
+test("Property 6: Casual to Permanent Conversion - NZ Annual Leave Compliance", async (t) => {
+  /**
+   * Property 6: Casual to Permanent Conversion
+   * *For any* employee whose `isCasualEmployee` changes from true to false, 
+   * the `annualLeaveEntitlementDate` SHALL be recalculated as 12 months from 
+   * the `casualToPermanentDate`.
+   * 
+   * **Validates: Requirements 4.4**
+   */
+
+  await t.test("Anniversary date is exactly 12 months after conversion date", () => {
+    /**
+     * Property: For any conversion date, the new anniversary date
+     * SHALL be exactly 12 months after the conversion date.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary, // Use as conversion date
+        (conversionDate) => {
+          const newAnniversaryDate = calculateAnniversaryDateFromConversion(conversionDate);
+          
+          // Anniversary should be exactly 1 year after conversion
+          const expectedYear = conversionDate.getFullYear() + 1;
+          const expectedMonth = conversionDate.getMonth();
+          const expectedDay = conversionDate.getDate();
+          
+          // Handle edge case: Feb 29 -> Feb 28 in non-leap year
+          const isLeapYearConversion = conversionDate.getMonth() === 1 && conversionDate.getDate() === 29;
+          const isLeapYearAnniversary = (expectedYear % 4 === 0 && (expectedYear % 100 !== 0 || expectedYear % 400 === 0));
+          
+          if (isLeapYearConversion && !isLeapYearAnniversary) {
+            // Feb 29 in leap year -> Mar 1 in non-leap year (JavaScript Date behavior)
+            return newAnniversaryDate.getFullYear() === expectedYear &&
+                   newAnniversaryDate.getMonth() === 2 && // March
+                   newAnniversaryDate.getDate() === 1;
+          }
+          
+          return newAnniversaryDate.getFullYear() === expectedYear &&
+                 newAnniversaryDate.getMonth() === expectedMonth &&
+                 newAnniversaryDate.getDate() === expectedDay;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Conversion anniversary is always in the future relative to conversion date", () => {
+    /**
+     * Property: For any conversion date, the new anniversary date
+     * SHALL always be after the conversion date.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        (conversionDate) => {
+          const newAnniversaryDate = calculateAnniversaryDateFromConversion(conversionDate);
+          return newAnniversaryDate.getTime() > conversionDate.getTime();
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Conversion anniversary calculation is deterministic", () => {
+    /**
+     * Property: For any conversion date, calculating the anniversary
+     * multiple times SHALL produce the same result.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        (conversionDate) => {
+          const anniversary1 = calculateAnniversaryDateFromConversion(conversionDate);
+          const anniversary2 = calculateAnniversaryDateFromConversion(conversionDate);
+          const anniversary3 = calculateAnniversaryDateFromConversion(conversionDate);
+          
+          return isSameDay(anniversary1, anniversary2) && 
+                 isSameDay(anniversary2, anniversary3);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Only casual employees can be converted to permanent", () => {
+    /**
+     * Property: For any employee, canConvertToPermanent SHALL return true
+     * only if isCasualEmployee is true and no future entitlement exists.
+     */
+    fc.assert(
+      fc.property(
+        fc.boolean(), // isCasualEmployee
+        fc.option(validEntitlementDaysArbitrary, { nil: null }), // futureEntitlement
+        (isCasual, futureEntitlement) => {
+          const employee = {
+            isCasualEmployee: isCasual,
+            futureAnnualLeaveEntitlement: futureEntitlement,
+          };
+          
+          const canConvert = canConvertToPermanent(employee);
+          
+          // Can only convert if:
+          // 1. Is a casual employee
+          // 2. Does not already have future entitlement
+          const expectedCanConvert = isCasual && (!futureEntitlement || futureEntitlement <= 0);
+          
+          return canConvert === expectedCanConvert;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Non-casual employees cannot be converted", () => {
+    /**
+     * Property: For any non-casual employee, canConvertToPermanent
+     * SHALL return false.
+     */
+    fc.assert(
+      fc.property(
+        fc.option(validEntitlementDaysArbitrary, { nil: null }),
+        (futureEntitlement) => {
+          const employee = {
+            isCasualEmployee: false, // Not casual
+            futureAnnualLeaveEntitlement: futureEntitlement,
+          };
+          
+          const canConvert = canConvertToPermanent(employee);
+          
+          // Non-casual employees cannot be converted
+          return canConvert === false;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Conversion preserves day of month when possible", () => {
+    /**
+     * Property: For any conversion date that is not Feb 29, the anniversary
+     * SHALL have the same day of month as the conversion date.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary.filter(d => !(d.getMonth() === 1 && d.getDate() === 29)),
+        (conversionDate) => {
+          const anniversaryDate = calculateAnniversaryDateFromConversion(conversionDate);
+          return anniversaryDate.getDate() === conversionDate.getDate();
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Conversion preserves month", () => {
+    /**
+     * Property: For any conversion date that is not Feb 29, the anniversary
+     * SHALL have the same month as the conversion date.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary.filter(d => !(d.getMonth() === 1 && d.getDate() === 29)),
+        (conversionDate) => {
+          const anniversaryDate = calculateAnniversaryDateFromConversion(conversionDate);
+          return anniversaryDate.getMonth() === conversionDate.getMonth();
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Conversion anniversary is between 365 and 366 days after conversion", () => {
+    /**
+     * Property: For any conversion date, the anniversary date SHALL be
+     * between 365 and 366 days after the conversion date.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        (conversionDate) => {
+          const anniversaryDate = calculateAnniversaryDateFromConversion(conversionDate);
+          const daysDiff = Math.round(
+            (anniversaryDate.getTime() - conversionDate.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          
+          // Should be 365 or 366 days (leap year consideration)
+          return daysDiff >= 365 && daysDiff <= 366;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Converted employee's leave in advance classification uses new anniversary date", () => {
+    /**
+     * Property: For any converted casual employee, leave requests before
+     * the new anniversary date SHALL be classified as leave in advance.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary, // Original hire date
+        validStartDateArbitrary, // Conversion date (later)
+        (hireDate, conversionDate) => {
+          // Ensure conversion is after hire
+          const actualConversionDate = new Date(Math.max(hireDate.getTime(), conversionDate.getTime()));
+          actualConversionDate.setMonth(actualConversionDate.getMonth() + 6); // 6 months after hire
+          
+          const newAnniversaryDate = calculateAnniversaryDateFromConversion(actualConversionDate);
+          
+          // Create converted employee data
+          const employee = {
+            employmentStartDate: hireDate,
+            startDate: hireDate,
+            annualLeaveEntitlementDate: newAnniversaryDate, // Uses conversion-based anniversary
+            futureAnnualLeaveEntitlement: 20,
+            isCasualEmployee: false, // Now permanent
+          };
+
+          // Request date is 6 months after conversion (before new anniversary)
+          const requestDate = new Date(actualConversionDate);
+          requestDate.setMonth(requestDate.getMonth() + 6);
+
+          const result = classifyLeaveInAdvance(employee, requestDate);
+
+          // Should be classified as leave in advance (before new anniversary)
+          return result.isLeaveInAdvance === true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});

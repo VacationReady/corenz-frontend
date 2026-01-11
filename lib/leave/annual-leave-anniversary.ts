@@ -6,8 +6,9 @@
  * - At 12-month anniversary: entitlement crystallises (becomes legal right)
  * - Leave taken before 12 months = "leave in advance" (deducted from future entitlement)
  * - Casual employees receive 8% holiday pay instead of annual leave accrual
+ * - When casual employees convert to permanent, their 12-month anniversary starts from conversion date
  * 
- * @version 1.0
+ * @version 1.1
  * @date 2026
  */
 
@@ -44,6 +45,21 @@ export interface BatchGrantSummary {
   flaggedCount: number;
   /** Individual results */
   results: AnniversaryGrantResult[];
+}
+
+export interface CasualToPermanentResult {
+  /** Employee ID */
+  employeeId: string;
+  /** Whether conversion was successful */
+  success: boolean;
+  /** Date of conversion */
+  conversionDate?: Date;
+  /** New anniversary date (12 months from conversion) */
+  newAnniversaryDate?: Date;
+  /** Future entitlement stored */
+  futureEntitlement?: number;
+  /** Error message if conversion failed */
+  error?: string;
 }
 
 type EmployeeWithLeaveFields = Pick<Employee, 
@@ -414,4 +430,155 @@ export function calculateAnniversaryGrantBalance(
   finalBalance = Math.round(finalBalance * 100) / 100;
 
   return { finalBalance, flaggedForReview };
+}
+
+
+// ============================================
+// CASUAL TO PERMANENT CONVERSION
+// ============================================
+
+/**
+ * Convert a casual employee to permanent status.
+ * 
+ * NZ Holidays Act 2003 Compliance:
+ * - When a casual employee's status changes to permanent, their 12-month anniversary
+ *   for annual leave entitlement starts from the conversion date (not original hire date)
+ * - The employee will receive their annual leave entitlement 12 months after conversion
+ * 
+ * @param prisma - Prisma client instance
+ * @param employeeId - The employee ID
+ * @param conversionDate - The date of conversion (defaults to current date)
+ * @param futureEntitlementDays - The annual leave entitlement to grant at anniversary (defaults to 20 days)
+ * @param actorId - Optional user ID performing the action (for audit)
+ * @returns Result of the conversion operation
+ */
+export async function convertCasualToPermanent(
+  prisma: PrismaClient,
+  employeeId: string,
+  conversionDate: Date = new Date(),
+  futureEntitlementDays: number = 20,
+  actorId?: string
+): Promise<CasualToPermanentResult> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // Fetch employee
+      const employee = await tx.employee.findUnique({
+        where: { id: employeeId },
+        select: {
+          id: true,
+          companyId: true,
+          userId: true,
+          isCasualEmployee: true,
+          futureAnnualLeaveEntitlement: true,
+          annualLeaveEntitlementDate: true,
+        },
+      });
+
+      if (!employee) {
+        return {
+          employeeId,
+          success: false,
+          error: `Employee ${employeeId} not found`,
+        };
+      }
+
+      // Validate: must be a casual employee
+      if (!employee.isCasualEmployee) {
+        return {
+          employeeId,
+          success: false,
+          error: 'Employee is not a casual employee',
+        };
+      }
+
+      // Calculate the new 12-month anniversary date from conversion date
+      const newAnniversaryDate = calculateAnniversaryDateFromConversion(conversionDate);
+
+      // Round entitlement to 2 decimal places (NZ HRIS requirement)
+      const roundedEntitlement = Math.round(futureEntitlementDays * 100) / 100;
+
+      // Update employee record
+      await tx.employee.update({
+        where: { id: employeeId },
+        data: {
+          isCasualEmployee: false,
+          casualToPermanentDate: conversionDate,
+          annualLeaveEntitlementDate: newAnniversaryDate,
+          futureAnnualLeaveEntitlement: roundedEntitlement,
+          leaveInAdvanceUsed: 0, // Reset leave in advance tracking
+        },
+      });
+
+      // Create audit log entry
+      await tx.globalAuditLog.create({
+        data: {
+          id: randomUUID(),
+          companyId: employee.companyId,
+          entityType: 'EMPLOYEE',
+          entityId: employeeId,
+          action: 'UPDATED',
+          actorId: actorId || 'SYSTEM',
+          timestamp: new Date(),
+          metadata: {
+            type: 'CASUAL_TO_PERMANENT_CONVERSION',
+            employeeId,
+            conversionDate: conversionDate.toISOString(),
+            newAnniversaryDate: newAnniversaryDate.toISOString(),
+            futureEntitlement: roundedEntitlement,
+          },
+        },
+      });
+
+      return {
+        employeeId,
+        success: true,
+        conversionDate,
+        newAnniversaryDate,
+        futureEntitlement: roundedEntitlement,
+      };
+    });
+  } catch (error: any) {
+    return {
+      employeeId,
+      success: false,
+      error: error.message || 'Unknown error during casual to permanent conversion',
+    };
+  }
+}
+
+/**
+ * Calculate the 12-month anniversary date from a conversion date.
+ * 
+ * This is a pure function for testing purposes.
+ * 
+ * @param conversionDate - The date of casual to permanent conversion
+ * @returns The anniversary date (12 months after conversion)
+ */
+export function calculateAnniversaryDateFromConversion(conversionDate: Date): Date {
+  const anniversaryDate = new Date(conversionDate);
+  anniversaryDate.setFullYear(anniversaryDate.getFullYear() + 1);
+  return anniversaryDate;
+}
+
+/**
+ * Check if an employee is eligible for casual to permanent conversion.
+ * 
+ * @param employee - Employee data with casual status
+ * @returns Whether the employee can be converted
+ */
+export function canConvertToPermanent(employee: {
+  isCasualEmployee?: boolean;
+  futureAnnualLeaveEntitlement?: number | null;
+}): boolean {
+  // Must be a casual employee
+  if (!employee.isCasualEmployee) {
+    return false;
+  }
+  
+  // Should not already have future entitlement (would indicate already converted)
+  if (employee.futureAnnualLeaveEntitlement && employee.futureAnnualLeaveEntitlement > 0) {
+    return false;
+  }
+  
+  return true;
 }

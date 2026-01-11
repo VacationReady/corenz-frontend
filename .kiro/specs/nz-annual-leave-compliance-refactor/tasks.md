@@ -101,51 +101,51 @@ This implementation plan refactors PeopleCore's annual leave entitlement logic t
     - Verify correct classification based on 12-month threshold
     - **Validates: Requirements 3.1, 3.2**
 
-- [ ] 7. Update leave approval to track leave in advance
-  - [ ] 7.1 Update app/lib/advanceLeaveApproval.ts
+- [x] 7. Update leave approval to track leave in advance
+  - [x] 7.1 Update app/lib/advanceLeaveApproval.ts
     - Check if employee is pre-12-month (no LeaveEntitlement record)
     - If pre-12-month: increment `leaveInAdvanceUsed` instead of LeaveEntitlement.usedDays
     - If post-12-month: use existing LeaveEntitlement deduction logic
     - Add inline comments explaining the distinction
     - _Requirements: 3.2_
 
-- [ ] 8. Implement casual employee handling
-  - [ ] 8.1 Update employee creation for casual detection
+- [x] 8. Implement casual employee handling
+  - [x] 8.1 Update employee creation for casual detection
     - Check contractType or employmentType for "casual" indicator
     - Set `isCasualEmployee = true` for casual employees
     - Skip futureAnnualLeaveEntitlement storage for casuals
     - _Requirements: 4.1, 4.3_
-  - [ ] 8.2 Add casual to permanent conversion logic
+  - [x] 8.2 Add casual to permanent conversion logic
     - Create helper function to handle status change
     - Set `casualToPermanentDate` to current date
     - Calculate new `annualLeaveEntitlementDate` from conversion date
     - Store `futureAnnualLeaveEntitlement` based on working pattern
     - _Requirements: 4.4_
-  - [ ] 8.3 Write property test for casual employee exclusion
+  - [x] 8.3 Write property test for casual employee exclusion
     - **Property 5: Casual Employee Exclusion**
     - Generate random casual employees
     - Verify no futureAnnualLeaveEntitlement stored
     - **Validates: Requirements 4.1**
-  - [ ] 8.4 Write property test for casual to permanent conversion
+  - [x] 8.4 Write property test for casual to permanent conversion
     - **Property 6: Casual to Permanent Conversion**
     - Generate random casual employees, convert to permanent
     - Verify annualLeaveEntitlementDate = casualToPermanentDate + 12 months
     - **Validates: Requirements 4.4**
 
-- [ ] 9. Checkpoint - Verify backend logic
+- [x] 9. Checkpoint - Verify backend logic
   - Ensure all tests pass, ask the user if questions arise.
   - Test leave in advance flow end-to-end
   - Test casual employee handling
 
-- [ ] 10. Update UI components for leave balance display
-  - [ ] 10.1 Update app/components/LeaveBalancePanel.tsx
+- [x] 10. Update UI components for leave balance display
+  - [x] 10.1 Update app/components/LeaveBalancePanel.tsx
     - Check if employee is pre-12-month (no LeaveEntitlement)
     - Display "Accrued (not yet entitled)" label for pre-12-month employees
     - Show futureAnnualLeaveEntitlement as "Future Entitlement: X days"
     - Show leaveInAdvanceUsed as "Leave in Advance Used: X days"
     - Add tooltip explaining accrual vs entitlement
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 7.2, 7.3_
-  - [ ] 10.2 Update app/components/employees/AddEmployeeModal.tsx
+  - [x] 10.2 Update app/components/employees/AddEmployeeModal.tsx
     - Add clarifying text near calculator: "This entitlement will be granted at the 12-month anniversary"
     - Preserve existing calculator functionality
     - _Requirements: 1.4, 5.5_

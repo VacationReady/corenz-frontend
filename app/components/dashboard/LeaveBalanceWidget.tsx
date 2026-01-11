@@ -49,10 +49,23 @@ export default async function LeaveBalanceWidget({
     }),
   );
 
+  // Prepare NZ Holidays Act 2003 compliance data
+  const nzComplianceData = {
+    futureAnnualLeaveEntitlement: employee.futureAnnualLeaveEntitlement 
+      ? Number(employee.futureAnnualLeaveEntitlement) 
+      : null,
+    annualLeaveEntitlementDate: employee.annualLeaveEntitlementDate 
+      ? employee.annualLeaveEntitlementDate.toISOString() 
+      : null,
+    leaveInAdvanceUsed: Number(employee.leaveInAdvanceUsed ?? 0),
+    isCasualEmployee: employee.isCasualEmployee ?? false,
+  };
+
   return (
     <LeaveBalanceClientWidget
       employeeId={employee.id}
       leaveEntitlements={serializedEntitlements}
+      nzComplianceData={nzComplianceData}
     />
   );
 }

@@ -2803,7 +2803,14 @@ export default function AddEmployeeModal({
                             Calculate
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground">NZ: 4 weeks (20 days) after 12 months. Prorated before anniversary.</p>
+                        {/* NZ Holidays Act 2003 Compliance Notice */}
+                        <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/30">
+                          <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-amber-700 dark:text-amber-300">
+                            <strong>NZ Holidays Act 2003:</strong> This entitlement will be granted at the 12-month anniversary. 
+                            Until then, leave will be tracked as "leave in advance" and deducted when entitlement crystallises.
+                          </p>
+                        </div>
                       </div>
 
                       {/* Sick Leave Info */}
@@ -2948,6 +2955,14 @@ export default function AddEmployeeModal({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+            </div>
+
+            {/* NZ Holidays Act 2003 Compliance Notice */}
+            <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-md border-l-4 border-amber-400">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <strong>NZ Holidays Act 2003:</strong> This entitlement will be granted at the employee's 12-month anniversary. 
+                Until then, the balance will show as "accrued (not yet entitled)" and any leave taken will be recorded as "leave in advance".
+              </p>
             </div>
 
             <div className="bg-blue-50 p-4 rounded-md border-l-4 border-blue-400">

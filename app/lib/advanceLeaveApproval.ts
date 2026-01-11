@@ -218,6 +218,47 @@ export async function processDecision({
     const isSickLeave = lrFull.EventCategory.name.toLowerCase().includes("sick");
     const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
 
+    // ── NZ HOLIDAYS ACT 2003: PRE-12-MONTH EMPLOYEE CHECK ──────────────────
+    // Determine if this employee is pre-12-month (has not yet reached entitlement crystallisation).
+    // Pre-12-month employees have a futureAnnualLeaveEntitlement stored but no LeaveEntitlement record.
+    // For these employees, we track leave usage in leaveInAdvanceUsed instead of LeaveEntitlement.usedDays.
+    let isPreTwelveMonthEmployee = false;
+    
+    if (isAnnualLeave) {
+      // Check if employee has a LeaveEntitlement record for annual leave
+      const existingEntitlement = await tx.leaveEntitlement.findFirst({
+        where: {
+          employeeId: lrFull.employeeId,
+          eventCategoryId: lrFull.eventCategoryId,
+        },
+      });
+      
+      // If no LeaveEntitlement exists, check if they have futureAnnualLeaveEntitlement
+      // This indicates they are pre-12-month and should use leave in advance tracking
+      if (!existingEntitlement) {
+        const employeeWithFutureEntitlement = await tx.employee.findUnique({
+          where: { id: lrFull.employeeId },
+          select: { 
+            futureAnnualLeaveEntitlement: true,
+            annualLeaveEntitlementDate: true,
+          },
+        });
+        
+        // Employee is pre-12-month if they have a futureAnnualLeaveEntitlement stored
+        // or their annualLeaveEntitlementDate is in the future
+        if (employeeWithFutureEntitlement?.futureAnnualLeaveEntitlement !== null ||
+            (employeeWithFutureEntitlement?.annualLeaveEntitlementDate && 
+             new Date(employeeWithFutureEntitlement.annualLeaveEntitlementDate) > new Date())) {
+          isPreTwelveMonthEmployee = true;
+          console.log("📋 NZ Compliance: Employee is pre-12-month, will track as leave in advance", {
+            employeeId: lrFull.employeeId,
+            futureEntitlement: employeeWithFutureEntitlement?.futureAnnualLeaveEntitlement,
+            entitlementDate: employeeWithFutureEntitlement?.annualLeaveEntitlementDate,
+          });
+        }
+      }
+    }
+
     // NZ SICK LEAVE: Handle sick leave via ledger system (Holidays Act 2003)
     if (isSickLeave && lrFull.approvalStatus !== "APPROVED") {
       const totalDays: number[] = [];
@@ -279,22 +320,74 @@ export async function processDecision({
       const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
 
       if (totalDeduction > 0) {
-        const entitlement = await tx.leaveEntitlement.findFirst({
-          where: {
+        // ── NZ HOLIDAYS ACT 2003: LEAVE IN ADVANCE TRACKING ──────────────────
+        // For pre-12-month employees (no LeaveEntitlement record), we track leave usage
+        // in the Employee.leaveInAdvanceUsed field instead of LeaveEntitlement.usedDays.
+        // This leave will be deducted from their entitlement when it crystallises at
+        // the 12-month anniversary.
+        if (isPreTwelveMonthEmployee && isAnnualLeave) {
+          // Pre-12-month employee: increment leaveInAdvanceUsed instead of LeaveEntitlement.usedDays
+          const employee = await tx.employee.findUnique({
+            where: { id: lrFull.employeeId },
+            select: { 
+              leaveInAdvanceUsed: true,
+              futureAnnualLeaveEntitlement: true,
+            },
+          });
+
+          if (!employee) {
+            throw new Error("Employee not found.");
+          }
+
+          const currentLeaveInAdvance = Number(employee.leaveInAdvanceUsed || 0);
+          const futureEntitlement = Number(employee.futureAnnualLeaveEntitlement || 0);
+          
+          // Check if the total leave in advance would exceed future entitlement
+          // Note: This is a soft check - validation should have already caught this
+          const newLeaveInAdvanceTotal = addWithPrecision(currentLeaveInAdvance, totalDeduction);
+          
+          if (newLeaveInAdvanceTotal > futureEntitlement) {
+            console.warn("⚠️ NZ Compliance: Leave in advance exceeds future entitlement", {
+              employeeId: lrFull.employeeId,
+              currentLeaveInAdvance,
+              totalDeduction,
+              newLeaveInAdvanceTotal,
+              futureEntitlement,
+            });
+            // Allow the request but log warning - HR should review at anniversary
+          }
+
+          // Update leaveInAdvanceUsed on the Employee record
+          await tx.employee.update({
+            where: { id: lrFull.employeeId },
+            data: { leaveInAdvanceUsed: newLeaveInAdvanceTotal },
+          });
+
+          console.log("✅ NZ Compliance: Leave in advance recorded", {
             employeeId: lrFull.employeeId,
-            eventCategoryId: lrFull.eventCategoryId,
-          },
-        });
+            previousLeaveInAdvance: currentLeaveInAdvance,
+            deduction: totalDeduction,
+            newLeaveInAdvanceTotal,
+          });
+        } else {
+          // Post-12-month employee: use existing LeaveEntitlement deduction logic
+          const entitlement = await tx.leaveEntitlement.findFirst({
+            where: {
+              employeeId: lrFull.employeeId,
+              eventCategoryId: lrFull.eventCategoryId,
+            },
+          });
 
-        if (!entitlement || subtractWithPrecision(entitlement.totalDays, entitlement.usedDays) < totalDeduction) {
-          throw new Error("Insufficient leave balance.");
+          if (!entitlement || subtractWithPrecision(entitlement.totalDays, entitlement.usedDays) < totalDeduction) {
+            throw new Error("Insufficient leave balance.");
+          }
+
+          // Round usedDays to 2 decimal places (NZ HRIS requirement)
+          await tx.leaveEntitlement.update({
+            where: { id: entitlement.id },
+            data: { usedDays: addWithPrecision(entitlement.usedDays, totalDeduction) },
+          });
         }
-
-        // Round usedDays to 2 decimal places (NZ HRIS requirement)
-        await tx.leaveEntitlement.update({
-          where: { id: entitlement.id },
-          data: { usedDays: addWithPrecision(entitlement.usedDays, totalDeduction) },
-        });
       }
     } else if (!enforceEntitlement) {
       console.log("ℹ️ Entitlement enforcement disabled for this event type. Skipping balance deduction.");

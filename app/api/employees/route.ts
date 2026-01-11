@@ -1195,7 +1195,11 @@ export async function POST(req: NextRequest) {
     // ============================================================================
     
     // Determine if this is a casual employee (receives 8% holiday pay instead of annual leave)
-    const isCasualEmployee = contractType?.toLowerCase() === "casual";
+    // Check both contractType and employmentType fields for "casual" indicator (case-insensitive)
+    // Per NZ Holidays Act 2003, casual employees receive 8% holiday pay instead of annual leave accrual
+    const isCasualEmployee = 
+      contractType?.toLowerCase() === "casual" || 
+      body.employmentType?.toLowerCase() === "casual";
     
     if (entitlementDays && holidayYear) {
       try {

@@ -1178,49 +1178,72 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create leave entitlement if provided
+    // ============================================================================
+    // NZ ANNUAL LEAVE COMPLIANCE (Holidays Act 2003)
+    // ============================================================================
+    // Under NZ law, employees are NOT entitled to annual leave until they complete
+    // 12 months of continuous employment. Before that point, any leave taken is
+    // "leave in advance" which must be deducted from their future entitlement.
+    //
+    // Instead of creating a LeaveEntitlement record immediately, we:
+    // 1. Store the calculated entitlement as `futureAnnualLeaveEntitlement`
+    // 2. Calculate and store the 12-month anniversary date (`annualLeaveEntitlementDate`)
+    // 3. At the 12-month anniversary, a scheduled job will create the actual
+    //    LeaveEntitlement record, deducting any leave in advance taken.
+    //
+    // Casual employees are excluded - they receive 8% holiday pay instead.
+    // ============================================================================
+    
+    // Determine if this is a casual employee (receives 8% holiday pay instead of annual leave)
+    const isCasualEmployee = contractType?.toLowerCase() === "casual";
+    
     if (entitlementDays && holidayYear) {
       try {
-        // Only use the canonical "Annual Leave" category; do not fallback to legacy labels
-        let annualCategory = await prisma.eventCategory.findFirst({
-          where: {
-            name: "Annual Leave",
-            categoryType: "TIME_OFF",
-            isActive: true,
-            companyId,
-          },
-        });
-
-        if (!annualCategory) {
-          annualCategory = await prisma.eventCategory.create({
+        // Skip annual leave entitlement storage for casual employees
+        // Casual employees receive 8% holiday pay instead per NZ Holidays Act 2003
+        if (isCasualEmployee) {
+          console.log(`[employees/POST] Skipping annual leave entitlement for casual employee ${employee.id} - receives 8% holiday pay instead`);
+        } else {
+          // NZ Compliance: Store as future entitlement, not active balance
+          // The entitlement will be granted at the 12-month anniversary
+          const employmentStartDateValue = new Date(startDate);
+          
+          // Calculate the 12-month anniversary date (entitlement crystallisation date)
+          const anniversaryDate = new Date(employmentStartDateValue);
+          anniversaryDate.setFullYear(anniversaryDate.getFullYear() + 1);
+          
+          // Update employee with future entitlement data
+          await prisma.employee.update({
+            where: { id: employee.id },
             data: {
-              id: crypto.randomUUID(),
-              name: "Annual Leave",
-              categoryType: "TIME_OFF",
-              requiresApproval: true,
-              adminOnly: false,
-              color: "#008000",
-              isActive: true,
-              companyId,
-              systemDefined: true,
-              updatedAt: new Date(),
+              // Store the calculated entitlement as future entitlement (not active balance)
+              futureAnnualLeaveEntitlement: roundToTwoDecimals(entitlementDays),
+              // Store the date when entitlement will crystallise (12 months from start)
+              annualLeaveEntitlementDate: anniversaryDate,
+              // Mark as non-casual employee
+              isCasualEmployee: false,
+              // Initialize leave in advance tracking at 0
+              leaveInAdvanceUsed: 0,
+            },
+          });
+          
+          console.log(`[employees/POST] Stored future annual leave entitlement for employee ${employee.id}: ${entitlementDays} days, crystallises on ${anniversaryDate.toISOString()}`);
+        }
+        
+        // Update casual employee flag if applicable
+        if (isCasualEmployee) {
+          await prisma.employee.update({
+            where: { id: employee.id },
+            data: {
+              isCasualEmployee: true,
+              // Casual employees don't get future entitlement
+              futureAnnualLeaveEntitlement: null,
+              annualLeaveEntitlementDate: null,
             },
           });
         }
-
-        await prisma.leaveEntitlement.create({
-          data: {
-            id: crypto.randomUUID(),
-            employeeId: employee.id,
-            eventCategoryId: annualCategory.id,
-            totalDays: roundToTwoDecimals(entitlementDays),
-            usedDays: 0,
-            companyId,
-            updatedAt: new Date(),
-          },
-        });
       } catch (e) {
-        console.warn("Leave entitlement creation failed:", e);
+        console.warn("Future annual leave entitlement storage failed:", e);
       }
     }
 

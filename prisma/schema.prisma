@@ -519,6 +519,17 @@ model Employee {
   alternativeHolidayBalance        Decimal?                           @default(0) @db.Decimal(5, 1) // Earned when working public holidays
   publicHolidaysPerYear            Int?                               @default(11) // NZ: 11 national + regional holidays
   canBookPublicHolidays            Boolean                            @default(false) // Allow employee to book leave on public holidays (e.g., contractors)
+  // NZ Annual Leave Compliance (Holidays Act 2003 - 12-month entitlement rule)
+  /// Future annual leave entitlement (days) - granted at 12-month anniversary
+  futureAnnualLeaveEntitlement     Decimal?                           @db.Decimal(8, 2)
+  /// Date when annual leave entitlement crystallises (12 months from start)
+  annualLeaveEntitlementDate       DateTime?
+  /// Leave in advance taken before 12-month anniversary (days)
+  leaveInAdvanceUsed               Decimal                            @default(0) @db.Decimal(8, 2)
+  /// Whether employee is casual (receives 8% holiday pay instead)
+  isCasualEmployee                 Boolean                            @default(false)
+  /// Date casual status changed to permanent (for anniversary recalculation)
+  casualToPermanentDate            DateTime?
   // Audit Fields
   taxCodeLastUpdated               DateTime?
   kiwiSaverLastUpdated             DateTime?

@@ -884,24 +884,28 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       );
     }
     
-    // Month view - compact popover with refined left-border accent styling
+    // Month view - compact popover with subtle, refined styling
+    // Use muted category-based colors for a professional look
+    const chipColorClass = getCategoryColor(categoryName || "");
+    
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-white dark:bg-gray-800 border-l-[3px] border-t border-r border-b border-gray-200 dark:border-gray-700 hover:shadow-sm cursor-pointer transition-all group" style={{ borderLeftColor: content.event.backgroundColor || '#94a3b8' }}>
-            <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={16} className="ring-1 ring-gray-200 dark:ring-gray-700 flex-shrink-0" />
-            <span className="text-[10px] font-medium text-gray-700 dark:text-gray-200 truncate max-w-[70px] group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+          <div className={cn(
+            "flex items-center gap-1.5 px-2 py-1 rounded-md",
+            "bg-gray-50/80 dark:bg-gray-800/60",
+            "border border-gray-200/60 dark:border-gray-700/60",
+            "hover:bg-gray-100/80 dark:hover:bg-gray-700/60",
+            "hover:shadow-sm cursor-pointer transition-all group"
+          )}>
+            <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={18} className="ring-1 ring-white dark:ring-gray-600 flex-shrink-0" />
+            <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 truncate max-w-[80px]">
               {employee?.name || content.event.title}
             </span>
-            {categoryName ? (
-              <span className="text-[9px] text-gray-500 dark:text-gray-400 font-medium truncate max-w-[60px]">
-                • {categoryName}
-              </span>
-            ) : null}
           </div>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-80 rounded-xl shadow-xl border-border/50 p-0 overflow-hidden">
-          <div className="bg-gradient-to-r from-gray-50 via-gray-50/50 to-transparent dark:from-gray-800 dark:via-gray-800/50 p-4 border-l-[4px]" style={{ borderLeftColor: content.event.backgroundColor || '#94a3b8' }}>
+        <PopoverContent align="start" className="w-80 rounded-xl shadow-lg border-border/40 p-0 overflow-hidden">
+          <div className="bg-gray-50/80 dark:bg-gray-800/80 p-4 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center gap-3">
               <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={40} className="ring-2 ring-white dark:ring-gray-700 shadow-sm" />
               <div className="min-w-0 flex-1">

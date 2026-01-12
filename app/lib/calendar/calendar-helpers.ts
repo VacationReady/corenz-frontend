@@ -80,7 +80,7 @@ export function getCategoryColor(name: string): string {
 }
 
 /**
- * Get status-based color config for badges - using muted, refined colors
+ * Get status-based color config for badges - using subtle, refined colors
  */
 export function getStatusColorConfig(status?: string | null): {
   label: string;
@@ -95,36 +95,36 @@ export function getStatusColorConfig(status?: string | null): {
   if (normalized === "approved") {
     return {
       label: "Approved",
-      bgClass: "bg-emerald-50 dark:bg-emerald-900/20",
-      textClass: "text-emerald-700 dark:text-emerald-400",
-      borderClass: "border-emerald-200 dark:border-emerald-800",
-      accentColor: "#6ee7b7", // emerald-300 - muted green
+      bgClass: "bg-emerald-50 dark:bg-emerald-950/30",
+      textClass: "text-emerald-600 dark:text-emerald-400",
+      borderClass: "border-emerald-100 dark:border-emerald-900",
+      accentColor: "#d1fae5", // emerald-100 - subtle
     };
   }
   if (normalized === "declined") {
     return {
       label: "Declined",
-      bgClass: "bg-rose-50 dark:bg-rose-900/20",
-      textClass: "text-rose-700 dark:text-rose-400",
-      borderClass: "border-rose-200 dark:border-rose-800",
-      accentColor: "#fda4af", // rose-300 - muted rose
+      bgClass: "bg-rose-50 dark:bg-rose-950/30",
+      textClass: "text-rose-600 dark:text-rose-400",
+      borderClass: "border-rose-100 dark:border-rose-900",
+      accentColor: "#fee2e2", // rose-100 - subtle
     };
   }
   if (normalized === "pending") {
     return {
       label: "Pending",
-      bgClass: "bg-amber-50 dark:bg-amber-900/20",
-      textClass: "text-amber-700 dark:text-amber-400",
-      borderClass: "border-amber-200 dark:border-amber-800",
-      accentColor: "#fcd34d", // amber-300 - muted amber
+      bgClass: "bg-amber-50 dark:bg-amber-950/30",
+      textClass: "text-amber-600 dark:text-amber-400",
+      borderClass: "border-amber-100 dark:border-amber-900",
+      accentColor: "#fef3c7", // amber-100 - subtle
     };
   }
   return {
     label: normalized.charAt(0).toUpperCase() + normalized.slice(1),
-    bgClass: "bg-gray-50 dark:bg-gray-900/20",
-    textClass: "text-gray-700 dark:text-gray-400",
-    borderClass: "border-gray-200 dark:border-gray-800",
-    accentColor: "#d1d5db", // gray-300
+    bgClass: "bg-gray-50 dark:bg-gray-900/30",
+    textClass: "text-gray-600 dark:text-gray-400",
+    borderClass: "border-gray-100 dark:border-gray-800",
+    accentColor: "#f1f5f9", // slate-100
   };
 }
 
@@ -250,25 +250,26 @@ export function mapLeaveRequestToEvent(
     };
   }
 
-  // Determine color based on status and sick leave - using muted palette
-  let backgroundColor = "#94a3b8"; // slate-400 - default muted blue-gray
-  let borderColor = "#64748b"; // slate-500
+  // Determine color based on status and sick leave - using very subtle palette
+  // These colors are used for FullCalendar's internal rendering but we override in renderEventContent
+  let backgroundColor = "#f1f5f9"; // slate-100 - very subtle default
+  let borderColor = "#e2e8f0"; // slate-200
   
-  // Sick leave uses muted amber regardless of status
+  // Sick leave uses subtle warm tone
   if (isSick) {
-    backgroundColor = "#d4a574"; // muted amber
-    borderColor = "#b8956a";
+    backgroundColor = "#fef3c7"; // amber-100
+    borderColor = "#fde68a"; // amber-200
   } else if (options.colorByStatus) {
     const status = (leave.approvalStatus || "").toLowerCase();
     if (status === "approved") {
-      backgroundColor = "#6ee7b7"; // emerald-300 - muted green
-      borderColor = "#34d399";
+      backgroundColor = "#d1fae5"; // emerald-100
+      borderColor = "#a7f3d0"; // emerald-200
     } else if (status === "pending") {
-      backgroundColor = "#fcd34d"; // amber-300 - muted amber
-      borderColor = "#fbbf24";
+      backgroundColor = "#fef3c7"; // amber-100
+      borderColor = "#fde68a"; // amber-200
     } else if (status === "declined") {
-      backgroundColor = "#fda4af"; // rose-300 - muted rose
-      borderColor = "#fb7185";
+      backgroundColor = "#fee2e2"; // rose-100
+      borderColor = "#fecaca"; // rose-200
     }
   }
 

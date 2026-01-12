@@ -50,18 +50,18 @@ const containerVariants = {
   },
 };
 
-// Muted color mapping for legend swatches
+// Subtle color mapping for legend swatches - refined, professional palette
 const getMutedSwatchColor = (className?: string): string => {
-  if (!className) return "#94a3b8"; // slate-400 default
-  if (className.includes("annual")) return "#64748b"; // slate-500
-  if (className.includes("sick")) return "#d4a574"; // muted amber
-  if (className.includes("training")) return "#818cf8"; // indigo-400
+  if (!className) return "#cbd5e1"; // slate-300 default
+  if (className.includes("annual")) return "#94a3b8"; // slate-400
+  if (className.includes("sick")) return "#fbbf24"; // amber-400
+  if (className.includes("training")) return "#a5b4fc"; // indigo-300
   if (className.includes("parental")) return "#f9a8d4"; // pink-300
   if (className.includes("compassion")) return "#c4b5fd"; // violet-300
   if (className.includes("medical")) return "#5eead4"; // teal-300
   if (className.includes("unpaid")) return "#9ca3af"; // gray-400
   if (className.includes("toil")) return "#7dd3fc"; // sky-300
-  return "#94a3b8"; // slate-400 default
+  return "#cbd5e1"; // slate-300 default
 };
 
 export function CalendarLegend({
@@ -106,8 +106,7 @@ export function CalendarLegend({
       className="flex flex-wrap gap-1"
     >
       <AnimatePresence mode="popLayout">
-        {items.map((item, index) => {
-          const Icon = item.icon;
+        {items.map((item) => {
           const isBlackout = item.label === "Blackout day";
           const isHoliday = item.label === "Public holiday";
           const swatchColor = getMutedSwatchColor(item.swatchClassName);

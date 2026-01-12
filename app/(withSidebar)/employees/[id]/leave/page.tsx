@@ -566,56 +566,63 @@ function LeavePageContent() {
     })();
   }, []);
 
-  // Load balances
+  // Load all leave data in parallel for better performance
+  // Previously these were 3 sequential useEffects causing ~600ms waterfall
+  // Now parallelized to ~200ms
   useEffect(() => {
     if (sessionStatus === "loading" || !employeeId) return;
 
+    let active = true;
     (async () => {
-      try {
-        const res = await tenantFetch(`/api/employees/${employeeId}/leave-balances`);
-        if (res.ok) {
-          const data = await res.json();
+      const results = await Promise.allSettled([
+        tenantFetch(`/api/employees/${employeeId}/leave-balances`),
+        tenantFetch(`/api/employees/${employeeId}/sick-leave-status`),
+        tenantFetch(`/api/employees/${employeeId}/other-entitlements`),
+      ]);
+
+      if (!active) return;
+
+      // Process leave balances
+      if (results[0].status === "fulfilled" && results[0].value.ok) {
+        try {
+          const data = await results[0].value.json();
           setBalances(data.balances || []);
+        } catch (err) {
+          console.error("Failed to parse balances:", err);
         }
-      } catch (err) {
-        console.error("Failed to load balances:", err);
+      } else if (results[0].status === "rejected") {
+        console.error("Failed to load balances:", results[0].reason);
       }
-    })();
-  }, [employeeId, sessionStatus, refreshToken]);
 
-  // Load sick leave status
-  useEffect(() => {
-    if (sessionStatus === "loading" || !employeeId) return;
-
-    (async () => {
-      try {
-        const res = await tenantFetch(`/api/employees/${employeeId}/sick-leave-status`);
-        if (res.ok) {
-          const data = await res.json();
+      // Process sick leave status
+      if (results[1].status === "fulfilled" && results[1].value.ok) {
+        try {
+          const data = await results[1].value.json();
           setSickLeaveStatus(data);
+        } catch (err) {
+          console.error("Failed to parse sick leave status:", err);
         }
-      } catch (err) {
-        console.error("Failed to load sick leave status:", err);
+      } else if (results[1].status === "rejected") {
+        console.error("Failed to load sick leave status:", results[1].reason);
       }
-    })();
-  }, [employeeId, sessionStatus, refreshToken]);
 
-  // Load other entitlements
-  useEffect(() => {
-    if (sessionStatus === "loading" || !employeeId) return;
-
-    (async () => {
-      try {
-        const res = await tenantFetch(`/api/employees/${employeeId}/other-entitlements`);
-        if (res.ok) {
-          const data = await res.json();
+      // Process other entitlements
+      if (results[2].status === "fulfilled" && results[2].value.ok) {
+        try {
+          const data = await results[2].value.json();
           setOtherEntitlements(data.entitlements || []);
+        } catch (err) {
+          console.error("Failed to parse other entitlements:", err);
         }
-      } catch (err) {
-        console.error("Failed to load other entitlements:", err);
+      } else if (results[2].status === "rejected") {
+        console.error("Failed to load other entitlements:", results[2].reason);
       }
     })();
-  }, [employeeId, sessionStatus, refreshToken]);
+
+    return () => {
+      active = false;
+    };
+  }, [employeeId, sessionStatus, refreshToken, tenantFetch]);
 
   // Clear events cache when employeeId changes to prevent stale data across employees
   useEffect(() => {

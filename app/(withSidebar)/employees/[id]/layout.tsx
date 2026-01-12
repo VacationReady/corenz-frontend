@@ -1,10 +1,83 @@
-import { ReactNode } from "react";
+import { ReactNode, cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
 import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
 import { canAccessEmployee, getAccessibleEmployeeScreensViaProfile, isUserSubordinateOf, UserWithProfile } from "@/lib/permissions";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
 import EmployeeNavClient from "./EmployeeNavClient";
+
+/**
+ * Cached data fetching functions to prevent redundant queries on tab navigation.
+ * React's cache() deduplicates calls within the same request tree.
+ */
+const getEmployee = cache(async (employeeId: string, companyId: string) => {
+  return prisma.employee.findFirst({
+    where: { id: employeeId, companyId },
+    include: {
+      User: {
+        include: {
+          JobRole: true,
+          Department_User_departmentIdToDepartment: true,
+        },
+      },
+      Department: true,
+      JobRole: true,
+      EmployeeOffboarding: true,
+    },
+  });
+});
+
+const getCurrentUser = cache(async (userId: string) => {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: { PermissionProfile: true },
+  });
+});
+
+const getVisibleForms = cache(async (
+  companyId: string,
+  userRole: string,
+  userDepartmentId: string | undefined,
+  userJobRoleId: string | undefined
+) => {
+  return prisma.form.findMany({
+    where: {
+      companyId,
+      isActive: true,
+      formType: { not: "SURVEY" },
+      AND: [
+        {
+          OR: [
+            { visibleToRoles: { isEmpty: true } },
+            { visibleToRoles: { has: userRole } },
+          ],
+        },
+        {
+          OR: [
+            { visibleToDepartments: { isEmpty: true } },
+            ...(userDepartmentId
+              ? [{ visibleToDepartments: { has: userDepartmentId } }]
+              : []),
+          ],
+        },
+        {
+          OR: [
+            { visibleToJobRoles: { isEmpty: true } },
+            ...(userJobRoleId
+              ? [{ visibleToJobRoles: { has: userJobRoleId } }]
+              : []),
+          ],
+        },
+      ],
+    },
+    select: {
+      slug: true,
+      name: true,
+      formType: true,
+    },
+    orderBy: { name: "asc" },
+  });
+});
 
 export default async function EmployeeLayout({
   children,
@@ -23,21 +96,7 @@ export default async function EmployeeLayout({
       />
     );
   }
-  const employee = await prisma.employee.findFirst({
-    where: { id, companyId: session?.user?.companyId || "" },
-    include: {
-      User: {
-        include: {
-          JobRole: true,
-          Department_User_departmentIdToDepartment: true,
-        },
-      },
-      // Include Employee's own department and job role (may differ from User's)
-      Department: true,
-      JobRole: true,
-      EmployeeOffboarding: true,
-    },
-  });
+  const employee = await getEmployee(id, session.user.companyId);
 
   if (!employee) {
     return <div>Employee not found.</div>;
@@ -76,50 +135,12 @@ export default async function EmployeeLayout({
   // - If form has no departments selected (empty array), it's visible to all departments
   // - If form has no job roles selected (empty array), it's visible to all job roles
   // - If employee has no department/job role assigned, they can only see forms with empty filters for that criteria
-  let forms = await prisma.form.findMany({
-    where: {
-      companyId: employee.companyId || "",
-      isActive: true,
-      formType: { not: "SURVEY" }, // EXCLUDE SURVEY FORMS FROM EMPLOYEE PROFILES
-      AND: [
-        // Role filter: must match one of the selected roles, or form has no role restrictions
-        {
-          OR: [
-            { visibleToRoles: { isEmpty: true } },
-            { visibleToRoles: { has: userRole } },
-          ],
-        },
-        // Department filter: must match if form has departments AND employee has a department
-        // If form has no departments selected, visible to all
-        // If employee has no department, only see forms with no department restrictions
-        {
-          OR: [
-            { visibleToDepartments: { isEmpty: true } },
-            ...(userDepartmentId
-              ? [{ visibleToDepartments: { has: userDepartmentId } }]
-              : []),
-          ],
-        },
-        // Job role filter: must match if form has job roles AND employee has a job role
-        // If form has no job roles selected, visible to all
-        // If employee has no job role, only see forms with no job role restrictions
-        {
-          OR: [
-            { visibleToJobRoles: { isEmpty: true } },
-            ...(userJobRoleId
-              ? [{ visibleToJobRoles: { has: userJobRoleId } }]
-              : []),
-          ],
-        },
-      ],
-    },
-    select: {
-      slug: true,
-      name: true,
-      formType: true,
-    },
-    orderBy: { name: "asc" },
-  });
+  let forms = await getVisibleForms(
+    employee.companyId || "",
+    userRole,
+    userDepartmentId,
+    userJobRoleId
+  );
 
   // Hide deprecated/duplicate screens (consolidated into Personal information)
   const hiddenSlugs = new Set([
@@ -132,10 +153,7 @@ export default async function EmployeeLayout({
   forms = forms.filter((f: any) => !hiddenSlugs.has(f.slug));
 
   // Fetch the current user with their permission profile to filter menu
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: { PermissionProfile: true },
-  });
+  const currentUser = await getCurrentUser(session.user.id);
 
   // Get accessible screens via CUSTOM permission profile only (not default role permissions)
   const userWithProfile: UserWithProfile = currentUser ? {

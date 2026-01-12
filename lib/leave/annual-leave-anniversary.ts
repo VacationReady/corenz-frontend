@@ -582,3 +582,252 @@ export function canConvertToPermanent(employee: {
   
   return true;
 }
+
+// ============================================
+// UPCOMING ANNIVERSARIES QUERY
+// ============================================
+
+export interface UpcomingAnniversaryEmployee {
+  employeeId: string;
+  userId: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
+  jobRoleId: string | null;
+  jobRoleName: string | null;
+  employmentStartDate: string | null;
+  annualLeaveEntitlementDate: string;
+  daysUntilAnniversary: number;
+  futureAnnualLeaveEntitlement: number;
+  leaveInAdvanceUsed: number;
+  projectedBalance: number;
+  willBeFlagged: boolean;
+}
+
+/**
+ * Find employees approaching their 12-month anniversary.
+ * 
+ * This is a pure function for testing purposes that processes employee data
+ * and returns upcoming anniversary information.
+ * 
+ * Property 8: Upcoming Anniversary Query
+ * *For any* query for employees approaching their 12-month anniversary, the result 
+ * SHALL include all employees where `annualLeaveEntitlementDate` is within the 
+ * specified range and who do not yet have a LeaveEntitlement record.
+ * 
+ * **Validates: Requirements 7.1**
+ * 
+ * @param employees - Array of employee data with anniversary fields
+ * @param queryDate - The date to query from (typically today)
+ * @param daysAhead - Number of days to look ahead (default: 30)
+ * @returns Array of employees within the anniversary range
+ */
+export function filterUpcomingAnniversaries(
+  employees: Array<{
+    id: string;
+    userId: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    departmentId: string | null;
+    departmentName: string | null;
+    jobRoleId: string | null;
+    jobRoleName: string | null;
+    employmentStartDate: Date | null;
+    annualLeaveEntitlementDate: Date | null;
+    futureAnnualLeaveEntitlement: number | null;
+    leaveInAdvanceUsed: number | null;
+    isCasualEmployee: boolean;
+    hasLeaveEntitlement: boolean;
+  }>,
+  queryDate: Date,
+  daysAhead: number = 30
+): UpcomingAnniversaryEmployee[] {
+  const endDate = new Date(queryDate);
+  endDate.setDate(endDate.getDate() + daysAhead);
+
+  return employees
+    .filter((emp) => {
+      // Must have an anniversary date
+      if (!emp.annualLeaveEntitlementDate) return false;
+      
+      // Anniversary must be within range (queryDate to queryDate + daysAhead)
+      const anniversaryDate = emp.annualLeaveEntitlementDate;
+      if (anniversaryDate < queryDate || anniversaryDate > endDate) return false;
+      
+      // Must have future entitlement stored
+      if (!emp.futureAnnualLeaveEntitlement || emp.futureAnnualLeaveEntitlement <= 0) return false;
+      
+      // Must not be a casual employee
+      if (emp.isCasualEmployee) return false;
+      
+      // Must not already have a LeaveEntitlement record
+      if (emp.hasLeaveEntitlement) return false;
+      
+      return true;
+    })
+    .map((emp) => {
+      const anniversaryDate = emp.annualLeaveEntitlementDate!;
+      const daysUntilAnniversary = Math.ceil(
+        (anniversaryDate.getTime() - queryDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      const futureEntitlement = Number(emp.futureAnnualLeaveEntitlement || 0);
+      const leaveInAdvanceUsed = Number(emp.leaveInAdvanceUsed || 0);
+      const projectedBalance = Math.max(0, futureEntitlement - leaveInAdvanceUsed);
+      const willBeFlagged = leaveInAdvanceUsed > futureEntitlement;
+
+      return {
+        employeeId: emp.id,
+        userId: emp.userId,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
+        email: emp.email,
+        departmentId: emp.departmentId,
+        departmentName: emp.departmentName,
+        jobRoleId: emp.jobRoleId,
+        jobRoleName: emp.jobRoleName,
+        employmentStartDate: emp.employmentStartDate?.toISOString() || null,
+        annualLeaveEntitlementDate: anniversaryDate.toISOString(),
+        daysUntilAnniversary,
+        futureAnnualLeaveEntitlement: Math.round(futureEntitlement * 100) / 100,
+        leaveInAdvanceUsed: Math.round(leaveInAdvanceUsed * 100) / 100,
+        projectedBalance: Math.round(projectedBalance * 100) / 100,
+        willBeFlagged,
+      };
+    })
+    .sort((a, b) => a.daysUntilAnniversary - b.daysUntilAnniversary);
+}
+
+
+// ============================================
+// REPORT DISTINCTION LOGIC
+// ============================================
+
+export interface LeaveReportRow {
+  employeeId: string;
+  hasEntitlement: boolean;
+  entitledTotalDays: number;
+  entitledUsedDays: number;
+  entitledCarryoverDays: number;
+  entitledRemaining: number;
+  leaveInAdvanceUsed: number;
+  futureEntitlement: number;
+  projectedBalance: number;
+  leaveStatus: "entitled" | "pre-entitlement" | "casual";
+  isCasualEmployee: boolean;
+}
+
+/**
+ * Transform employee leave data into a report row with entitled vs advance distinction.
+ * 
+ * Property 9: Report Distinction
+ * *For any* leave report generation, the output SHALL distinguish between entitled leave 
+ * (from LeaveEntitlement.usedDays) and leave in advance (from Employee.leaveInAdvanceUsed).
+ * 
+ * **Validates: Requirements 7.4**
+ * 
+ * @param employee - Employee data with leave fields
+ * @returns Report row with entitled vs advance distinction
+ */
+export function transformToLeaveReportRow(employee: {
+  id: string;
+  isCasualEmployee: boolean;
+  leaveInAdvanceUsed: number | null;
+  futureAnnualLeaveEntitlement: number | null;
+  leaveEntitlement: {
+    totalDays: number;
+    usedDays: number;
+    carryoverDays: number;
+  } | null;
+}): LeaveReportRow {
+  const hasEntitlement = !!employee.leaveEntitlement;
+  
+  // Round to 2 decimal places
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  
+  // Entitled leave (from LeaveEntitlement record - post-12-month employees)
+  const entitledTotalDays = hasEntitlement ? round2(employee.leaveEntitlement!.totalDays) : 0;
+  const entitledUsedDays = hasEntitlement ? round2(employee.leaveEntitlement!.usedDays) : 0;
+  const entitledCarryoverDays = hasEntitlement ? round2(employee.leaveEntitlement!.carryoverDays) : 0;
+  const entitledRemaining = round2(entitledTotalDays + entitledCarryoverDays - entitledUsedDays);
+  
+  // Leave in advance (from Employee record - pre-12-month employees)
+  const leaveInAdvanceUsed = round2(Number(employee.leaveInAdvanceUsed || 0));
+  const futureEntitlement = round2(Number(employee.futureAnnualLeaveEntitlement || 0));
+  const projectedBalance = round2(Math.max(0, futureEntitlement - leaveInAdvanceUsed));
+  
+  // Determine leave status
+  let leaveStatus: "entitled" | "pre-entitlement" | "casual" = "entitled";
+  if (employee.isCasualEmployee) {
+    leaveStatus = "casual";
+  } else if (!hasEntitlement && futureEntitlement > 0) {
+    leaveStatus = "pre-entitlement";
+  }
+  
+  return {
+    employeeId: employee.id,
+    hasEntitlement,
+    entitledTotalDays,
+    entitledUsedDays,
+    entitledCarryoverDays,
+    entitledRemaining,
+    leaveInAdvanceUsed,
+    futureEntitlement,
+    projectedBalance,
+    leaveStatus,
+    isCasualEmployee: employee.isCasualEmployee,
+  };
+}
+
+/**
+ * Check if a report row correctly distinguishes entitled vs advance leave.
+ * 
+ * This is a validation function for testing purposes.
+ * 
+ * @param row - The report row to validate
+ * @returns Whether the row correctly distinguishes entitled vs advance leave
+ */
+export function validateReportDistinction(row: LeaveReportRow): {
+  isValid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+  
+  // Entitled leave should only be present for employees with entitlement
+  if (!row.hasEntitlement && (row.entitledTotalDays > 0 || row.entitledUsedDays > 0)) {
+    errors.push("Entitled leave values should be 0 for employees without entitlement");
+  }
+  
+  // Leave in advance should only be tracked for pre-entitlement employees
+  if (row.hasEntitlement && row.leaveInAdvanceUsed > 0 && row.leaveStatus !== "pre-entitlement") {
+    // This is actually valid - employees can have both after anniversary grant
+    // The leaveInAdvanceUsed is historical data
+  }
+  
+  // Casual employees should not have any leave values
+  if (row.isCasualEmployee && row.leaveStatus !== "casual") {
+    errors.push("Casual employees should have 'casual' leave status");
+  }
+  
+  // Projected balance should be max(0, futureEntitlement - leaveInAdvanceUsed)
+  const expectedProjectedBalance = Math.max(0, row.futureEntitlement - row.leaveInAdvanceUsed);
+  const roundedExpected = Math.round(expectedProjectedBalance * 100) / 100;
+  if (row.projectedBalance !== roundedExpected) {
+    errors.push(`Projected balance should be ${roundedExpected}, got ${row.projectedBalance}`);
+  }
+  
+  // Entitled remaining should be totalDays + carryoverDays - usedDays
+  const expectedEntitledRemaining = row.entitledTotalDays + row.entitledCarryoverDays - row.entitledUsedDays;
+  const roundedEntitledRemaining = Math.round(expectedEntitledRemaining * 100) / 100;
+  if (row.entitledRemaining !== roundedEntitledRemaining) {
+    errors.push(`Entitled remaining should be ${roundedEntitledRemaining}, got ${row.entitledRemaining}`);
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}

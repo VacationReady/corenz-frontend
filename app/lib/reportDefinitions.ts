@@ -303,6 +303,192 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
       return { data: rows, total: totalCount };
     },
   },
+  /**
+   * NZ Annual Leave Compliance Report
+   * 
+   * Distinguishes between entitled leave (from LeaveEntitlement.usedDays) and 
+   * leave in advance (from Employee.leaveInAdvanceUsed).
+   * 
+   * NZ Holidays Act 2003 Compliance:
+   * - Employees are NOT entitled to annual leave until 12 months of continuous employment
+   * - Leave taken before 12 months is "leave in advance" (tracked separately)
+   * - This report shows both entitled and advance leave for compliance reporting
+   * 
+   * **Validates: Requirements 7.4**
+   */
+  nzAnnualLeaveCompliance: {
+    name: "NZ Annual Leave Compliance",
+    description: "Annual leave balances with entitled vs advance leave distinction (NZ Holidays Act 2003)",
+    allowedFilters: ["departmentId", "jobRoleId", "isActive", "leaveStatus"],
+    allowedSort: ["_computed.remainingEntitlement", "_computed.leaveInAdvanceUsed", "Employee.User.lastName"],
+    query: async (filters, pagination, context) => {
+      const { page, limit, skip, sortBy, sortOrder } = normalizePagination(pagination);
+      
+      // Build the Employee filter
+      const employeeConditions: Record<string, any> = {};
+      if (filters.departmentId) employeeConditions.departmentId = toPrismaIdFilter(filters.departmentId);
+      if (filters.departmentName) {
+        employeeConditions.Department = {
+          name: toPrismaStringFilter(filters.departmentName),
+        };
+      }
+      if (filters.jobRoleId) employeeConditions.jobRoleId = toPrismaIdFilter(filters.jobRoleId);
+      if (filters.jobRoleName) {
+        employeeConditions.JobRole = {
+          name: toPrismaStringFilter(filters.jobRoleName),
+        };
+      }
+      // Default to showing active employees unless explicitly set
+      if (filters.isActive === undefined) {
+        employeeConditions.isActive = true;
+      } else {
+        const isActiveWhere = toBooleanWhere(filters.isActive);
+        if (isActiveWhere !== undefined) employeeConditions.isActive = isActiveWhere;
+      }
+      // Exclude casual employees (they receive 8% holiday pay instead)
+      employeeConditions.isCasualEmployee = false;
+
+      const where: Record<string, any> = {
+        companyId: context.companyId,
+        ...employeeConditions,
+      };
+
+      // Get total count first (before pagination)
+      const totalCount = await prisma.employee.count({ where });
+
+      // Fetch employees with their leave entitlements and NZ compliance fields
+      const employees = await prisma.employee.findMany({
+        where,
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { id: true, name: true } },
+          JobRole: { select: { id: true, name: true } },
+          LeaveEntitlement: {
+            where: {
+              EventCategory: {
+                name: { in: ["Annual Leave", "Annual", "Holiday", "Vacation"] },
+              },
+            },
+            include: {
+              EventCategory: { select: { id: true, name: true } },
+            },
+          },
+        },
+        take: limit,
+        skip,
+        orderBy: sortBy && !sortBy.startsWith("_computed.")
+          ? buildSort(sortBy, sortOrder)
+          : [{ User: { lastName: "asc" } }, { User: { firstName: "asc" } }],
+      });
+
+      // Helper to round to 2 decimal places
+      const round2 = (n: number | null | undefined) => {
+        if (n === null || n === undefined) return 0;
+        return Math.round(n * 100) / 100;
+      };
+
+      // Map to report format with entitled vs advance distinction
+      let rows = employees.map((emp) => {
+        const annualLeaveEntitlement = emp.LeaveEntitlement?.[0];
+        const hasEntitlement = !!annualLeaveEntitlement;
+        
+        // Entitled leave (from LeaveEntitlement record - post-12-month employees)
+        const entitledTotalDays = hasEntitlement ? round2(Number(annualLeaveEntitlement.totalDays)) : 0;
+        const entitledUsedDays = hasEntitlement ? round2(Number(annualLeaveEntitlement.usedDays)) : 0;
+        const entitledCarryoverDays = hasEntitlement ? round2(Number(annualLeaveEntitlement.carryoverDays)) : 0;
+        const entitledRemaining = round2(entitledTotalDays + entitledCarryoverDays - entitledUsedDays);
+        
+        // Leave in advance (from Employee record - pre-12-month employees)
+        const leaveInAdvanceUsed = round2(Number(emp.leaveInAdvanceUsed || 0));
+        const futureEntitlement = round2(Number(emp.futureAnnualLeaveEntitlement || 0));
+        const projectedBalance = round2(Math.max(0, futureEntitlement - leaveInAdvanceUsed));
+        
+        // Determine leave status
+        let leaveStatus: "entitled" | "pre-entitlement" | "casual" = "entitled";
+        if (emp.isCasualEmployee) {
+          leaveStatus = "casual";
+        } else if (!hasEntitlement && futureEntitlement > 0) {
+          leaveStatus = "pre-entitlement";
+        }
+        
+        // Calculate days until anniversary (for pre-entitlement employees)
+        let daysUntilAnniversary: number | null = null;
+        if (emp.annualLeaveEntitlementDate) {
+          const today = new Date();
+          const anniversaryDate = new Date(emp.annualLeaveEntitlementDate);
+          daysUntilAnniversary = Math.ceil(
+            (anniversaryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+          );
+        }
+
+        return {
+          employeeId: emp.id,
+          Employee: {
+            id: emp.id,
+            isActive: emp.isActive,
+            Department: emp.Department ? { id: emp.Department.id, name: emp.Department.name } : null,
+            JobRole: emp.JobRole ? { id: emp.JobRole.id, name: emp.JobRole.name } : null,
+            User: emp.User ? {
+              firstName: emp.User.firstName,
+              lastName: emp.User.lastName,
+              email: emp.User.email,
+            } : null,
+          },
+          // Entitled leave (post-12-month employees)
+          EntitledLeave: hasEntitlement ? {
+            totalDays: entitledTotalDays,
+            usedDays: entitledUsedDays,
+            carryoverDays: entitledCarryoverDays,
+            remainingDays: entitledRemaining,
+          } : null,
+          // Leave in advance (pre-12-month employees)
+          LeaveInAdvance: {
+            usedDays: leaveInAdvanceUsed,
+            futureEntitlement: futureEntitlement,
+            projectedBalance: projectedBalance,
+          },
+          // NZ Compliance fields
+          NZCompliance: {
+            leaveStatus,
+            annualLeaveEntitlementDate: emp.annualLeaveEntitlementDate?.toISOString() ?? null,
+            daysUntilAnniversary,
+            employmentStartDate: emp.employmentStartDate?.toISOString() ?? emp.startDate?.toISOString() ?? null,
+            isCasualEmployee: emp.isCasualEmployee,
+          },
+          _computed: {
+            remainingEntitlement: hasEntitlement ? entitledRemaining : projectedBalance,
+            leaveInAdvanceUsed: leaveInAdvanceUsed,
+            jobRoleName: emp.JobRole?.name ?? null,
+            departmentName: emp.Department?.name ?? null,
+            leaveStatus,
+          },
+        };
+      });
+
+      // Filter by leave status if specified
+      if (filters.leaveStatus) {
+        const statusFilter = toPrismaStringFilter(filters.leaveStatus);
+        if (typeof statusFilter === "string") {
+          rows = rows.filter((row) => row._computed.leaveStatus === statusFilter);
+        }
+      }
+
+      // Apply client-requested sort for computed fields
+      if (sortBy === "_computed.remainingEntitlement") {
+        rows.sort((a, b) => {
+          const diff = a._computed.remainingEntitlement - b._computed.remainingEntitlement;
+          return sortOrder === "desc" ? diff * -1 : diff;
+        });
+      } else if (sortBy === "_computed.leaveInAdvanceUsed") {
+        rows.sort((a, b) => {
+          const diff = a._computed.leaveInAdvanceUsed - b._computed.leaveInAdvanceUsed;
+          return sortOrder === "desc" ? diff * -1 : diff;
+        });
+      }
+
+      return { data: rows, total: totalCount };
+    },
+  },
   sickLeaveUsageYTD: {
     name: "Sick Leave Usage YTD",
     description: "Total sick leave days taken per employee in the current calendar year",

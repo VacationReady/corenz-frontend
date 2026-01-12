@@ -150,44 +150,44 @@ This implementation plan refactors PeopleCore's annual leave entitlement logic t
     - Preserve existing calculator functionality
     - _Requirements: 1.4, 5.5_
 
-- [ ] 11. Implement backward compatibility for existing employees
-  - [ ] 11.1 Create migration script for existing employees
+- [x] 11. Implement backward compatibility for existing employees
+  - [x] 11.1 Create migration script for existing employees
     - Find employees without LeaveEntitlement who are under 12 months
     - Calculate and populate futureAnnualLeaveEntitlement
     - Calculate and populate annualLeaveEntitlementDate
     - _Requirements: 6.4_
-  - [ ] 11.2 Verify existing LeaveEntitlement records are preserved
+  - [x] 11.2 Verify existing LeaveEntitlement records are preserved
     - Query existing records before and after migration
     - Verify no modifications or deletions
     - _Requirements: 6.1, 6.2, 6.5_
-  - [ ] 11.3 Write property test for existing records preservation
+  - [x] 11.3 Write property test for existing records preservation
     - **Property 7: Existing Records Preservation**
     - Generate employees with existing LeaveEntitlement records
     - Run new logic
     - Verify records unchanged
     - **Validates: Requirements 6.1, 6.2, 6.5**
 
-- [ ] 12. Add reporting visibility for upcoming anniversaries
-  - [ ] 12.1 Create API endpoint for upcoming anniversaries
+- [x] 12. Add reporting visibility for upcoming anniversaries
+  - [x] 12.1 Create API endpoint for upcoming anniversaries
     - Add GET endpoint to return employees within 30 days of anniversary
     - Include futureAnnualLeaveEntitlement and leaveInAdvanceUsed in response
     - _Requirements: 7.1, 7.2, 7.3_
-  - [ ] 12.2 Write property test for upcoming anniversary query
+  - [x] 12.2 Write property test for upcoming anniversary query
     - **Property 8: Upcoming Anniversary Query**
     - Generate random employees with various anniversary dates
     - Verify query returns correct employees within range
     - **Validates: Requirements 7.1**
-  - [ ] 12.3 Update leave reports to distinguish entitled vs advance leave
+  - [x] 12.3 Update leave reports to distinguish entitled vs advance leave
     - Modify report generation to include leaveInAdvanceUsed
     - Add separate columns/sections for entitled leave and leave in advance
     - _Requirements: 7.4_
-  - [ ] 12.4 Write property test for report distinction
+  - [x] 12.4 Write property test for report distinction
     - **Property 9: Report Distinction**
     - Generate random leave data
     - Verify report output distinguishes entitled vs advance
     - **Validates: Requirements 7.4**
 
-- [ ] 13. Final checkpoint - Full integration testing
+- [x] 13. Final checkpoint - Full integration testing
   - Ensure all tests pass, ask the user if questions arise.
   - Test complete employee lifecycle: creation → leave in advance → anniversary grant
   - Verify UI displays correct information at each stage

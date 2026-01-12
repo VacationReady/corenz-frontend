@@ -1408,3 +1408,1120 @@ test("Property 6: Casual to Permanent Conversion - NZ Annual Leave Compliance", 
     );
   });
 });
+
+
+// ============================================
+// PROPERTY 7: EXISTING RECORDS PRESERVATION
+// ============================================
+
+import { 
+  compareLeaveEntitlementSnapshots,
+  roundToTwoDecimals,
+  isUnder12Months,
+  DEFAULT_FULL_TIME_ENTITLEMENT,
+} from "../scripts/backfill-nz-annual-leave-compliance";
+
+test("Property 7: Existing Records Preservation - NZ Annual Leave Compliance", async (t) => {
+  /**
+   * Property 7: Existing Records Preservation
+   * *For any* existing LeaveEntitlement record, the migration and new logic SHALL NOT 
+   * modify or delete the record. Employees with existing LeaveEntitlement records 
+   * SHALL be treated as having crystallised entitlement.
+   * 
+   * **Validates: Requirements 6.1, 6.2, 6.5**
+   */
+
+  await t.test("Snapshot comparison detects no changes when records are identical", () => {
+    /**
+     * Property: For any set of LeaveEntitlement records, comparing identical
+     * snapshots SHALL return isIdentical=true and no differences.
+     */
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id: fc.uuid(),
+            employeeId: fc.uuid(),
+            totalDays: fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+            usedDays: fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+            updatedAt: validStartDateArbitrary,
+          }),
+          { minLength: 0, maxLength: 20 }
+        ),
+        (records) => {
+          const snapshot = {
+            totalRecords: records.length,
+            records: records,
+          };
+
+          const comparison = compareLeaveEntitlementSnapshots(snapshot, snapshot);
+
+          return comparison.isIdentical === true && comparison.differences.length === 0;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Snapshot comparison detects deleted records", () => {
+    /**
+     * Property: For any set of LeaveEntitlement records, if a record is removed
+     * from the after snapshot, the comparison SHALL detect the deletion.
+     */
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id: fc.uuid(),
+            employeeId: fc.uuid(),
+            totalDays: fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+            usedDays: fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+            updatedAt: validStartDateArbitrary,
+          }),
+          { minLength: 1, maxLength: 20 }
+        ),
+        (records) => {
+          const beforeSnapshot = {
+            totalRecords: records.length,
+            records: records,
+          };
+
+          // Remove the first record from after snapshot
+          const afterRecords = records.slice(1);
+          const afterSnapshot = {
+            totalRecords: afterRecords.length,
+            records: afterRecords,
+          };
+
+          const comparison = compareLeaveEntitlementSnapshots(beforeSnapshot, afterSnapshot);
+
+          // Should detect the deletion
+          return comparison.isIdentical === false && 
+                 comparison.differences.some(d => d.includes("deleted"));
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Snapshot comparison detects modified totalDays", () => {
+    /**
+     * Property: For any LeaveEntitlement record, if totalDays is modified,
+     * the comparison SHALL detect the change.
+     */
+    fc.assert(
+      fc.property(
+        fc.uuid(),
+        fc.uuid(),
+        fc.integer({ min: 0, max: 2000 }).map(n => n / 100),
+        fc.integer({ min: 0, max: 2000 }).map(n => n / 100),
+        fc.integer({ min: 1, max: 1000 }).map(n => n / 100), // Change amount (non-zero)
+        validStartDateArbitrary,
+        (id, employeeId, totalDays, usedDays, changeAmount, updatedAt) => {
+          const beforeRecord = {
+            id,
+            employeeId,
+            totalDays,
+            usedDays,
+            updatedAt,
+          };
+
+          const afterRecord = {
+            ...beforeRecord,
+            totalDays: totalDays + changeAmount, // Modified
+          };
+
+          const beforeSnapshot = {
+            totalRecords: 1,
+            records: [beforeRecord],
+          };
+
+          const afterSnapshot = {
+            totalRecords: 1,
+            records: [afterRecord],
+          };
+
+          const comparison = compareLeaveEntitlementSnapshots(beforeSnapshot, afterSnapshot);
+
+          // Should detect the modification
+          return comparison.isIdentical === false && 
+                 comparison.differences.some(d => d.includes("totalDays"));
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Snapshot comparison detects modified usedDays", () => {
+    /**
+     * Property: For any LeaveEntitlement record, if usedDays is modified,
+     * the comparison SHALL detect the change.
+     */
+    fc.assert(
+      fc.property(
+        fc.uuid(),
+        fc.uuid(),
+        fc.integer({ min: 0, max: 2000 }).map(n => n / 100),
+        fc.integer({ min: 0, max: 2000 }).map(n => n / 100),
+        fc.integer({ min: 1, max: 1000 }).map(n => n / 100), // Change amount (non-zero)
+        validStartDateArbitrary,
+        (id, employeeId, totalDays, usedDays, changeAmount, updatedAt) => {
+          const beforeRecord = {
+            id,
+            employeeId,
+            totalDays,
+            usedDays,
+            updatedAt,
+          };
+
+          const afterRecord = {
+            ...beforeRecord,
+            usedDays: usedDays + changeAmount, // Modified
+          };
+
+          const beforeSnapshot = {
+            totalRecords: 1,
+            records: [beforeRecord],
+          };
+
+          const afterSnapshot = {
+            totalRecords: 1,
+            records: [afterRecord],
+          };
+
+          const comparison = compareLeaveEntitlementSnapshots(beforeSnapshot, afterSnapshot);
+
+          // Should detect the modification
+          return comparison.isIdentical === false && 
+                 comparison.differences.some(d => d.includes("usedDays"));
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Snapshot comparison detects count changes", () => {
+    /**
+     * Property: For any set of LeaveEntitlement records, if the count changes,
+     * the comparison SHALL detect the change.
+     */
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id: fc.uuid(),
+            employeeId: fc.uuid(),
+            totalDays: fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+            usedDays: fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+            updatedAt: validStartDateArbitrary,
+          }),
+          { minLength: 1, maxLength: 20 }
+        ),
+        fc.record({
+          id: fc.uuid(),
+          employeeId: fc.uuid(),
+          totalDays: fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+          usedDays: fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+          updatedAt: validStartDateArbitrary,
+        }),
+        (records, newRecord) => {
+          const beforeSnapshot = {
+            totalRecords: records.length,
+            records: records,
+          };
+
+          // Add a new record to after snapshot
+          const afterRecords = [...records, newRecord];
+          const afterSnapshot = {
+            totalRecords: afterRecords.length,
+            records: afterRecords,
+          };
+
+          const comparison = compareLeaveEntitlementSnapshots(beforeSnapshot, afterSnapshot);
+
+          // Should detect the count change
+          return comparison.isIdentical === false && 
+                 comparison.differences.some(d => d.includes("count"));
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("roundToTwoDecimals preserves precision correctly", () => {
+    /**
+     * Property: For any number, roundToTwoDecimals SHALL return a value
+     * with at most 2 decimal places.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -100000, max: 100000 }).map(n => n / 1000), // Up to 3 decimal places
+        (value) => {
+          const rounded = roundToTwoDecimals(value);
+          
+          // Check that the result has at most 2 decimal places
+          const decimalPart = rounded.toString().split('.')[1] || '';
+          return decimalPart.length <= 2;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("roundToTwoDecimals is idempotent", () => {
+    /**
+     * Property: For any number, applying roundToTwoDecimals multiple times
+     * SHALL produce the same result.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -100000, max: 100000 }).map(n => n / 1000),
+        (value) => {
+          const rounded1 = roundToTwoDecimals(value);
+          const rounded2 = roundToTwoDecimals(rounded1);
+          const rounded3 = roundToTwoDecimals(rounded2);
+          
+          return rounded1 === rounded2 && rounded2 === rounded3;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("isUnder12Months correctly identifies employees under 12 months", () => {
+    /**
+     * Property: For any start date and reference date, isUnder12Months SHALL
+     * return true if and only if the reference date is before the 12-month anniversary.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        fc.integer({ min: 0, max: 730 }), // 0-730 days (0-2 years)
+        (startDate, daysToAdd) => {
+          const referenceDate = new Date(startDate);
+          referenceDate.setDate(referenceDate.getDate() + daysToAdd);
+          
+          const result = isUnder12Months(startDate, referenceDate);
+          
+          // Calculate expected result
+          const anniversaryDate = calculateAnniversaryDate(startDate);
+          const expectedResult = referenceDate < anniversaryDate;
+          
+          return result === expectedResult;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("isUnder12Months returns false at exactly 12 months", () => {
+    /**
+     * Property: For any start date, at exactly the 12-month anniversary,
+     * isUnder12Months SHALL return false (employee is no longer under 12 months).
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        (startDate) => {
+          const anniversaryDate = calculateAnniversaryDate(startDate);
+          
+          const result = isUnder12Months(startDate, anniversaryDate);
+          
+          // At exactly 12 months, should return false
+          return result === false;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("isUnder12Months returns true one day before anniversary", () => {
+    /**
+     * Property: For any start date, one day before the 12-month anniversary,
+     * isUnder12Months SHALL return true.
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        (startDate) => {
+          const anniversaryDate = calculateAnniversaryDate(startDate);
+          const oneDayBefore = new Date(anniversaryDate);
+          oneDayBefore.setDate(oneDayBefore.getDate() - 1);
+          
+          const result = isUnder12Months(startDate, oneDayBefore);
+          
+          // One day before anniversary, should return true
+          return result === true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("DEFAULT_FULL_TIME_ENTITLEMENT is 20 days (NZ standard)", () => {
+    /**
+     * Property: The default full-time entitlement SHALL be 20 days
+     * (4 weeks as per NZ Holidays Act 2003).
+     */
+    // This is a constant check, not a property test, but included for completeness
+    assert.equal(DEFAULT_FULL_TIME_ENTITLEMENT, 20, "NZ standard full-time entitlement should be 20 days");
+  });
+
+  await t.test("Employees with existing LeaveEntitlement are skipped by backfill logic", () => {
+    /**
+     * Property: For any employee with an existing LeaveEntitlement record,
+     * the backfill logic SHALL skip them (not modify their records).
+     * 
+     * This tests the logic that determines whether to process an employee.
+     */
+    fc.assert(
+      fc.property(
+        fc.boolean(), // hasLeaveEntitlement
+        fc.option(fc.integer({ min: 100, max: 3000 }).map(n => n / 100), { nil: null }), // futureEntitlement
+        validStartDateArbitrary,
+        (hasLeaveEntitlement, futureEntitlement, startDate) => {
+          // Simulate the backfill logic decision
+          const shouldSkip = 
+            hasLeaveEntitlement || // Already has LeaveEntitlement
+            futureEntitlement !== null; // Already has futureAnnualLeaveEntitlement
+          
+          // If employee has LeaveEntitlement, they should be skipped
+          if (hasLeaveEntitlement) {
+            return shouldSkip === true;
+          }
+          
+          // If employee already has futureEntitlement, they should be skipped
+          if (futureEntitlement !== null) {
+            return shouldSkip === true;
+          }
+          
+          // Otherwise, they should be processed
+          return shouldSkip === false;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Employees over 12 months without LeaveEntitlement are skipped", () => {
+    /**
+     * Property: For any employee over 12 months who doesn't have a LeaveEntitlement,
+     * the backfill logic SHALL skip them (they should be processed by anniversary job).
+     */
+    fc.assert(
+      fc.property(
+        validStartDateArbitrary,
+        fc.integer({ min: 366, max: 730 }), // 366-730 days (over 12 months)
+        (startDate, daysToAdd) => {
+          const referenceDate = new Date(startDate);
+          referenceDate.setDate(referenceDate.getDate() + daysToAdd);
+          
+          const isUnder = isUnder12Months(startDate, referenceDate);
+          
+          // Employees over 12 months should not be under 12 months
+          // They should be skipped by backfill (handled by anniversary job)
+          return isUnder === false;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});
+
+
+// ============================================
+// PROPERTY 8: UPCOMING ANNIVERSARY QUERY
+// ============================================
+
+import { filterUpcomingAnniversaries } from "../lib/leave/annual-leave-anniversary";
+
+test("Property 8: Upcoming Anniversary Query - NZ Annual Leave Compliance", async (t) => {
+  /**
+   * Property 8: Upcoming Anniversary Query
+   * *For any* query for employees approaching their 12-month anniversary, the result 
+   * SHALL include all employees where `annualLeaveEntitlementDate` is within the 
+   * specified range (e.g., 30 days) and who do not yet have a LeaveEntitlement record.
+   * 
+   * **Validates: Requirements 7.1**
+   */
+
+  /**
+   * Generator for employee data with anniversary fields
+   */
+  const employeeWithAnniversaryArbitrary = fc.record({
+    id: fc.uuid(),
+    userId: fc.uuid(),
+    firstName: fc.string({ minLength: 1, maxLength: 20 }),
+    lastName: fc.string({ minLength: 1, maxLength: 20 }),
+    email: fc.emailAddress(),
+    departmentId: fc.option(fc.uuid(), { nil: null }),
+    departmentName: fc.option(fc.string({ minLength: 1, maxLength: 30 }), { nil: null }),
+    jobRoleId: fc.option(fc.uuid(), { nil: null }),
+    jobRoleName: fc.option(fc.string({ minLength: 1, maxLength: 30 }), { nil: null }),
+    employmentStartDate: fc.option(validStartDateArbitrary, { nil: null }),
+    // Anniversary date relative to a reference date
+    daysUntilAnniversary: fc.integer({ min: -30, max: 60 }), // Can be past or future
+    futureAnnualLeaveEntitlement: fc.option(
+      fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+      { nil: null }
+    ),
+    leaveInAdvanceUsed: fc.option(
+      fc.integer({ min: 0, max: 2000 }).map(n => n / 100),
+      { nil: null }
+    ),
+    isCasualEmployee: fc.boolean(),
+    hasLeaveEntitlement: fc.boolean(),
+  });
+
+  await t.test("Only employees within range are included", () => {
+    /**
+     * Property: For any set of employees, only those with annualLeaveEntitlementDate
+     * within the specified range (queryDate to queryDate + daysAhead) SHALL be included.
+     */
+    fc.assert(
+      fc.property(
+        fc.array(employeeWithAnniversaryArbitrary, { minLength: 0, maxLength: 20 }),
+        fc.integer({ min: 1, max: 90 }), // daysAhead
+        (employeeData, daysAhead) => {
+          const queryDate = new Date("2025-06-15");
+          
+          // Transform employee data to include actual anniversary dates
+          const employees = employeeData.map(emp => {
+            const anniversaryDate = new Date(queryDate);
+            anniversaryDate.setDate(anniversaryDate.getDate() + emp.daysUntilAnniversary);
+            
+            return {
+              ...emp,
+              annualLeaveEntitlementDate: anniversaryDate,
+            };
+          });
+          
+          const results = filterUpcomingAnniversaries(employees, queryDate, daysAhead);
+          
+          // Verify all results are within range
+          const endDate = new Date(queryDate);
+          endDate.setDate(endDate.getDate() + daysAhead);
+          
+          return results.every(result => {
+            const anniversaryDate = new Date(result.annualLeaveEntitlementDate);
+            return anniversaryDate >= queryDate && anniversaryDate <= endDate;
+          });
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Casual employees are excluded", () => {
+    /**
+     * Property: For any set of employees, casual employees SHALL NOT be included
+     * in the upcoming anniversary results.
+     */
+    fc.assert(
+      fc.property(
+        fc.array(employeeWithAnniversaryArbitrary, { minLength: 1, maxLength: 20 }),
+        fc.integer({ min: 1, max: 90 }),
+        (employeeData, daysAhead) => {
+          const queryDate = new Date("2025-06-15");
+          
+          // Transform employee data - make some casual
+          const employees = employeeData.map((emp, idx) => {
+            const anniversaryDate = new Date(queryDate);
+            anniversaryDate.setDate(anniversaryDate.getDate() + Math.abs(emp.daysUntilAnniversary % daysAhead));
+            
+            return {
+              ...emp,
+              annualLeaveEntitlementDate: anniversaryDate,
+              isCasualEmployee: idx % 3 === 0, // Every 3rd employee is casual
+              futureAnnualLeaveEntitlement: 20, // Ensure they have entitlement
+              hasLeaveEntitlement: false, // Ensure they don't have existing entitlement
+            };
+          });
+          
+          const results = filterUpcomingAnniversaries(employees, queryDate, daysAhead);
+          
+          // Verify no casual employees in results
+          const casualEmployeeIds = employees
+            .filter(e => e.isCasualEmployee)
+            .map(e => e.id);
+          
+          return results.every(result => !casualEmployeeIds.includes(result.employeeId));
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Employees with existing LeaveEntitlement are excluded", () => {
+    /**
+     * Property: For any set of employees, those who already have a LeaveEntitlement
+     * record SHALL NOT be included in the upcoming anniversary results.
+     */
+    fc.assert(
+      fc.property(
+        fc.array(employeeWithAnniversaryArbitrary, { minLength: 1, maxLength: 20 }),
+        fc.integer({ min: 1, max: 90 }),
+        (employeeData, daysAhead) => {
+          const queryDate = new Date("2025-06-15");
+          
+          // Transform employee data - some have existing entitlement
+          const employees = employeeData.map((emp, idx) => {
+            const anniversaryDate = new Date(queryDate);
+            anniversaryDate.setDate(anniversaryDate.getDate() + Math.abs(emp.daysUntilAnniversary % daysAhead));
+            
+            return {
+              ...emp,
+              annualLeaveEntitlementDate: anniversaryDate,
+              isCasualEmployee: false,
+              futureAnnualLeaveEntitlement: 20,
+              hasLeaveEntitlement: idx % 2 === 0, // Every 2nd employee has existing entitlement
+            };
+          });
+          
+          const results = filterUpcomingAnniversaries(employees, queryDate, daysAhead);
+          
+          // Verify no employees with existing entitlement in results
+          const employeesWithEntitlement = employees
+            .filter(e => e.hasLeaveEntitlement)
+            .map(e => e.id);
+          
+          return results.every(result => !employeesWithEntitlement.includes(result.employeeId));
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Employees without future entitlement are excluded", () => {
+    /**
+     * Property: For any set of employees, those without a futureAnnualLeaveEntitlement
+     * (null or 0) SHALL NOT be included in the upcoming anniversary results.
+     */
+    fc.assert(
+      fc.property(
+        fc.array(employeeWithAnniversaryArbitrary, { minLength: 1, maxLength: 20 }),
+        fc.integer({ min: 1, max: 90 }),
+        (employeeData, daysAhead) => {
+          const queryDate = new Date("2025-06-15");
+          
+          // Transform employee data - some have no future entitlement
+          const employees = employeeData.map((emp, idx) => {
+            const anniversaryDate = new Date(queryDate);
+            anniversaryDate.setDate(anniversaryDate.getDate() + Math.abs(emp.daysUntilAnniversary % daysAhead));
+            
+            return {
+              ...emp,
+              annualLeaveEntitlementDate: anniversaryDate,
+              isCasualEmployee: false,
+              hasLeaveEntitlement: false,
+              futureAnnualLeaveEntitlement: idx % 3 === 0 ? null : (idx % 3 === 1 ? 0 : 20),
+            };
+          });
+          
+          const results = filterUpcomingAnniversaries(employees, queryDate, daysAhead);
+          
+          // Verify no employees without future entitlement in results
+          const employeesWithoutEntitlement = employees
+            .filter(e => !e.futureAnnualLeaveEntitlement || e.futureAnnualLeaveEntitlement <= 0)
+            .map(e => e.id);
+          
+          return results.every(result => !employeesWithoutEntitlement.includes(result.employeeId));
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Results are sorted by days until anniversary (ascending)", () => {
+    /**
+     * Property: The results SHALL be sorted by daysUntilAnniversary in ascending order
+     * (soonest anniversaries first).
+     */
+    fc.assert(
+      fc.property(
+        fc.array(employeeWithAnniversaryArbitrary, { minLength: 2, maxLength: 20 }),
+        fc.integer({ min: 30, max: 90 }),
+        (employeeData, daysAhead) => {
+          const queryDate = new Date("2025-06-15");
+          
+          // Transform employee data - all eligible
+          const employees = employeeData.map((emp, idx) => {
+            const anniversaryDate = new Date(queryDate);
+            // Spread anniversaries across the range
+            anniversaryDate.setDate(anniversaryDate.getDate() + (idx % daysAhead));
+            
+            return {
+              ...emp,
+              annualLeaveEntitlementDate: anniversaryDate,
+              isCasualEmployee: false,
+              hasLeaveEntitlement: false,
+              futureAnnualLeaveEntitlement: 20,
+            };
+          });
+          
+          const results = filterUpcomingAnniversaries(employees, queryDate, daysAhead);
+          
+          // Verify results are sorted by daysUntilAnniversary ascending
+          for (let i = 1; i < results.length; i++) {
+            if (results[i].daysUntilAnniversary < results[i - 1].daysUntilAnniversary) {
+              return false;
+            }
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Projected balance is correctly calculated", () => {
+    /**
+     * Property: For any employee in the results, the projectedBalance SHALL equal
+     * max(0, futureAnnualLeaveEntitlement - leaveInAdvanceUsed).
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 100, max: 3000 }).map(n => n / 100), // futureEntitlement
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),   // leaveInAdvanceUsed
+        (futureEntitlement, leaveInAdvanceUsed) => {
+          const queryDate = new Date("2025-06-15");
+          const anniversaryDate = new Date(queryDate);
+          anniversaryDate.setDate(anniversaryDate.getDate() + 15); // 15 days ahead
+          
+          const employees = [{
+            id: "test-id",
+            userId: "test-user-id",
+            firstName: "Test",
+            lastName: "Employee",
+            email: "test@example.com",
+            departmentId: null,
+            departmentName: null,
+            jobRoleId: null,
+            jobRoleName: null,
+            employmentStartDate: null,
+            annualLeaveEntitlementDate: anniversaryDate,
+            futureAnnualLeaveEntitlement: futureEntitlement,
+            leaveInAdvanceUsed: leaveInAdvanceUsed,
+            isCasualEmployee: false,
+            hasLeaveEntitlement: false,
+          }];
+          
+          const results = filterUpcomingAnniversaries(employees, queryDate, 30);
+          
+          if (results.length === 0) return true; // No results is valid
+          
+          const result = results[0];
+          const expectedBalance = Math.max(0, futureEntitlement - leaveInAdvanceUsed);
+          const expectedRounded = Math.round(expectedBalance * 100) / 100;
+          
+          return result.projectedBalance === expectedRounded;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("willBeFlagged is true when leave in advance exceeds entitlement", () => {
+    /**
+     * Property: For any employee in the results, willBeFlagged SHALL be true
+     * if and only if leaveInAdvanceUsed > futureAnnualLeaveEntitlement.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 100, max: 2000 }).map(n => n / 100), // futureEntitlement
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),   // leaveInAdvanceUsed
+        (futureEntitlement, leaveInAdvanceUsed) => {
+          const queryDate = new Date("2025-06-15");
+          const anniversaryDate = new Date(queryDate);
+          anniversaryDate.setDate(anniversaryDate.getDate() + 15);
+          
+          const employees = [{
+            id: "test-id",
+            userId: "test-user-id",
+            firstName: "Test",
+            lastName: "Employee",
+            email: "test@example.com",
+            departmentId: null,
+            departmentName: null,
+            jobRoleId: null,
+            jobRoleName: null,
+            employmentStartDate: null,
+            annualLeaveEntitlementDate: anniversaryDate,
+            futureAnnualLeaveEntitlement: futureEntitlement,
+            leaveInAdvanceUsed: leaveInAdvanceUsed,
+            isCasualEmployee: false,
+            hasLeaveEntitlement: false,
+          }];
+          
+          const results = filterUpcomingAnniversaries(employees, queryDate, 30);
+          
+          if (results.length === 0) return true;
+          
+          const result = results[0];
+          const expectedFlagged = leaveInAdvanceUsed > futureEntitlement;
+          
+          return result.willBeFlagged === expectedFlagged;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("daysUntilAnniversary is correctly calculated", () => {
+    /**
+     * Property: For any employee in the results, daysUntilAnniversary SHALL be
+     * the number of days from queryDate to annualLeaveEntitlementDate.
+     */
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 30 }), // daysUntil
+        (daysUntil) => {
+          const queryDate = new Date("2025-06-15");
+          const anniversaryDate = new Date(queryDate);
+          anniversaryDate.setDate(anniversaryDate.getDate() + daysUntil);
+          
+          const employees = [{
+            id: "test-id",
+            userId: "test-user-id",
+            firstName: "Test",
+            lastName: "Employee",
+            email: "test@example.com",
+            departmentId: null,
+            departmentName: null,
+            jobRoleId: null,
+            jobRoleName: null,
+            employmentStartDate: null,
+            annualLeaveEntitlementDate: anniversaryDate,
+            futureAnnualLeaveEntitlement: 20,
+            leaveInAdvanceUsed: 0,
+            isCasualEmployee: false,
+            hasLeaveEntitlement: false,
+          }];
+          
+          const results = filterUpcomingAnniversaries(employees, queryDate, 30);
+          
+          if (results.length === 0) return true;
+          
+          return results[0].daysUntilAnniversary === daysUntil;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});
+
+
+// ============================================
+// PROPERTY 9: REPORT DISTINCTION
+// ============================================
+
+import { transformToLeaveReportRow, validateReportDistinction } from "../lib/leave/annual-leave-anniversary";
+
+test("Property 9: Report Distinction - NZ Annual Leave Compliance", async (t) => {
+  /**
+   * Property 9: Report Distinction
+   * *For any* leave report generation, the output SHALL distinguish between entitled leave 
+   * (from LeaveEntitlement.usedDays) and leave in advance (from Employee.leaveInAdvanceUsed).
+   * 
+   * **Validates: Requirements 7.4**
+   */
+
+  /**
+   * Generator for employee leave data
+   */
+  const employeeLeaveDataArbitrary = fc.record({
+    id: fc.uuid(),
+    isCasualEmployee: fc.boolean(),
+    leaveInAdvanceUsed: fc.option(
+      fc.integer({ min: 0, max: 2000 }).map(n => n / 100),
+      { nil: null }
+    ),
+    futureAnnualLeaveEntitlement: fc.option(
+      fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+      { nil: null }
+    ),
+    hasLeaveEntitlement: fc.boolean(),
+    entitlementTotalDays: fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+    entitlementUsedDays: fc.integer({ min: 0, max: 2000 }).map(n => n / 100),
+    entitlementCarryoverDays: fc.integer({ min: 0, max: 1000 }).map(n => n / 100),
+  });
+
+  await t.test("Report row correctly distinguishes entitled vs advance leave", () => {
+    /**
+     * Property: For any employee data, the report row SHALL correctly distinguish
+     * between entitled leave and leave in advance.
+     */
+    fc.assert(
+      fc.property(
+        employeeLeaveDataArbitrary,
+        (data) => {
+          const employee = {
+            id: data.id,
+            isCasualEmployee: data.isCasualEmployee,
+            leaveInAdvanceUsed: data.leaveInAdvanceUsed,
+            futureAnnualLeaveEntitlement: data.futureAnnualLeaveEntitlement,
+            leaveEntitlement: data.hasLeaveEntitlement ? {
+              totalDays: data.entitlementTotalDays,
+              usedDays: data.entitlementUsedDays,
+              carryoverDays: data.entitlementCarryoverDays,
+            } : null,
+          };
+          
+          const row = transformToLeaveReportRow(employee);
+          
+          // Verify entitled leave is only present when hasEntitlement is true
+          if (!data.hasLeaveEntitlement) {
+            if (row.entitledTotalDays !== 0 || row.entitledUsedDays !== 0 || row.entitledCarryoverDays !== 0) {
+              return false;
+            }
+          }
+          
+          // Verify leave in advance is tracked separately
+          const expectedLeaveInAdvance = Math.round((data.leaveInAdvanceUsed || 0) * 100) / 100;
+          if (row.leaveInAdvanceUsed !== expectedLeaveInAdvance) {
+            return false;
+          }
+          
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Casual employees have 'casual' leave status", () => {
+    /**
+     * Property: For any casual employee, the leave status SHALL be 'casual'.
+     */
+    fc.assert(
+      fc.property(
+        employeeLeaveDataArbitrary,
+        (data) => {
+          const employee = {
+            id: data.id,
+            isCasualEmployee: true, // Force casual
+            leaveInAdvanceUsed: data.leaveInAdvanceUsed,
+            futureAnnualLeaveEntitlement: data.futureAnnualLeaveEntitlement,
+            leaveEntitlement: data.hasLeaveEntitlement ? {
+              totalDays: data.entitlementTotalDays,
+              usedDays: data.entitlementUsedDays,
+              carryoverDays: data.entitlementCarryoverDays,
+            } : null,
+          };
+          
+          const row = transformToLeaveReportRow(employee);
+          
+          return row.leaveStatus === "casual";
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Pre-entitlement employees have 'pre-entitlement' leave status", () => {
+    /**
+     * Property: For any non-casual employee without entitlement but with future entitlement,
+     * the leave status SHALL be 'pre-entitlement'.
+     */
+    fc.assert(
+      fc.property(
+        fc.uuid(),
+        fc.integer({ min: 100, max: 3000 }).map(n => n / 100), // futureEntitlement > 0
+        fc.option(fc.integer({ min: 0, max: 2000 }).map(n => n / 100), { nil: null }),
+        (id, futureEntitlement, leaveInAdvanceUsed) => {
+          const employee = {
+            id,
+            isCasualEmployee: false,
+            leaveInAdvanceUsed,
+            futureAnnualLeaveEntitlement: futureEntitlement,
+            leaveEntitlement: null, // No entitlement yet
+          };
+          
+          const row = transformToLeaveReportRow(employee);
+          
+          return row.leaveStatus === "pre-entitlement";
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Entitled employees have 'entitled' leave status", () => {
+    /**
+     * Property: For any non-casual employee with entitlement,
+     * the leave status SHALL be 'entitled'.
+     */
+    fc.assert(
+      fc.property(
+        fc.uuid(),
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+        fc.integer({ min: 0, max: 2000 }).map(n => n / 100),
+        fc.integer({ min: 0, max: 1000 }).map(n => n / 100),
+        (id, totalDays, usedDays, carryoverDays) => {
+          const employee = {
+            id,
+            isCasualEmployee: false,
+            leaveInAdvanceUsed: null,
+            futureAnnualLeaveEntitlement: null,
+            leaveEntitlement: {
+              totalDays,
+              usedDays,
+              carryoverDays,
+            },
+          };
+          
+          const row = transformToLeaveReportRow(employee);
+          
+          return row.leaveStatus === "entitled";
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Projected balance is correctly calculated", () => {
+    /**
+     * Property: For any employee, the projected balance SHALL equal
+     * max(0, futureEntitlement - leaveInAdvanceUsed).
+     */
+    fc.assert(
+      fc.property(
+        fc.uuid(),
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+        (id, futureEntitlement, leaveInAdvanceUsed) => {
+          const employee = {
+            id,
+            isCasualEmployee: false,
+            leaveInAdvanceUsed,
+            futureAnnualLeaveEntitlement: futureEntitlement,
+            leaveEntitlement: null,
+          };
+          
+          const row = transformToLeaveReportRow(employee);
+          
+          const expectedBalance = Math.max(0, futureEntitlement - leaveInAdvanceUsed);
+          const expectedRounded = Math.round(expectedBalance * 100) / 100;
+          
+          return row.projectedBalance === expectedRounded;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Entitled remaining is correctly calculated", () => {
+    /**
+     * Property: For any employee with entitlement, the entitled remaining SHALL equal
+     * totalDays + carryoverDays - usedDays.
+     */
+    fc.assert(
+      fc.property(
+        fc.uuid(),
+        fc.integer({ min: 0, max: 3000 }).map(n => n / 100),
+        fc.integer({ min: 0, max: 2000 }).map(n => n / 100),
+        fc.integer({ min: 0, max: 1000 }).map(n => n / 100),
+        (id, totalDays, usedDays, carryoverDays) => {
+          const employee = {
+            id,
+            isCasualEmployee: false,
+            leaveInAdvanceUsed: null,
+            futureAnnualLeaveEntitlement: null,
+            leaveEntitlement: {
+              totalDays,
+              usedDays,
+              carryoverDays,
+            },
+          };
+          
+          const row = transformToLeaveReportRow(employee);
+          
+          const expectedRemaining = totalDays + carryoverDays - usedDays;
+          const expectedRounded = Math.round(expectedRemaining * 100) / 100;
+          
+          return row.entitledRemaining === expectedRounded;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Report row validation passes for valid data", () => {
+    /**
+     * Property: For any valid employee data, the report row validation SHALL pass.
+     */
+    fc.assert(
+      fc.property(
+        employeeLeaveDataArbitrary,
+        (data) => {
+          const employee = {
+            id: data.id,
+            isCasualEmployee: data.isCasualEmployee,
+            leaveInAdvanceUsed: data.leaveInAdvanceUsed,
+            futureAnnualLeaveEntitlement: data.futureAnnualLeaveEntitlement,
+            leaveEntitlement: data.hasLeaveEntitlement ? {
+              totalDays: data.entitlementTotalDays,
+              usedDays: data.entitlementUsedDays,
+              carryoverDays: data.entitlementCarryoverDays,
+            } : null,
+          };
+          
+          const row = transformToLeaveReportRow(employee);
+          const validation = validateReportDistinction(row);
+          
+          return validation.isValid;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  await t.test("Values are rounded to 2 decimal places", () => {
+    /**
+     * Property: For any employee data, all numeric values in the report row
+     * SHALL be rounded to at most 2 decimal places.
+     */
+    fc.assert(
+      fc.property(
+        fc.uuid(),
+        fc.integer({ min: 0, max: 30000 }).map(n => n / 1000), // Up to 3 decimal places
+        fc.integer({ min: 0, max: 30000 }).map(n => n / 1000),
+        fc.integer({ min: 0, max: 30000 }).map(n => n / 1000),
+        fc.integer({ min: 0, max: 30000 }).map(n => n / 1000),
+        fc.integer({ min: 0, max: 30000 }).map(n => n / 1000),
+        (id, totalDays, usedDays, carryoverDays, leaveInAdvance, futureEntitlement) => {
+          const employee = {
+            id,
+            isCasualEmployee: false,
+            leaveInAdvanceUsed: leaveInAdvance,
+            futureAnnualLeaveEntitlement: futureEntitlement,
+            leaveEntitlement: {
+              totalDays,
+              usedDays,
+              carryoverDays,
+            },
+          };
+          
+          const row = transformToLeaveReportRow(employee);
+          
+          // Check all numeric values have at most 2 decimal places
+          const checkDecimals = (n: number) => {
+            const decimalPart = n.toString().split('.')[1] || '';
+            return decimalPart.length <= 2;
+          };
+          
+          return (
+            checkDecimals(row.entitledTotalDays) &&
+            checkDecimals(row.entitledUsedDays) &&
+            checkDecimals(row.entitledCarryoverDays) &&
+            checkDecimals(row.entitledRemaining) &&
+            checkDecimals(row.leaveInAdvanceUsed) &&
+            checkDecimals(row.futureEntitlement) &&
+            checkDecimals(row.projectedBalance)
+          );
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});

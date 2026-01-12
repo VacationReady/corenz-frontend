@@ -256,15 +256,18 @@ export async function GET(req: NextRequest) {
         const categoryColor = req.EventCategory?.color || '#3B82F6';
         
         // Determine color based on approval status
+        // Use SAME color for background and border to avoid two-tone effect
         // Pending = amber, Approved = category color, Declined = red
         let eventColor = categoryColor;
         const status = (req.approvalStatus || '').toUpperCase();
         if (status === 'PENDING') {
-          eventColor = '#f59e0b'; // Amber for pending
+          eventColor = '#fef08a'; // Yellow-200 for pending (subtle)
         } else if (status === 'DECLINED') {
-          eventColor = '#ef4444'; // Red for declined
+          eventColor = '#fecaca'; // Red-200 for declined (subtle)
+        } else {
+          // APPROVED - use a muted version of category color or default green
+          eventColor = '#bbf7d0'; // Green-200 for approved (subtle)
         }
-        // APPROVED uses the category color (default)
         
         // FullCalendar uses exclusive end dates for all-day events
         // Format dates as YYYY-MM-DD for proper multi-day spanning

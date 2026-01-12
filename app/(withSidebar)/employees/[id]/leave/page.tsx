@@ -99,6 +99,11 @@ interface BalanceItem {
   pending: number;
   carryover: number;
   carryoverExpiry: string | null;
+  // NZ Holidays Act 2003 compliance fields (for annual leave)
+  isUnearned?: boolean;
+  futureEntitlement?: number | null;
+  entitlementDate?: string | null;
+  leaveInAdvanceUsed?: number;
 }
 
 interface SickLeaveStatus {
@@ -272,6 +277,7 @@ function BalanceCard({
   const hasTotal = balance.total !== null;
   const isAnnualLeave = balance.categoryName.toLowerCase().includes('annual');
   const isSickLeave = balance.categoryName.toLowerCase().includes('sick');
+  const isUnearned = balance.isUnearned === true;
   
   // Format date for display (e.g., "15 Jul 2025")
   const formatDate = (dateStr: string | null) => {
@@ -283,7 +289,104 @@ function BalanceCard({
       return null;
     }
   };
+
+  // Calculate days until entitlement for unearned leave
+  const daysUntilEntitlement = isUnearned && balance.entitlementDate
+    ? Math.ceil((new Date(balance.entitlementDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
   
+  // Unearned annual leave card (pre-12-month employees)
+  if (isUnearned && isAnnualLeave) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05 }}
+        className="p-4 rounded-xl bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-200/50 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-800/30 relative"
+      >
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className="absolute top-2 right-2 p-1.5 rounded-md bg-background/50 hover:bg-background/80 transition-colors"
+            title="Edit balance"
+          >
+            <Edit className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+          </button>
+        )}
+        
+        {/* Header with unearned indicator */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-amber-500/10">
+            <Icon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="font-medium text-sm">{balance.categoryName}</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <span className="text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                Unearned - accruing towards entitlement
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Balance display */}
+        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+          <div>
+            <span className="text-muted-foreground text-xs">Available to book</span>
+            <p className="font-semibold text-lg text-amber-600 dark:text-amber-400">
+              {balance.remaining.toFixed(1)}
+            </p>
+          </div>
+          <div>
+            <span className="text-muted-foreground text-xs">Future entitlement</span>
+            <p className="font-medium">{balance.futureEntitlement?.toFixed(1) ?? balance.total?.toFixed(1)}</p>
+          </div>
+        </div>
+        
+        {/* Leave in advance used */}
+        {(balance.leaveInAdvanceUsed ?? 0) > 0 && (
+          <div className="flex items-center justify-between text-xs py-1.5 px-2 rounded-md bg-amber-100/50 dark:bg-amber-900/20 mb-2">
+            <span className="text-amber-700 dark:text-amber-300">Leave in advance used</span>
+            <span className="font-medium text-amber-800 dark:text-amber-200">
+              {balance.leaveInAdvanceUsed?.toFixed(1)} days
+            </span>
+          </div>
+        )}
+        
+        {/* Entitlement date info */}
+        {balance.entitlementDate && (
+          <div className="pt-2 border-t border-amber-200/30 dark:border-amber-800/30">
+            <div className="flex items-center gap-1.5 text-xs">
+              <Clock className="w-3 h-3 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                Entitled on {formatDate(balance.entitlementDate)}
+              </span>
+              {daysUntilEntitlement !== null && daysUntilEntitlement > 0 && (
+                <Badge variant="outline" className="text-[9px] ml-auto px-1.5 py-0 h-4 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300">
+                  {daysUntilEntitlement} days
+                </Badge>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Under NZ law, annual leave is earned after 12 months of employment
+            </p>
+          </div>
+        )}
+        
+        {/* Pending requests */}
+        {balance.pending > 0 && (
+          <div className="mt-2 pt-2 border-t border-amber-200/30 dark:border-amber-800/30">
+            <span className="text-xs text-amber-600 dark:text-amber-400">
+              {balance.pending} pending request{balance.pending > 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+      </motion.div>
+    );
+  }
+  
+  // Standard balance card (post-12-month employees or non-annual leave)
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}

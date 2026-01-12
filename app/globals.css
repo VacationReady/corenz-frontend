@@ -1693,6 +1693,9 @@ video {
 .fc .fc-event {
   border: none !important;
   border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
   border-radius: 0.375rem;
   padding: 0.125rem 0.25rem;
   font-size: 0.625rem;
@@ -1700,6 +1703,16 @@ video {
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   margin-bottom: 1px;
+  box-shadow: none !important;
+}
+
+/* Force border color to match background color */
+.fc .fc-h-event {
+  border: none !important;
+}
+
+.fc .fc-daygrid-event {
+  border: none !important;
 }
 
 /* Event background colors come from inline styles set by API (backgroundColor property) */
@@ -1707,7 +1720,7 @@ video {
 
 .fc .fc-event:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   z-index: 10;
 }
 

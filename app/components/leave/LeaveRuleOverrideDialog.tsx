@@ -36,6 +36,7 @@ function getRuleTypeLabel(ruleType: string): string {
     overlap: "Leave Overlap",
     sick_leave_eligibility: "Sick Leave Eligibility",
     public_holiday: "Public Holiday",
+    leave_in_advance: "Unearned Leave (NZ Compliance)",
   };
   return labels[ruleType] || "Rule Violation";
 }

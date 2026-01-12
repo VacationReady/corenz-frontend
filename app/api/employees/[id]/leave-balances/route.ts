@@ -53,6 +53,12 @@ export async function GET(
         annualLeaveBalance: true,
         sickLeaveBalance: true,
         alternativeDaysBalance: true,
+        // NZ Holidays Act 2003 compliance fields
+        futureAnnualLeaveEntitlement: true,
+        annualLeaveEntitlementDate: true,
+        leaveInAdvanceUsed: true,
+        isCasualEmployee: true,
+        startDate: true,
       },
     });
 
@@ -192,9 +198,30 @@ export async function GET(
       pending: number;
       carryover: number;
       carryoverExpiry: string | null;
+      // NZ Holidays Act 2003 compliance fields (for annual leave)
+      isUnearned?: boolean;
+      futureEntitlement?: number | null;
+      entitlementDate?: string | null;
+      leaveInAdvanceUsed?: number;
     }
 
     const balances: BalanceItem[] = [];
+    
+    // Determine if employee is pre-12-month (NZ Holidays Act 2003)
+    const futureEntitlement = employee.futureAnnualLeaveEntitlement 
+      ? Number(employee.futureAnnualLeaveEntitlement) 
+      : null;
+    const entitlementDate = employee.annualLeaveEntitlementDate;
+    const leaveInAdvanceUsed = Number(employee.leaveInAdvanceUsed || 0);
+    const isCasual = employee.isCasualEmployee ?? false;
+    
+    // Employee is pre-12-month if:
+    // 1. They have a futureAnnualLeaveEntitlement stored, OR
+    // 2. Their annualLeaveEntitlementDate is in the future
+    const isPreTwelveMonth = !isCasual && (
+      futureEntitlement !== null ||
+      (entitlementDate && new Date(entitlementDate) > new Date())
+    );
 
     // Add entitlements from LeaveEntitlement table (including auto-created ones)
     for (const ent of allEntitlements) {
@@ -270,8 +297,45 @@ export async function GET(
       (b) => b.categoryName.toLowerCase().includes("annual")
     );
 
-    // Add stored annual leave balance if not covered by entitlements
-    if (!hasAnnualEntitlement && employee.annualLeaveBalance !== null) {
+    // NZ Holidays Act 2003: Add unearned annual leave for pre-12-month employees
+    // These employees have not yet reached their entitlement crystallisation date
+    if (!hasAnnualEntitlement && isPreTwelveMonth && futureEntitlement !== null) {
+      // Calculate remaining unearned balance (future entitlement minus leave in advance used)
+      const remainingUnearned = formatLeaveBalance(Math.max(0, futureEntitlement - leaveInAdvanceUsed));
+      
+      // Count pending annual leave requests
+      const pendingAnnualCount = await prisma.leaveRequest.count({
+        where: {
+          employeeId,
+          companyId: session.user.companyId,
+          approvalStatus: "PENDING",
+          EventCategory: {
+            name: { contains: "Annual", mode: "insensitive" },
+          },
+        },
+      });
+      
+      balances.push({
+        id: `unearned-annual-${employeeId}`,
+        type: "stored",
+        categoryId: null,
+        categoryName: "Annual Leave",
+        categoryIconKey: "palmtree",
+        remaining: remainingUnearned,
+        used: formatLeaveBalance(leaveInAdvanceUsed),
+        total: formatLeaveBalance(futureEntitlement),
+        pending: pendingAnnualCount,
+        carryover: 0,
+        carryoverExpiry: null,
+        // NZ compliance fields
+        isUnearned: true,
+        futureEntitlement: formatLeaveBalance(futureEntitlement),
+        entitlementDate: entitlementDate?.toISOString() ?? null,
+        leaveInAdvanceUsed: formatLeaveBalance(leaveInAdvanceUsed),
+      });
+    }
+    // Add stored annual leave balance if not covered by entitlements (post-12-month fallback)
+    else if (!hasAnnualEntitlement && employee.annualLeaveBalance !== null) {
       const annualBalance = Number(employee.annualLeaveBalance);
       // Convert hours to days (8 hours per day per NZ standard)
       const annualDays = formatLeaveBalance(annualBalance / 8);

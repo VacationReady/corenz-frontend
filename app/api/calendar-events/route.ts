@@ -322,7 +322,7 @@ export async function GET(req: NextRequest) {
           eventCategoryId: req.EventCategory?.id ?? null,
           approvalStatus: req.approvalStatus,
           backgroundColor: eventColor,
-          borderColor: eventColor,
+          borderColor: "transparent",
           textColor: '#FFFFFF',
           // Internal flags for filtering (not exposed to UI directly)
           _isSickness: isSickness,

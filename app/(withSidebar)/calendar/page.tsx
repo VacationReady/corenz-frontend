@@ -1484,6 +1484,16 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                     dateClick={handleDateClick}
                     eventClick={handleEventClick}
                     eventContent={renderEventContent}
+                    eventDidMount={(info) => {
+                      // Remove borders from event elements programmatically
+                      // This ensures inline styles from FullCalendar are overridden
+                      if (info.el) {
+                        info.el.style.border = 'none';
+                        info.el.style.borderWidth = '0';
+                        info.el.style.borderColor = 'transparent';
+                        info.el.style.outline = 'none';
+                      }
+                    }}
                     dayCellClassNames={dayCellClassNames}
                     fixedWeekCount={false}
                     weekNumbers={false}

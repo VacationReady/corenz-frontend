@@ -243,7 +243,7 @@ export default async function EmployeeLayout({
   }).map(({ href, label }) => ({ href, label }));
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-background via-primary-50/30 to-background">
+    <div className="flex h-full bg-gradient-to-br from-background via-primary-50/30 to-background">
       {/* Aurora background effect */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />

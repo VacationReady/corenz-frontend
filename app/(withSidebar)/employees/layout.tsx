@@ -1,21 +1,37 @@
-// Employees section layout
-// 
-// Note: The main sidebar is already rendered by the parent (withSidebar)/Layout.tsx.
-// This layout was previously duplicating the sidebar render, causing:
-// 1. Redundant auth() calls on every navigation
-// 2. Double sidebar rendering (hidden by child layouts but still processed)
-//
-// Now simplified to a pass-through to avoid redundant work.
-// Child routes like /employees/[id] have their own specialized layouts.
+// For each of your routes requiring sidebar visibility:
+// /calendar, /employees, /approvals, /reports, /news, /settings
+// Place this file as:
+// /app/(withSidebar)/<route>/layout.tsx
 
 import React, { ReactNode } from "react";
+import { auth } from "@/lib/auth-options";
+import AdminSidebar from "@/components/sidebars/AdminSidebar";
+import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
+import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
 
-export default function EmployeesSectionLayout({
+export default async function SectionLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  // Pass-through layout - sidebar is handled by parent Layout.tsx
-  // Child routes (like [id]) have their own specialized layouts
-  return <>{children}</>;
+  const session = await auth();
+  const role = session?.user?.role ?? "EMPLOYEE";
+
+  let Sidebar: React.ReactElement | null = null;
+  if (role === "ADMIN" || role === "SUPER_ADMIN") {
+    Sidebar = <AdminSidebar />;
+  } else if (role === "MANAGER") {
+    Sidebar = <ManagerSidebar />;
+  } else {
+    Sidebar = <EmployeeSidebar />;
+  }
+
+  return (
+    <div className="flex h-screen">
+      <div className="flex-shrink-0 relative" style={{ zIndex: 100 }}>
+        {Sidebar}
+      </div>
+      <main className="flex-1 overflow-y-auto relative" style={{ zIndex: 1 }}>{children}</main>
+    </div>
+  );
 }

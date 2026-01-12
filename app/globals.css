@@ -2465,7 +2465,8 @@ video {
         hsl(185 75% 60% / 0.16),
         hsl(195 90% 70% / 0.20));
     background-size: 320% 320%;
-    animation: aurora-stable 22s ease-in-out infinite;
+    background-position: 0% 50%;
+    animation: none;
     /* Prevent scroll-related paint issues */
     contain: strict;
     backface-visibility: hidden;

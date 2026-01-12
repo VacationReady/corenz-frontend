@@ -296,9 +296,6 @@ export async function GET(req: NextRequest) {
         const exclusiveEndDate = new Date(endDate);
         exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
         
-        // Determine if this is a sickness event for filtering purposes
-        const isSickness = isSicknessLeave(req);
-        
         // Determine if this is an other entitlement booking (admin-only visibility)
         const isOtherEntitlement = req.leaveType === "OTHER_ENTITLEMENT" || Boolean(req.otherEntitlementId);
         

@@ -1587,6 +1587,18 @@ video {
   padding: 0.125rem;
 }
 
+/* Remove borders from day event containers */
+.fc .fc-daygrid-day-events {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.fc .fc-daygrid-day-bg {
+  border: none !important;
+  outline: none !important;
+}
+
 /* Hide all vertical bars/separators on today's column */
 .fc .fc-day-today::before,
 .fc .fc-day-today > .fc-daygrid-day-frame > *::before,

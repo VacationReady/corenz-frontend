@@ -255,19 +255,28 @@ export async function GET(req: NextRequest) {
         // Use category color from database, fallback to blue if not set
         const categoryColor = req.EventCategory?.color || '#3B82F6';
         
-        // Determine color based on approval status
-        // Use SAME color for background and border to avoid two-tone effect
-        // Pending = amber, Approved = category color, Declined = red
+        // Determine if this is a sickness event
+        const isSickness = isSicknessLeave(req);
+        
+        // Color logic:
+        // - Sickness always uses red (category color or fallback red)
+        // - Other leave types use their category color
+        // - Pending status uses amber overlay
+        // - Declined status uses muted red
         let eventColor = categoryColor;
         const status = (req.approvalStatus || '').toUpperCase();
-        if (status === 'PENDING') {
+        
+        if (isSickness) {
+          // Sickness always red - use category color if set, otherwise default red
+          eventColor = categoryColor.toLowerCase().includes('ef4444') || categoryColor.toLowerCase().includes('dc2626') 
+            ? categoryColor 
+            : '#fecaca'; // Red-200 for sickness (muted red)
+        } else if (status === 'PENDING') {
           eventColor = '#fef08a'; // Yellow-200 for pending (subtle)
         } else if (status === 'DECLINED') {
           eventColor = '#fecaca'; // Red-200 for declined (subtle)
-        } else {
-          // APPROVED - use a muted version of category color or default green
-          eventColor = '#bbf7d0'; // Green-200 for approved (subtle)
         }
+        // APPROVED non-sickness uses category color
         
         // FullCalendar uses exclusive end dates for all-day events
         // Format dates as YYYY-MM-DD for proper multi-day spanning

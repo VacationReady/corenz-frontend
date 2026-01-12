@@ -603,7 +603,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           allDay: true,
           display: "background",
           backgroundColor: "#fecaca",
-          borderColor: "#ef4444",
+          borderColor: "transparent",
           extendedProps: {
             isBlackout: true,
             note: b.note ?? null,
@@ -646,7 +646,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           ...e,
           id: `pub-${e.start}`,
           backgroundColor: "#86efac",
-          borderColor: "#22c55e",
+          borderColor: "transparent",
           textColor: "#065f46",
           extendedProps: { isBankHoliday: true },
         })),

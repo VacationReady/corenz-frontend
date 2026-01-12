@@ -251,25 +251,20 @@ export function mapLeaveRequestToEvent(
   }
 
   // Determine color based on status and sick leave - using very subtle palette
-  // Background and border use the SAME color for a clean, unified look
+  // No border color needed - borders are removed via CSS
   let backgroundColor = "#e2e8f0"; // slate-200 - subtle default
-  let borderColor = "#e2e8f0"; // same as background
   
   // Sick leave uses subtle warm tone
   if (isSick) {
     backgroundColor = "#fecaca"; // red-200
-    borderColor = "#fecaca"; // same as background
   } else if (options.colorByStatus) {
     const status = (leave.approvalStatus || "").toLowerCase();
     if (status === "approved") {
       backgroundColor = "#bbf7d0"; // green-200
-      borderColor = "#bbf7d0"; // same as background
     } else if (status === "pending") {
       backgroundColor = "#fef08a"; // yellow-200
-      borderColor = "#fef08a"; // same as background
     } else if (status === "declined") {
       backgroundColor = "#fecaca"; // red-200
-      borderColor = "#fecaca"; // same as background
     }
   }
 
@@ -298,7 +293,7 @@ export function mapLeaveRequestToEvent(
     end: formatDateLocal(exclusiveEndDate),
     allDay: true,
     backgroundColor,
-    borderColor,
+    borderColor: "transparent", // No visible border
     extendedProps: {
       leaveRequestId: leave.id,
       approvalStatus: leave.approvalStatus || "PENDING",

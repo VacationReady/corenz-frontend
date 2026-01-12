@@ -1689,13 +1689,12 @@ video {
   background: hsl(var(--muted) / 0.2);
 }
 
-/* Events - Clean horizontal bars with blue as default background */
+/* Events - Clean horizontal bars with no borders */
 .fc .fc-event {
   border: none !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-top: none !important;
-  border-bottom: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
   border-radius: 0.375rem;
   padding: 0.125rem 0.25rem;
   font-size: 0.625rem;
@@ -1706,13 +1705,25 @@ video {
   box-shadow: none !important;
 }
 
-/* Force border color to match background color */
+/* Force no borders on horizontal events (multi-day) */
 .fc .fc-h-event {
   border: none !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
 }
 
+/* Force no borders on day grid events */
 .fc .fc-daygrid-event {
   border: none !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+}
+
+/* Override any inline border styles from FullCalendar */
+.fc .fc-event[style*="border"] {
+  border: none !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
 }
 
 /* Event background colors come from inline styles set by API (backgroundColor property) */

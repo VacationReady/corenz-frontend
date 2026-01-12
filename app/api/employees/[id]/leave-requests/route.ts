@@ -907,8 +907,106 @@ export async function POST(
             currentDate.setDate(currentDate.getDate() + 1);
           }
 
-          const totalDeduction = totalDays.reduce((sum, d) => sum + d, 0);
+          const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
 
+          // ── NZ HOLIDAYS ACT 2003: PRE-12-MONTH EMPLOYEE HANDLING ──────────────────
+          // If validation classified this as "leave in advance", the employee is pre-12-month
+          // and doesn't have a LeaveEntitlement record yet. Instead, we:
+          // 1. Validate against futureAnnualLeaveEntitlement - leaveInAdvanceUsed
+          // 2. Increment Employee.leaveInAdvanceUsed instead of LeaveEntitlement.usedDays
+          if (isLeaveInAdvance) {
+            console.log("📋 NZ Compliance: Processing leave in advance for pre-12-month employee", {
+              employeeId,
+              totalDeduction,
+              isLeaveInAdvance,
+            });
+
+            // Execute entire operation in a single transaction
+            const approved = await prisma.$transaction(async (tx) => {
+              // Fetch employee's future entitlement and current leave in advance usage
+              const employeeData = await tx.employee.findUnique({
+                where: { id: employeeId },
+                select: {
+                  futureAnnualLeaveEntitlement: true,
+                  leaveInAdvanceUsed: true,
+                },
+              });
+
+              if (!employeeData) {
+                throw new Error("Employee not found.");
+              }
+
+              const futureEntitlement = Number(employeeData.futureAnnualLeaveEntitlement || 0);
+              const currentLeaveInAdvance = Number(employeeData.leaveInAdvanceUsed || 0);
+              const availableAdvance = futureEntitlement - currentLeaveInAdvance;
+
+              console.log("📊 Leave in advance balance check:", {
+                futureEntitlement,
+                currentLeaveInAdvance,
+                availableAdvance,
+                totalDeduction,
+              });
+
+              // Check if there's enough future entitlement available
+              // Note: Admins can bypass this with bypassWarnings, but we still log a warning
+              if (availableAdvance < totalDeduction) {
+                if (!bypassWarnings) {
+                  throw new Error(
+                    `Insufficient future entitlement. Available: ${availableAdvance.toFixed(1)} days, Requested: ${totalDeduction.toFixed(1)} days. ` +
+                    `This employee has not yet reached their 12-month anniversary.`
+                  );
+                }
+                console.warn("⚠️ NZ Compliance: Admin bypassing insufficient future entitlement", {
+                  availableAdvance,
+                  totalDeduction,
+                });
+              }
+
+              // Create leave request inside transaction
+              const newLeaveRequest = await (tx.leaveRequest as any).create({
+                data: {
+                  id: crypto.randomUUID(),
+                  Employee: { connect: { id: employeeId } },
+                  User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
+                  EventCategory: { connect: { id: EventCategoryId } },
+                  Company: { connect: { id: session.user.companyId } },
+                  startDate: startDateObj,
+                  endDate: endDateObj,
+                  dayType: dayType ?? "FULL_DAY",
+                  reason: reason ?? "",
+                  leaveType: "LEAVE",
+                  updatedAt: new Date(),
+                },
+              });
+
+              // Update leaveInAdvanceUsed on the Employee record (not LeaveEntitlement)
+              const newLeaveInAdvanceTotal = roundToTwoDecimals(currentLeaveInAdvance + totalDeduction);
+              await tx.employee.update({
+                where: { id: employeeId },
+                data: { leaveInAdvanceUsed: newLeaveInAdvanceTotal },
+              });
+
+              console.log("✅ NZ Compliance: Leave in advance recorded", {
+                employeeId,
+                previousLeaveInAdvance: currentLeaveInAdvance,
+                deduction: totalDeduction,
+                newLeaveInAdvanceTotal,
+              });
+
+              // Approve leave request
+              return (tx.leaveRequest as any).update({
+                where: { id: newLeaveRequest.id },
+                data: { 
+                  approvalStatus: "APPROVED", 
+                  User_LeaveRequest_approvedByIdToUser: { connect: { id: session.user.id } },
+                },
+              });
+            });
+
+            return NextResponse.json({ success: true, data: approved, isLeaveInAdvance: true });
+          }
+
+          // ── STANDARD ENTITLEMENT DEDUCTION (post-12-month employees) ──────────────
           // Execute entire operation in a single transaction to prevent orphaned records
           const approved = await prisma.$transaction(async (tx) => {
             const entitlement = await tx.leaveEntitlement.findFirst({
@@ -945,7 +1043,7 @@ export async function POST(
             // Update entitlement
             await tx.leaveEntitlement.update({
               where: { id: entitlement.id },
-              data: { usedDays: entitlement.usedDays + totalDeduction },
+              data: { usedDays: roundToTwoDecimals(entitlement.usedDays + totalDeduction) },
             });
 
             // Approve leave request

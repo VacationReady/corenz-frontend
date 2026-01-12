@@ -18,16 +18,19 @@ export default function LeaveHistory() {
   const tenantFetch = useTenantFetch();
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchRequests = () => {
+    setLoading(true);
     tenantFetch("/api/leave-request")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load leave requests");
         return res.json();
       })
       .then((data) => setRequests(data))
-      .catch(() => setError("Failed to load leave requests"));
+      .catch(() => setError("Failed to load leave requests"))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -69,7 +72,14 @@ export default function LeaveHistory() {
     <div className="space-y-8">
       <div>
         <SectionHeading>Your Leave History</SectionHeading>
-        {error ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <span className="text-sm">Loading leave history...</span>
+            </div>
+          </div>
+        ) : error ? (
           <p className="text-red-600">{error}</p>
         ) : requests.length === 0 ? (
           <p className="italic text-gray-500">No leave requests found.</p>

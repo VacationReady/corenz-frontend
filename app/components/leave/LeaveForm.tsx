@@ -113,9 +113,16 @@ export default function LeaveForm({ onSuccess }: LeaveFormProps) {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                min={startDate || undefined}
                 required
                 className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
               />
+              {startDate && endDate && new Date(endDate) < new Date(startDate) && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  End date cannot be before start date
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -251,25 +251,25 @@ export function mapLeaveRequestToEvent(
   }
 
   // Determine color based on status and sick leave - using very subtle palette
-  // These colors are used for FullCalendar's internal rendering but we override in renderEventContent
-  let backgroundColor = "#f1f5f9"; // slate-100 - very subtle default
-  let borderColor = "#e2e8f0"; // slate-200
+  // Background and border use the SAME color for a clean, unified look
+  let backgroundColor = "#e2e8f0"; // slate-200 - subtle default
+  let borderColor = "#e2e8f0"; // same as background
   
   // Sick leave uses subtle warm tone
   if (isSick) {
-    backgroundColor = "#fef3c7"; // amber-100
-    borderColor = "#fde68a"; // amber-200
+    backgroundColor = "#fecaca"; // red-200
+    borderColor = "#fecaca"; // same as background
   } else if (options.colorByStatus) {
     const status = (leave.approvalStatus || "").toLowerCase();
     if (status === "approved") {
-      backgroundColor = "#d1fae5"; // emerald-100
-      borderColor = "#a7f3d0"; // emerald-200
+      backgroundColor = "#bbf7d0"; // green-200
+      borderColor = "#bbf7d0"; // same as background
     } else if (status === "pending") {
-      backgroundColor = "#fef3c7"; // amber-100
-      borderColor = "#fde68a"; // amber-200
+      backgroundColor = "#fef08a"; // yellow-200
+      borderColor = "#fef08a"; // same as background
     } else if (status === "declined") {
-      backgroundColor = "#fee2e2"; // rose-100
-      borderColor = "#fecaca"; // rose-200
+      backgroundColor = "#fecaca"; // red-200
+      borderColor = "#fecaca"; // same as background
     }
   }
 

@@ -29,6 +29,15 @@ export function DocumentAcknowledgmentModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasRead, setHasRead] = useState(false);
 
+  // Reset state when modal opens with a new document
+  React.useEffect(() => {
+    if (open && doc) {
+      setAcknowledged(false);
+      setHasRead(false);
+      setIsSubmitting(false);
+    }
+  }, [open, doc?.id]);
+
   if (!doc) return null;
 
   const handleAcknowledge = async () => {

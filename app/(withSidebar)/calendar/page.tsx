@@ -1485,13 +1485,25 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                     eventClick={handleEventClick}
                     eventContent={renderEventContent}
                     eventDidMount={(info) => {
-                      // Remove borders from event elements programmatically
+                      // Remove borders and shadows from event elements programmatically
                       // This ensures inline styles from FullCalendar are overridden
                       if (info.el) {
                         info.el.style.border = 'none';
                         info.el.style.borderWidth = '0';
                         info.el.style.borderColor = 'transparent';
                         info.el.style.outline = 'none';
+                        info.el.style.boxShadow = 'none';
+                        
+                        // Also target any child elements that might have borders
+                        const children = info.el.querySelectorAll('*');
+                        children.forEach((child: Element) => {
+                          if (child instanceof HTMLElement) {
+                            child.style.border = 'none';
+                            child.style.borderWidth = '0';
+                            child.style.outline = 'none';
+                            child.style.boxShadow = 'none';
+                          }
+                        });
                       }
                     }}
                     dayCellClassNames={dayCellClassNames}

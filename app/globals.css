@@ -1689,21 +1689,21 @@ video {
   background: hsl(var(--muted) / 0.2);
 }
 
-/* Events - Clean horizontal bars with no borders */
+/* Events - Clean horizontal bars with no borders or shadows */
 .fc .fc-event {
   border: none !important;
   border-width: 0 !important;
   border-style: none !important;
   border-color: transparent !important;
   outline: none !important;
+  box-shadow: none !important;
   border-radius: 0.375rem;
   padding: 0.125rem 0.25rem;
   font-size: 0.625rem;
   font-weight: 500;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease;
   margin-bottom: 1px;
-  box-shadow: none !important;
 }
 
 /* Force no borders on horizontal events (multi-day) */
@@ -1713,6 +1713,7 @@ video {
   border-style: none !important;
   border-color: transparent !important;
   outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Force no borders on day grid events */
@@ -1722,6 +1723,7 @@ video {
   border-style: none !important;
   border-color: transparent !important;
   outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Target the event main content wrapper */
@@ -1730,12 +1732,14 @@ video {
   border-width: 0 !important;
   border-color: transparent !important;
   outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Target the harness that wraps events */
 .fc .fc-daygrid-event-harness {
   border: none !important;
   outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Ensure block events have no border */
@@ -1744,6 +1748,26 @@ video {
   border-width: 0 !important;
   border-color: transparent !important;
   outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Target the anchor element inside events */
+.fc .fc-event .fc-event-main {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove any pseudo-element borders */
+.fc .fc-event::before,
+.fc .fc-event::after,
+.fc .fc-h-event::before,
+.fc .fc-h-event::after,
+.fc .fc-daygrid-event::before,
+.fc .fc-daygrid-event::after {
+  display: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Event background colors come from inline styles set by API (backgroundColor property) */

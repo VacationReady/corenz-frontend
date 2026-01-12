@@ -610,11 +610,14 @@ export default function FilterableDataTable({
   };
 
   const changePageSize = (nextPageSize: number) => {
+    console.log("📊 changePageSize called with:", nextPageSize, "current pageSize prop:", pageSize);
     if (nextPageSize <= 0) return;
     if (onPageSizeChange) {
+      console.log("📊 Calling onPageSizeChange with:", nextPageSize);
       onPageSizeChange(nextPageSize);
     }
     if (pageSize === undefined) {
+      console.log("📊 pageSize is undefined, setting internal state");
       setInternalPageSize(nextPageSize);
       setInternalPage(1);
     }

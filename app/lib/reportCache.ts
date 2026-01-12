@@ -84,6 +84,10 @@ class ReportQueryCache {
       companyId: params.companyId,
     };
 
+    if (this.debug) {
+      console.log("📊 Cache key generation - pagination:", JSON.stringify(params.pagination), "normalized page:", normalizedParams.page, "limit:", normalizedParams.limit);
+    }
+
     return this.hashObject(normalizedParams);
   }
 
@@ -332,16 +336,20 @@ export async function cachedReportQuery<T>(
   queryFn: () => Promise<T>
 ): Promise<{ data: T; cached: boolean; responseTimeMs: number }> {
   const startTime = Date.now();
+  console.log("📊 cachedReportQuery - pagination:", JSON.stringify(params.pagination));
   const cacheKey = reportQueryCache.generateKey(params);
+  console.log("📊 cachedReportQuery - cacheKey:", cacheKey);
 
   // Try to get from cache
   const cached = reportQueryCache.get<T>(cacheKey, params.companyId);
   if (cached !== null) {
     const responseTime = Date.now() - startTime;
     reportQueryCache.recordResponseTime(responseTime);
+    console.log("📊 cachedReportQuery - CACHE HIT, returning cached data");
     return { data: cached, cached: true, responseTimeMs: responseTime };
   }
 
+  console.log("📊 cachedReportQuery - CACHE MISS, executing query");
   // Execute query
   const data = await queryFn();
   const responseTime = Date.now() - startTime;

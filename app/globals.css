@@ -2110,49 +2110,55 @@ video {
   }
 
   .cz-daycell--today {
-    outline: 2px solid rgb(56 189 248);
+    outline: 2px solid hsl(var(--primary) / 0.4);
     outline-offset: -2px;
+    background: hsl(var(--primary) / 0.05);
   }
 
   .cz-daycell--selected {
-    background: hsl(var(--primary) / 0.06);
+    background: hsl(var(--primary) / 0.08);
   }
 
   .cz-daycell--weekend {
-    background: rgba(0, 0, 0, 0.03);
+    background: rgba(0, 0, 0, 0.015);
+  }
+
+  .dark .cz-daycell--weekend {
+    background: rgba(255, 255, 255, 0.02);
   }
 
   .cz-daycell--blackout {
     background: repeating-linear-gradient(
       -45deg,
-      rgba(239, 68, 68, 0.08),
+      rgba(239, 68, 68, 0.04),
+      rgba(239, 68, 68, 0.04) 8px,
       rgba(239, 68, 68, 0.08) 8px,
-      rgba(239, 68, 68, 0.16) 8px,
-      rgba(239, 68, 68, 0.16) 16px
+      rgba(239, 68, 68, 0.08) 16px
     );
     /* Use outline instead of ::before pseudo-element to avoid position: relative */
-    outline: 2px dashed rgba(220, 38, 38, 0.4);
-    outline-offset: -2px;
+    outline: 1px dashed rgba(220, 38, 38, 0.25);
+    outline-offset: -1px;
   }
 
+  /* Heat map with reduced opacity for subtle effect */
   .cz-daycell--heat-1 {
-    background: rgba(59, 130, 246, 0.14);
+    background: rgba(59, 130, 246, 0.06);
   }
 
   .cz-daycell--heat-2 {
-    background: rgba(59, 130, 246, 0.18);
+    background: rgba(59, 130, 246, 0.10);
   }
 
   .cz-daycell--heat-3 {
-    background: rgba(59, 130, 246, 0.22);
+    background: rgba(59, 130, 246, 0.14);
   }
 
   .cz-daycell--heat-4 {
-    background: rgba(59, 130, 246, 0.28);
+    background: rgba(59, 130, 246, 0.18);
   }
 
   .cz-daycell--heat-5 {
-    background: rgba(59, 130, 246, 0.34);
+    background: rgba(59, 130, 246, 0.22);
   }
 
   .cz-chip {
@@ -2230,85 +2236,126 @@ video {
     animation: blackout-cell-flash 0.6s ease-out forwards;
   }
 
-  /* Modern Chip Styles */
+  /* Modern Chip Styles - Refined, muted aesthetic */
   .cz-chip-modern {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 7px 11px;
-    border-radius: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
     width: 100%;
     font-size: 11px;
     font-weight: 500;
-    color: white;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    transition: all 0.2s ease;
+    color: #374151; /* gray-700 - dark readable text */
+    background: #ffffff;
+    border-left: 3px solid var(--chip-accent-color, #94a3b8);
+    border-top: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: all 0.15s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cz-chip-modern {
+      transition: none;
+    }
   }
 
   .cz-chip-modern:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    background: #f9fafb; /* gray-50 */
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cz-chip-modern:hover {
+      transform: none;
+    }
   }
 
   .cz-chip-modern__count {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.25);
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #f3f4f6; /* gray-100 */
     font-size: 10px;
-    font-weight: 700;
-    backdrop-filter: blur(4px);
+    font-weight: 600;
+    color: #6b7280; /* gray-500 */
   }
 
-  /* Category-specific modern chip colors */
+  /* Focus states for accessibility */
+  .cz-chip-modern:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+
+  /* Category-specific modern chip colors - muted, desaturated palette */
   .cz-chip-modern--annual {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    --chip-accent-color: #64748b; /* slate-500 - soft blue-gray */
+    border-left-color: var(--chip-accent-color);
   }
 
   .cz-chip-modern--sick {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    --chip-accent-color: #d4a574; /* muted amber/warm tone */
+    border-left-color: var(--chip-accent-color);
   }
 
   .cz-chip-modern--training {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    --chip-accent-color: #818cf8; /* indigo-400 - muted indigo */
+    border-left-color: var(--chip-accent-color);
   }
 
   .cz-chip-modern--parental {
-    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    --chip-accent-color: #f9a8d4; /* pink-300 - soft pink */
+    border-left-color: var(--chip-accent-color);
   }
 
   .cz-chip-modern--compassion {
-    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    --chip-accent-color: #c4b5fd; /* violet-300 - soft violet */
+    border-left-color: var(--chip-accent-color);
   }
 
   .cz-chip-modern--medical {
-    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    --chip-accent-color: #5eead4; /* teal-300 - soft teal */
+    border-left-color: var(--chip-accent-color);
   }
 
   .cz-chip-modern--unpaid {
-    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    --chip-accent-color: #9ca3af; /* gray-400 - neutral gray */
+    border-left-color: var(--chip-accent-color);
   }
 
   .cz-chip-modern--toil {
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    --chip-accent-color: #7dd3fc; /* sky-300 - soft sky blue */
+    border-left-color: var(--chip-accent-color);
   }
 
   .cz-chip-modern--default {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    --chip-accent-color: #94a3b8; /* slate-400 - neutral slate */
+    border-left-color: var(--chip-accent-color);
+  }
+
+  /* Dark mode adjustments for chips */
+  .dark .cz-chip-modern {
+    background: #1f2937; /* gray-800 */
+    color: #e5e7eb; /* gray-200 */
+    border-top-color: #374151;
+    border-right-color: #374151;
+    border-bottom-color: #374151;
+  }
+
+  .dark .cz-chip-modern:hover {
+    background: #374151; /* gray-700 */
+  }
+
+  .dark .cz-chip-modern__count {
+    background: #374151;
+    color: #9ca3af;
   }
 
   /* Background Utilities */
@@ -2906,7 +2953,7 @@ video {
 }
 
 .calendar-wrapper .fc .fc-scrollgrid {
-  border: 1px solid hsl(var(--border) / 0.4);
+  border: 1px solid hsl(var(--border) / 0.25);
   border-radius: 0.5rem;
   overflow: visible;
 }
@@ -2918,13 +2965,13 @@ video {
 
 /* Header row */
 .calendar-wrapper .fc .fc-col-header {
-  background: hsl(var(--muted) / 0.3);
+  background: hsl(var(--muted) / 0.2);
 }
 
 .calendar-wrapper .fc .fc-col-header-cell {
   padding: 0.75rem 0.5rem;
   border: none;
-  border-bottom: 1px solid hsl(var(--border) / 0.3);
+  border-bottom: 1px solid hsl(var(--border) / 0.2);
 }
 
 .calendar-wrapper .fc .fc-col-header-cell-cushion {

@@ -741,7 +741,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       if (isListView) {
         return (
           <div className="flex items-center gap-3 py-2 px-3 w-full">
-            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
               <CalendarDays className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div className="flex-1 min-w-0">
@@ -752,7 +752,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         );
       }
       return (
-        <div className="flex items-center gap-1 text-[9px] font-medium text-emerald-700 px-1 py-0.5 rounded bg-emerald-50/80">
+        <div className="flex items-center gap-1 text-[9px] font-medium text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-50/60 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-800/50">
           <CalendarDays className="h-2.5 w-2.5" /> {content.event.title}
         </div>
       );
@@ -761,18 +761,18 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       if (isListView) {
         return (
           <div className="flex items-center gap-3 py-2 px-3 w-full">
-            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-              <Lock className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-900/20">
+              <Lock className="h-4 w-4 text-rose-500 dark:text-rose-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm text-red-700 dark:text-red-300">Blackout Day</div>
+              <div className="font-medium text-sm text-rose-600 dark:text-rose-300">Blackout Day</div>
               <div className="text-xs text-muted-foreground">No leave bookings allowed</div>
             </div>
           </div>
         );
       }
       return (
-        <div className="flex items-center gap-1 text-[9px] font-medium text-red-700 px-1 py-0.5 rounded bg-red-50/80">
+        <div className="flex items-center gap-1 text-[9px] font-medium text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded bg-rose-50/60 dark:bg-rose-900/20 border border-rose-200/50 dark:border-rose-800/50">
           <Lock className="h-2.5 w-2.5" /> Blackout
         </div>
       );
@@ -884,28 +884,28 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       );
     }
     
-    // Month view - compact popover
+    // Month view - compact popover with refined left-border accent styling
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md hover:bg-primary/10 cursor-pointer transition-all group">
-            <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={16} className="ring-1 ring-white shadow-sm flex-shrink-0" />
-            <span className="text-[10px] font-medium truncate max-w-[70px] group-hover:text-primary transition-colors">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-white dark:bg-gray-800 border-l-[3px] border-t border-r border-b border-gray-200 dark:border-gray-700 hover:shadow-sm cursor-pointer transition-all group" style={{ borderLeftColor: content.event.backgroundColor || '#94a3b8' }}>
+            <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={16} className="ring-1 ring-gray-200 dark:ring-gray-700 flex-shrink-0" />
+            <span className="text-[10px] font-medium text-gray-700 dark:text-gray-200 truncate max-w-[70px] group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
               {employee?.name || content.event.title}
             </span>
             {categoryName ? (
-              <span className="text-[9px] text-white/90 font-medium truncate max-w-[60px]">
+              <span className="text-[9px] text-gray-500 dark:text-gray-400 font-medium truncate max-w-[60px]">
                 • {categoryName}
               </span>
             ) : null}
           </div>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-80 rounded-xl shadow-xl border-border/50 p-0 overflow-hidden">
-          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4">
+          <div className="bg-gradient-to-r from-gray-50 via-gray-50/50 to-transparent dark:from-gray-800 dark:via-gray-800/50 p-4 border-l-[4px]" style={{ borderLeftColor: content.event.backgroundColor || '#94a3b8' }}>
             <div className="flex items-center gap-3">
-              <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={40} className="ring-2 ring-white shadow-lg" />
+              <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={40} className="ring-2 ring-white dark:ring-gray-700 shadow-sm" />
               <div className="min-w-0 flex-1">
-                <div className="font-semibold text-sm truncate">{employee?.name || content.event.title}</div>
+                <div className="font-semibold text-sm truncate text-gray-900 dark:text-gray-100">{employee?.name || content.event.title}</div>
                 {employee?.department ? (
                   <div className="text-xs text-muted-foreground truncate">{employee.department}</div>
                 ) : null}

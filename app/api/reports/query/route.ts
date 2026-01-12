@@ -919,9 +919,12 @@ export async function POST(req: Request) {
                 console.log("🔍 Session companyId:", companyId);
                 console.log("🔍 Selected fields:", sanitizedSelectedFields);
                 console.log("🔍 Enforced filter group children count:", enforcedFilterGroup.children.length);
+                console.log("🔍 Pagination received:", JSON.stringify(pagination));
+                console.log("🔍 Prisma query take/skip:", primary.prismaQuery.take, primary.prismaQuery.skip);
                 console.log("🔍 Prisma query:", JSON.stringify(primary.prismaQuery, null, 2));
 
                 // Use caching for query results
+                console.log("🔍 Cache params pagination:", JSON.stringify(cacheParams.pagination));
                 const { data: queryResult, cached, responseTimeMs } = await cachedReportQuery<{ results: any[]; total: number }>(
                         cacheParams,
                         async () => {
@@ -945,7 +948,7 @@ export async function POST(req: Request) {
                         }
                 );
 
-                console.log("✅ Query completed successfully, returning response");
+                console.log("✅ Query completed, cached:", cached, "results:", queryResult.results.length, "total:", queryResult.total);
 
                 // Transform results to map anchored paths back to original field paths
                 // This ensures the frontend can access data at the paths it expects

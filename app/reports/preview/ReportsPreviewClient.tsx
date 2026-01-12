@@ -735,6 +735,8 @@ function ReportsPreviewClientInner() {
           ? { field: activeSort.field, direction: activeSort.direction || "asc" }
           : defaultSort || undefined;
 
+      console.log("📤 Sending API request with pagination:", { page: pageToFetch, limit: limitToFetch });
+      
       const result = await resilientPost<{ data: unknown[]; total: number; error?: string }>(
         "/api/reports/query",
         {
@@ -788,7 +790,7 @@ function ReportsPreviewClientInner() {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("🔄 useEffect triggered, effectiveSelectedFields:", effectiveSelectedFields);
+    console.log("🔄 useEffect triggered, effectiveSelectedFields:", effectiveSelectedFields.length, "page:", page, "pageSize:", pageSize);
     if (effectiveSelectedFields.length === 0) {
       console.log("⏭️ Skipping: no selected fields");
       return;
@@ -805,7 +807,7 @@ function ReportsPreviewClientInner() {
     abortControllerRef.current = controller;
     const fetchId = ++fetchIdRef.current;
     
-    console.log("🆕 New fetch starting, fetchId:", fetchId);
+    console.log("🆕 New fetch starting, fetchId:", fetchId, "with page:", page, "pageSize:", pageSize);
 
     const load = async () => {
       setLoading(true);
@@ -813,10 +815,10 @@ function ReportsPreviewClientInner() {
       setRetryCount(0);
       
       try {
-        console.log("🚀 Starting fetch, fetchId:", fetchId);
+        console.log("🚀 Starting fetch, fetchId:", fetchId, "page:", page, "pageSize:", pageSize);
         const { results, totalCount } = await fetchReportPage(page, pageSize, controller.signal);
         
-        console.log("✅ Fetch completed, fetchId:", fetchId, "current fetchIdRef:", fetchIdRef.current);
+        console.log("✅ Fetch completed, fetchId:", fetchId, "current fetchIdRef:", fetchIdRef.current, "results:", results.length, "total:", totalCount);
         
         // Check if this request is still current
         if (fetchId !== fetchIdRef.current) {
@@ -825,11 +827,13 @@ function ReportsPreviewClientInner() {
         }
         
         console.log("💾 Setting data:", results.length, "results, total:", totalCount);
+        console.log("💾 Current data length before update:", data.length);
         setData([...results]);
         setFilteredData([...results]);
         setTotal(totalCount);
         setLastFetched(new Date());
         setRetryCount(0);
+        console.log("💾 Data update complete");
       } catch (error) {
         console.log("🔴 Caught error, fetchId:", fetchId, "current:", fetchIdRef.current);
         console.log("🔴 Error details:", error);
@@ -1677,6 +1681,7 @@ function ReportsPreviewClientInner() {
             onFilteredDataChange={setFilteredData}
             onPageChange={setPage}
             onPageSizeChange={(size: number) => {
+              console.log("📊 onPageSizeChange called with size:", size);
               setPageSize(size);
               setPage(1);
             }}

@@ -20,7 +20,7 @@ interface CalendarLegendProps {
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, scale: 0.8, y: 10 },
+  hidden: { opacity: 0, scale: 0.95, y: 5 },
   visible: { 
     opacity: 1, 
     scale: 1, 
@@ -33,9 +33,9 @@ const itemVariants = {
   },
   exit: { 
     opacity: 0, 
-    scale: 0.8, 
-    y: -5,
-    transition: { duration: 0.15 }
+    scale: 0.95, 
+    y: -3,
+    transition: { duration: 0.12 }
   }
 };
 
@@ -44,10 +44,24 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.04,
-      delayChildren: 0.02,
+      staggerChildren: 0.03,
+      delayChildren: 0.01,
     },
   },
+};
+
+// Muted color mapping for legend swatches
+const getMutedSwatchColor = (className?: string): string => {
+  if (!className) return "#94a3b8"; // slate-400 default
+  if (className.includes("annual")) return "#64748b"; // slate-500
+  if (className.includes("sick")) return "#d4a574"; // muted amber
+  if (className.includes("training")) return "#818cf8"; // indigo-400
+  if (className.includes("parental")) return "#f9a8d4"; // pink-300
+  if (className.includes("compassion")) return "#c4b5fd"; // violet-300
+  if (className.includes("medical")) return "#5eead4"; // teal-300
+  if (className.includes("unpaid")) return "#9ca3af"; // gray-400
+  if (className.includes("toil")) return "#7dd3fc"; // sky-300
+  return "#94a3b8"; // slate-400 default
 };
 
 export function CalendarLegend({
@@ -69,7 +83,7 @@ export function CalendarLegend({
   if (showBankHoliday) {
     items.push({
       label: bankHolidayLabel ? `Public holiday` : "Public holiday",
-      swatchClassName: "bg-emerald-500",
+      swatchClassName: "bg-emerald-400",
     });
   }
 
@@ -78,8 +92,8 @@ export function CalendarLegend({
       label: "Blackout day",
       swatchStyle: {
         backgroundImage:
-          "repeating-linear-gradient(45deg,#fecaca,#fecaca 4px,#ffffff 4px,#ffffff 8px)",
-        border: "1px solid rgb(248 113 113)",
+          "repeating-linear-gradient(45deg,#fecaca,#fecaca 2px,#ffffff 2px,#ffffff 4px)",
+        border: "1px solid rgb(251 113 133 / 0.5)",
       },
     });
   }
@@ -89,13 +103,14 @@ export function CalendarLegend({
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="flex flex-wrap gap-1.5"
+      className="flex flex-wrap gap-1"
     >
       <AnimatePresence mode="popLayout">
         {items.map((item, index) => {
           const Icon = item.icon;
           const isBlackout = item.label === "Blackout day";
           const isHoliday = item.label === "Public holiday";
+          const swatchColor = getMutedSwatchColor(item.swatchClassName);
           
           return (
             <motion.div
@@ -103,29 +118,21 @@ export function CalendarLegend({
               variants={itemVariants}
               layout
               className={cn(
-                "inline-flex items-center gap-1.5 px-2 py-1 rounded-md transition-all duration-200",
-                "bg-muted/30 hover:bg-muted/50 border border-border/30",
+                "inline-flex items-center gap-1.5 px-2 py-0.5 rounded transition-all duration-150",
+                "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750",
+                "border border-gray-200 dark:border-gray-700",
                 "cursor-default select-none"
               )}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
             >
               <div className="relative flex items-center justify-center">
+                {/* Circular swatch with muted color and subtle border */}
                 <span
-                  className={cn(
-                    "inline-flex h-3 w-3 shrink-0 rounded shadow-sm",
-                    item.swatchClassName,
-                  )}
-                  style={item.swatchStyle}
+                  className="inline-flex h-2.5 w-2.5 shrink-0 rounded-full border border-gray-200 dark:border-gray-600"
+                  style={item.swatchStyle || { backgroundColor: swatchColor }}
                 />
-                {Icon && item.swatchClassName && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Icon className="h-1.5 w-1.5 text-white drop-shadow-sm" />
-                  </div>
-                )}
                 {isBlackout && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Lock className="h-1.5 w-1.5 text-red-600" />
+                    <Lock className="h-1.5 w-1.5 text-rose-500" />
                   </div>
                 )}
                 {isHoliday && (
@@ -134,10 +141,7 @@ export function CalendarLegend({
                   </div>
                 )}
               </div>
-              {Icon && !item.swatchClassName && !item.swatchStyle && (
-                <Icon className="h-3 w-3 text-muted-foreground" />
-              )}
-              <span className="text-[10px] font-medium text-foreground/80">{item.label}</span>
+              <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300">{item.label}</span>
             </motion.div>
           );
         })}

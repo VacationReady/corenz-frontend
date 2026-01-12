@@ -338,9 +338,12 @@ function buildPaginationAndSort(
 	pagination: { limit?: number; page?: number } = {},
 	sort: { field?: string; direction?: "asc" | "desc" } = {},
 ) {
+	const take = pagination.limit || 50;
+	const skip = ((pagination.page || 1) - 1) * (pagination.limit || 50);
+	console.log("📊 buildPaginationAndSort - pagination:", JSON.stringify(pagination), "take:", take, "skip:", skip);
 	return {
-		take: pagination.limit || 50,
-		skip: ((pagination.page || 1) - 1) * (pagination.limit || 50),
+		take,
+		skip,
 		orderBy: normalizeOrderBy(sort),
 	};
 }

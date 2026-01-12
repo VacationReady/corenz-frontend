@@ -80,13 +80,14 @@ export function getCategoryColor(name: string): string {
 }
 
 /**
- * Get status-based color config for badges
+ * Get status-based color config for badges - using muted, refined colors
  */
 export function getStatusColorConfig(status?: string | null): {
   label: string;
   bgClass: string;
   textClass: string;
   borderClass: string;
+  accentColor: string;
 } | null {
   if (!status) return null;
   const normalized = status.toLowerCase();
@@ -94,32 +95,36 @@ export function getStatusColorConfig(status?: string | null): {
   if (normalized === "approved") {
     return {
       label: "Approved",
-      bgClass: "bg-green-100 dark:bg-green-900/30",
-      textClass: "text-green-700 dark:text-green-400",
-      borderClass: "border-green-200 dark:border-green-800",
+      bgClass: "bg-emerald-50 dark:bg-emerald-900/20",
+      textClass: "text-emerald-700 dark:text-emerald-400",
+      borderClass: "border-emerald-200 dark:border-emerald-800",
+      accentColor: "#6ee7b7", // emerald-300 - muted green
     };
   }
   if (normalized === "declined") {
     return {
       label: "Declined",
-      bgClass: "bg-red-100 dark:bg-red-900/30",
-      textClass: "text-red-700 dark:text-red-400",
-      borderClass: "border-red-200 dark:border-red-800",
+      bgClass: "bg-rose-50 dark:bg-rose-900/20",
+      textClass: "text-rose-700 dark:text-rose-400",
+      borderClass: "border-rose-200 dark:border-rose-800",
+      accentColor: "#fda4af", // rose-300 - muted rose
     };
   }
   if (normalized === "pending") {
     return {
       label: "Pending",
-      bgClass: "bg-amber-100 dark:bg-amber-900/30",
+      bgClass: "bg-amber-50 dark:bg-amber-900/20",
       textClass: "text-amber-700 dark:text-amber-400",
       borderClass: "border-amber-200 dark:border-amber-800",
+      accentColor: "#fcd34d", // amber-300 - muted amber
     };
   }
   return {
     label: normalized.charAt(0).toUpperCase() + normalized.slice(1),
-    bgClass: "bg-gray-100 dark:bg-gray-900/30",
+    bgClass: "bg-gray-50 dark:bg-gray-900/20",
     textClass: "text-gray-700 dark:text-gray-400",
     borderClass: "border-gray-200 dark:border-gray-800",
+    accentColor: "#d1d5db", // gray-300
   };
 }
 
@@ -245,25 +250,25 @@ export function mapLeaveRequestToEvent(
     };
   }
 
-  // Determine color based on status and sick leave
-  let backgroundColor = "#3b82f6"; // Default blue
-  let borderColor = "#2563eb";
+  // Determine color based on status and sick leave - using muted palette
+  let backgroundColor = "#94a3b8"; // slate-400 - default muted blue-gray
+  let borderColor = "#64748b"; // slate-500
   
-  // Sick leave always shows red regardless of status
+  // Sick leave uses muted amber regardless of status
   if (isSick) {
-    backgroundColor = "#ef4444";
-    borderColor = "#dc2626";
+    backgroundColor = "#d4a574"; // muted amber
+    borderColor = "#b8956a";
   } else if (options.colorByStatus) {
     const status = (leave.approvalStatus || "").toLowerCase();
     if (status === "approved") {
-      backgroundColor = "#22c55e";
-      borderColor = "#16a34a";
+      backgroundColor = "#6ee7b7"; // emerald-300 - muted green
+      borderColor = "#34d399";
     } else if (status === "pending") {
-      backgroundColor = "#f59e0b";
-      borderColor = "#d97706";
+      backgroundColor = "#fcd34d"; // amber-300 - muted amber
+      borderColor = "#fbbf24";
     } else if (status === "declined") {
-      backgroundColor = "#ef4444";
-      borderColor = "#dc2626";
+      backgroundColor = "#fda4af"; // rose-300 - muted rose
+      borderColor = "#fb7185";
     }
   }
 

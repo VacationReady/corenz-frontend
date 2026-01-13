@@ -167,8 +167,8 @@ const describeAdvancedFilterLabel = (filter: AdvancedFilter, columnLabel: string
       if (filter.max !== undefined) return `${columnLabel}: ≤ ${filter.max}`;
       return columnLabel;
     case "dateRange": {
-      const from = filter.from ? new Date(filter.from).toLocaleDateString() : null;
-      const to = filter.to ? new Date(filter.to).toLocaleDateString() : null;
+      const from = filter.from ? new Date(filter.from).toLocaleDateString("en-NZ") : null;
+      const to = filter.to ? new Date(filter.to).toLocaleDateString("en-NZ") : null;
       if (from && to) return `${columnLabel}: ${from} → ${to}`;
       if (from) return `${columnLabel}: after ${from}`;
       if (to) return `${columnLabel}: before ${to}`;

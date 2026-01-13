@@ -81,7 +81,7 @@ export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
                         {post.title}
                       </h3>
                       <p className="text-white/80 text-xs mt-1">
-                        {new Date(post.createdAt).toLocaleDateString()}
+                        {new Date(post.createdAt).toLocaleDateString("en-NZ")}
                       </p>
                       {post.preview && (
                         <p className="text-white/90 text-sm mt-2 line-clamp-2">
@@ -116,7 +116,7 @@ export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
                         {post.title}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(post.createdAt).toLocaleDateString()}
+                        {new Date(post.createdAt).toLocaleDateString("en-NZ")}
                       </p>
                       {post.preview && (
                         <p className="text-sm text-muted-foreground line-clamp-2">

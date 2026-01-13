@@ -129,7 +129,7 @@ function formatValue(value: string | null): string {
   
   // Handle dates
   if (value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
-    return new Date(value).toLocaleDateString();
+    return new Date(value).toLocaleDateString("en-NZ");
   }
   
   // Handle boolean values

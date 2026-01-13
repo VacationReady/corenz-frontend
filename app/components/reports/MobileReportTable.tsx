@@ -76,7 +76,7 @@ function formatValue(value: any, type?: string): string {
   
   if (type === "date" && value) {
     try {
-      return new Date(value).toLocaleDateString();
+      return new Date(value).toLocaleDateString("en-NZ");
     } catch {
       return String(value);
     }

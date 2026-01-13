@@ -433,13 +433,13 @@ export default function AddCategoryModal({
                                 <Input
                                   type="number"
                                   min="0"
-                                  step="0.5"
+                                  step="0.25"
                                   placeholder="e.g., 10"
                                   value={defaultBalance}
                                   onChange={(e) => setDefaultBalance(e.target.value)}
                                   className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
                                 />
-                                <p className="text-xs text-muted-foreground">Default number of days allocated to employees</p>
+                                <p className="text-xs text-muted-foreground">Default number of days allocated to employees (in 0.25 day increments)</p>
                               </div>
                               <div className="space-y-2">
                                 <Label className="text-sm font-medium text-foreground/80">Balance Refresh Period</Label>

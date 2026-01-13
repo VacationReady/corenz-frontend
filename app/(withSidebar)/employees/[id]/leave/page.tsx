@@ -341,12 +341,12 @@ function BalanceCard({
           <div>
             <span className="text-muted-foreground text-xs">Available to book</span>
             <p className="font-semibold text-lg text-amber-600 dark:text-amber-400">
-              {balance.remaining.toFixed(1)}
+              {balance.remaining.toFixed(2)}
             </p>
           </div>
           <div>
             <span className="text-muted-foreground text-xs">Future entitlement</span>
-            <p className="font-medium">{balance.futureEntitlement?.toFixed(1) ?? balance.total?.toFixed(1)}</p>
+            <p className="font-medium">{balance.futureEntitlement?.toFixed(2) ?? balance.total?.toFixed(2)}</p>
           </div>
         </div>
         
@@ -355,7 +355,7 @@ function BalanceCard({
           <div className="flex items-center justify-between text-xs py-1.5 px-2 rounded-md bg-amber-100/50 dark:bg-amber-900/20 mb-2">
             <span className="text-amber-700 dark:text-amber-300">Leave in advance used</span>
             <span className="font-medium text-amber-800 dark:text-amber-200">
-              {balance.leaveInAdvanceUsed?.toFixed(1)} days
+              {balance.leaveInAdvanceUsed?.toFixed(2)} days
             </span>
           </div>
         )}
@@ -423,17 +423,17 @@ function BalanceCard({
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div>
           <span className="text-muted-foreground text-xs">Remaining</span>
-          <p className="font-semibold text-lg text-primary">{balance.remaining.toFixed(1)}</p>
+          <p className="font-semibold text-lg text-primary">{balance.remaining.toFixed(2)}</p>
         </div>
         {hasTotal ? (
           <div>
             <span className="text-muted-foreground text-xs">Total</span>
-            <p className="font-medium">{balance.total?.toFixed(1)}</p>
+            <p className="font-medium">{balance.total?.toFixed(2)}</p>
           </div>
         ) : (
           <div>
             <span className="text-muted-foreground text-xs">Used</span>
-            <p className="font-medium">{balance.used.toFixed(1)}</p>
+            <p className="font-medium">{balance.used.toFixed(2)}</p>
           </div>
         )}
       </div>
@@ -1078,14 +1078,18 @@ function LeavePageContent() {
 
                 <div className="flex items-center gap-2">
                   <Switch
+                    id="upcoming-only-filter"
                     checked={upcomingOnly}
                     onChange={(checked) => {
                       setUpcomingOnly(checked);
                       eventsCacheRef.current = null;
                       calendarRef.current?.getApi().refetchEvents();
                     }}
+                    aria-label="Show upcoming leave requests only"
                   />
-                  <span className="text-sm text-muted-foreground">Upcoming only</span>
+                  <label htmlFor="upcoming-only-filter" className="text-sm text-muted-foreground cursor-pointer">
+                    Upcoming only
+                  </label>
                 </div>
 
                 <div className="flex items-center gap-2">

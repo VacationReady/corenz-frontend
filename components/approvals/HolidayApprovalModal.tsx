@@ -354,9 +354,9 @@ export function HolidayApprovalModal({
                           </div>
                         </div>
                         <div className="text-right text-xs text-slate-500 dark:text-slate-400 font-medium">
-                          {new Date(colleague.startDate).toLocaleDateString("en-NZ", { month: "short", day: "numeric" })}
+                          {new Date(colleague.startDate).toLocaleDateString("en-NZ", { month: "short", day: "numeric", year: "numeric" })}
                           <span className="text-slate-300 dark:text-slate-600 mx-1">→</span>
-                          {new Date(colleague.endDate).toLocaleDateString("en-NZ", { month: "short", day: "numeric" })}
+                          {new Date(colleague.endDate).toLocaleDateString("en-NZ", { month: "short", day: "numeric", year: "numeric" })}
                         </div>
                       </div>
                     ))}

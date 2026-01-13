@@ -905,16 +905,25 @@ export default function AddEmployeeModal({
     return cleaned;
   };
 
-  // Handle phone change with validation and formatting
+  // Handle phone change with validation (format only on blur to prevent cursor jump)
   const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value;
+    const value = e.target.value;
+    setFormData({ ...formData, phone: value });
 
-    // Auto-format on blur or when user pauses typing
-    const formatted = formatPhoneNumber(value);
-    setFormData({ ...formData, phone: formatted });
-
-    const validation = validatePhone(formatted);
+    // Validate but don't format yet - formatting happens on blur
+    const validation = validatePhone(value);
     setPhoneError(validation.error || null);
+  };
+
+  // Handle phone blur to apply formatting
+  const handlePhoneBlur = () => {
+    if (formData.phone) {
+      const formatted = formatPhoneNumber(formData.phone);
+      setFormData({ ...formData, phone: formatted });
+      
+      const validation = validatePhone(formatted);
+      setPhoneError(validation.error || null);
+    }
   };
 
   // Cleanup debounce timer on unmount
@@ -1763,6 +1772,7 @@ export default function AddEmployeeModal({
                           type="tel"
                           value={formData.phone}
                           onChange={handlePhoneChange}
+                          onBlur={handlePhoneBlur}
                           placeholder="+64 21 123 4567"
                           className={`h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 transition-all ${
                             phoneError ? "border-destructive focus:border-destructive" : "focus:border-primary focus:ring-primary/20"
@@ -2803,6 +2813,9 @@ export default function AddEmployeeModal({
                             Calculate
                           </Button>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                          Values are automatically rounded to 2 decimal places (e.g., 20.555 becomes 20.56)
+                        </p>
                         {/* NZ Holidays Act 2003 Compliance Notice */}
                         <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/30">
                           <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />

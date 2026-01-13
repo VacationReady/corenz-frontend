@@ -290,9 +290,15 @@ function BalanceCard({
     }
   };
 
-  // Calculate days until entitlement for unearned leave
+  // Calculate days until entitlement for unearned leave using UTC to avoid timezone issues
   const daysUntilEntitlement = isUnearned && balance.entitlementDate
-    ? Math.ceil((new Date(balance.entitlementDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    ? (() => {
+        const entitlementDate = new Date(balance.entitlementDate);
+        const today = new Date();
+        const entitlementUTC = Date.UTC(entitlementDate.getFullYear(), entitlementDate.getMonth(), entitlementDate.getDate());
+        const todayUTC = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+        return Math.ceil((entitlementUTC - todayUTC) / (1000 * 60 * 60 * 24));
+      })()
     : null;
   
   // Unearned annual leave card (pre-12-month employees)

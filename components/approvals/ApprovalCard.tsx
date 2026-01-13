@@ -75,7 +75,10 @@ export function ApprovalCard({ request, onApprove, onDecline, isActionLoading }:
 
   const startDate = new Date(request.startDate);
   const endDate = new Date(request.endDate);
-  const daysCount = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  // Use UTC dates to avoid timezone issues when calculating calendar days
+  const startUTC = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const endUTC = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+  const daysCount = Math.round((endUTC - startUTC) / (1000 * 60 * 60 * 24)) + 1;
 
   const handleApprove = async () => {
     setProcessing(true);

@@ -386,7 +386,11 @@ export function HolidayApprovalModal({
                   disabled={processing}
                   className="min-w-[120px] h-11 rounded-xl font-semibold border-2 border-slate-200 dark:border-slate-700 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:hover:border-rose-800 dark:hover:bg-rose-950/50 dark:hover:text-rose-300 transition-all duration-200"
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
+                  {processing ? (
+                    <Clock className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <XCircle className="w-4 h-4 mr-2" />
+                  )}
                   Decline
                 </Button>
                 <Button

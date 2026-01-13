@@ -102,11 +102,11 @@ export default function TimesheetCard({
   const StatusIcon = status.icon;
 
   const totalHours = typeof timesheet.totalHours === 'string' 
-    ? parseFloat(timesheet.totalHours) 
-    : timesheet.totalHours;
+    ? parseFloat(timesheet.totalHours) || 0
+    : (timesheet.totalHours ?? 0);
   const overtimeHours = typeof timesheet.overtimeHours === 'string' 
-    ? parseFloat(timesheet.overtimeHours) 
-    : timesheet.overtimeHours;
+    ? parseFloat(timesheet.overtimeHours) || 0
+    : (timesheet.overtimeHours ?? 0);
 
   if (isLoading) {
     return (
@@ -178,8 +178,8 @@ export default function TimesheetCard({
           </div>
           <p className="text-2xl font-bold text-slate-900">
             {(typeof timesheet.regularHours === 'string' 
-              ? parseFloat(timesheet.regularHours) 
-              : timesheet.regularHours).toFixed(2)}
+              ? parseFloat(timesheet.regularHours) || 0
+              : (timesheet.regularHours ?? 0)).toFixed(2)}
           </p>
         </div>
 

@@ -170,12 +170,15 @@ export default function AddHolidayModal({
   const selectedEmp = employees.find((e) => e.id === employeeId);
   const selectedCat = categories.find((c) => c.id === categoryId);
 
-  // Calculate days
+  // Calculate days using UTC to avoid timezone issues
   const daysDiff = useMemo(() => {
     if (!startDate || !endDate) return 0;
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    // Use UTC dates to get accurate calendar day count regardless of timezone
+    const startUTC = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+    const endUTC = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+    const diff = Math.round((endUTC - startUTC) / (1000 * 60 * 60 * 24)) + 1;
     return Math.max(0, diff);
   }, [startDate, endDate]);
 

@@ -242,13 +242,11 @@ export default function EditOtherEntitlementsModal({
                               step="0.25"
                               min="0"
                               value={entitlement.balance}
-                              onChange={(e) =>
-                                handleUpdateEntitlement(
-                                  index,
-                                  'balance',
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
+                              onChange={(e) => {
+                                const value = parseFloat(e.target.value) || 0;
+                                const rounded = Math.round(value * 4) / 4;
+                                handleUpdateEntitlement(index, 'balance', rounded);
+                              }}
                               className="h-9 rounded-lg"
                             />
                             {entitlement.isEventCategory && entitlement.usedDays != null && (

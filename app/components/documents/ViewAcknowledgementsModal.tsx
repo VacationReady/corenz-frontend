@@ -94,18 +94,29 @@ export default function ViewAcknowledgementsModal({
   }, [documentId, isOpen, isEmployeeDocument, tenantFetch]); // ✅ Depend on all relevant triggers
 
   const exportCSV = () => {
-    const rows = [
-      ["Name", "Email", "Department", "Job Role", "Status", "Acknowledged At"],
-      ...acknowledged.map((a) => [
-        a.name,
-        a.email,
-        a.department || "",
-        a.jobRole || "",
-        "Acknowledged",
-        a.acknowledgedAt || "",
-      ]),
-      ...pending.map((p) => [p.name, p.email, "", "", "Pending", ""]),
-    ];
+    const rows = isEmployeeDocument
+      ? [
+          ["Name", "Email", "Status", "Acknowledged At"],
+          ...acknowledged.map((a) => [
+            a.name,
+            a.email,
+            "Acknowledged",
+            a.acknowledgedAt || "",
+          ]),
+          ...pending.map((p) => [p.name, p.email, "Pending", ""]),
+        ]
+      : [
+          ["Name", "Email", "Department", "Job Role", "Status", "Acknowledged At"],
+          ...acknowledged.map((a) => [
+            a.name,
+            a.email,
+            a.department || "",
+            a.jobRole || "",
+            "Acknowledged",
+            a.acknowledgedAt || "",
+          ]),
+          ...pending.map((p) => [p.name, p.email, "", "", "Pending", ""]),
+        ];
     const csv = rows.map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);

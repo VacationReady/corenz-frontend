@@ -122,7 +122,7 @@ export default function LeaveHistory() {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(req.startDate).toLocaleDateString("en-NZ")} — {new Date(req.endDate).toLocaleDateString("en-NZ")}
+                      {new Date(req.startDate).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })} — {new Date(req.endDate).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })}
                     </p>
                   </div>
                 </div>
@@ -163,7 +163,7 @@ export default function LeaveHistory() {
             <div className="p-3 rounded-lg bg-muted/50 text-sm">
               <p className="font-medium">{confirmDelete.type}</p>
               <p className="text-muted-foreground">
-                {new Date(confirmDelete.startDate).toLocaleDateString("en-NZ")} — {new Date(confirmDelete.endDate).toLocaleDateString("en-NZ")}
+                {new Date(confirmDelete.startDate).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })} — {new Date(confirmDelete.endDate).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })}
               </p>
             </div>
           )}

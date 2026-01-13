@@ -77,6 +77,13 @@ export default function EditAnnualLeaveModal({
       return;
     }
 
+    // Validate 0.25 day increments (quarter days)
+    const remainder = (balanceNum * 4) % 1;
+    if (remainder !== 0) {
+      setError('Balance must be in 0.25 day increments (e.g., 15.0, 15.25, 15.5, 15.75)');
+      return;
+    }
+
     if (!reason.trim()) {
       setError('Please provide a reason for this adjustment');
       return;

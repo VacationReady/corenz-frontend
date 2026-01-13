@@ -328,7 +328,7 @@ const DocumentCard = ({
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" />
-              {new Date(doc.createdAt).toLocaleDateString("en-NZ", { month: "short", day: "numeric", year: "numeric" })}
+              {new Date(doc.createdAt).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })}
             </span>
             <span>{formatFileSize(doc.size)}</span>
           </div>

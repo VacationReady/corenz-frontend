@@ -224,7 +224,7 @@ export default function EditAnnualLeaveModal({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={loading || !hasChanges}
+            disabled={loading || !hasChanges || !reason.trim()}
           >
             {loading ? (
               <>

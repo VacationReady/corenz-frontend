@@ -159,7 +159,7 @@ export default function ViewAcknowledgementsModal({
                       )}
                       <TableCell>
                         {a.acknowledgedAt
-                          ? new Date(a.acknowledgedAt).toLocaleDateString()
+                          ? new Date(a.acknowledgedAt).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })
                           : "-"}
                       </TableCell>
                     </TableRow>

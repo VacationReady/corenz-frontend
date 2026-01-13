@@ -100,7 +100,7 @@ export default async function OnboardingDashboardPage() {
               ) : null}
               <Badge variant="outline" className="text-xs">
                 {telemetrySummary?.lastUpdatedAt
-                  ? new Date(telemetrySummary.lastUpdatedAt).toLocaleString()
+                  ? new Date(telemetrySummary.lastUpdatedAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
                   : "No telemetry captured"}
               </Badge>
             </div>
@@ -203,7 +203,7 @@ export default async function OnboardingDashboardPage() {
                       <td className="p-3">{event.occurrenceCount}</td>
                       <td className="p-3">
                         {event.lastSeenAt
-                          ? new Date(event.lastSeenAt).toLocaleString()
+                          ? new Date(event.lastSeenAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
                           : "-"}
                       </td>
                     </tr>
@@ -253,12 +253,12 @@ export default async function OnboardingDashboardPage() {
                     <td className="p-3">{formatStatus(item.status)}</td>
                     <td className="p-3">
                       {item.startedAt
-                        ? new Date(item.startedAt).toLocaleDateString()
+                        ? new Date(item.startedAt).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })
                         : "-"}
                     </td>
                     <td className="p-3">
                       {item.completedAt
-                        ? new Date(item.completedAt).toLocaleDateString()
+                        ? new Date(item.completedAt).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })
                         : "-"}
                     </td>
                     <td className="p-3">

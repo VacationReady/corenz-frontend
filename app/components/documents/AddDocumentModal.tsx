@@ -132,8 +132,8 @@ export default function AddDocumentModal({
 
   // ✅ Access control state
   // Note: Admin toggle removed - admins always see all documents
-  // FIX: Default canViewManager to true for company docs so managers can see them
-  const [canViewManager, setCanViewManager] = useState(false);
+  // Default canViewManager to true so managers can see company documents by default
+  const [canViewManager, setCanViewManager] = useState(true);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
   const hasAnyAudience = canViewManager || canViewEmployee;
@@ -174,7 +174,7 @@ export default function AddDocumentModal({
     setFile(null);
     setSelectedDepartments(["all"]);
     setSelectedJobRoles(["all"]);
-    setCanViewManager(false);
+    setCanViewManager(true);
     setCanViewEmployee(true);
     setRequiresAck(false);
     setRequiresSignature(false);

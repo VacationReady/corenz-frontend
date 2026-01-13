@@ -122,7 +122,7 @@ export default function EditAnnualLeaveModal({
   const hasChanges = Math.abs(balanceChange) > 0.01;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleCancel}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !loading && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <div className="flex items-center gap-3">

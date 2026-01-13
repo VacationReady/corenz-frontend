@@ -33,6 +33,13 @@ export default function LeaveForm({ onSuccess }: LeaveFormProps) {
     setLoading(true);
     setError("");
 
+    // Validate date range
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+      setError("End date cannot be before start date.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await tenantFetch("/api/leave-request", {
         method: "POST",

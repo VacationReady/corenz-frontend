@@ -216,20 +216,26 @@ export default async function OnboardingDashboardPage() {
       </div>
 
       <Card title="Active Onboarding Items">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left border-b">
-                <th className="p-3">Employee</th>
-                <th className="p-3">Template</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Started</th>
-                <th className="p-3">Completed</th>
-                <th className="p-3">Steps</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items?.map((item: any) => {
+        {items && items.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <p className="text-sm">No active onboarding items at the moment.</p>
+            <p className="text-xs mt-2">New employee onboarding journeys will appear here.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left border-b">
+                  <th className="p-3">Employee</th>
+                  <th className="p-3">Template</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Started</th>
+                  <th className="p-3">Completed</th>
+                  <th className="p-3">Steps</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items?.map((item: any) => {
                 const formatStatus = (status: string) => {
                   return status
                     .split('_')
@@ -263,7 +269,8 @@ export default async function OnboardingDashboardPage() {
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
       </Card>
     </div>
   );

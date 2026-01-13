@@ -156,7 +156,7 @@ export default function EmployeeOnboardingPage({
       if (canAssignTemplate && templatesData.length === 1) {
         const templateId = templatesData[0]?.id;
         if (templateId) {
-          setSelectedTemplate((prev) => prev || templateId);
+          setSelectedTemplate(templateId);
         }
       }
     }

@@ -1383,6 +1383,7 @@ function LeavePageContent() {
           onClose={() => setOtherEntitlementsModalOpen(false)}
           employeeId={employeeId}
           onSuccess={refresh}
+          hideAddButton={false}
         />
       )}
 
@@ -1396,6 +1397,8 @@ function LeavePageContent() {
             if (choice === 'company-wide') {
               setAddCategoryModalOpen(true);
             } else if (choice === 'employee-only') {
+              // User explicitly chose to add an employee-only entitlement
+              // The modal will auto-add a blank entry via hideAddButton behavior
               setOtherEntitlementsModalOpen(true);
             }
           }}

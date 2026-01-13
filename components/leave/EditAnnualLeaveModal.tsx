@@ -188,11 +188,16 @@ export default function EditAnnualLeaveModal({
               rows={3}
               required
               aria-required="true"
-              className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className={`w-full px-3 py-2 text-sm rounded-md border bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                reason && !reason.trim() ? 'border-destructive focus-visible:ring-destructive' : 'border-input'
+              }`}
             />
             <p className="text-xs text-muted-foreground">
               <span className="font-medium">Required:</span> This will be recorded in the audit log for compliance
             </p>
+            {reason && !reason.trim() && (
+              <p className="text-xs text-destructive">Reason cannot be empty or only whitespace</p>
+            )}
           </div>
 
           {/* Error Display */}

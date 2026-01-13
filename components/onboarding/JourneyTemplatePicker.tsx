@@ -181,7 +181,16 @@ export function JourneyTemplatePicker({
           </div>
           {selectedJourney.Creator && (
             <div className="text-gray-500">
-              Owner: {selectedJourney.Creator.name || selectedJourney.Creator.email}
+              Owner: {selectedJourney.Creator.name ? (
+                <>
+                  {selectedJourney.Creator.name}
+                  {selectedJourney.Creator.email && (
+                    <span className="text-gray-400 ml-1">({selectedJourney.Creator.email})</span>
+                  )}
+                </>
+              ) : (
+                selectedJourney.Creator.email || 'Unknown'
+              )}
             </div>
           )}
         </div>
@@ -313,7 +322,18 @@ export function JourneyTemplatePicker({
 
                           <div className="mt-2 text-xs text-gray-500">
                             {journey.Creator && (
-                              <span>Owner: {journey.Creator.name || journey.Creator.email}</span>
+                              <span>
+                                Owner: {journey.Creator.name ? (
+                                  <>
+                                    {journey.Creator.name}
+                                    {journey.Creator.email && (
+                                      <span className="text-gray-400 ml-1">({journey.Creator.email})</span>
+                                    )}
+                                  </>
+                                ) : (
+                                  journey.Creator.email || 'Unknown'
+                                )}
+                              </span>
                             )}
                             {journey._count && journey._count.instances > 0 && (
                               <span className="ml-3">

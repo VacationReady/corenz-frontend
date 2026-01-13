@@ -997,7 +997,7 @@ function EmployeeDocumentsContent({
                     doc={doc}
                     index={index}
                     isAdmin={isAdminUser}
-                    signed={signed}
+                    signed={statusByDocumentId[doc.id]?.signed || false}
                     params={params}
                     onOpen={() => handleRowClick(doc)}
                     onEdit={() => {
@@ -1041,7 +1041,7 @@ function EmployeeDocumentsContent({
                         doc.canViewEmployee && <Badge key="employee" className="bg-emerald-100 text-emerald-700 text-xs">Employee</Badge>,
                       ].filter(Boolean);
 
-                      const isSignedByEmployee = (doc as any).SignatureArtifacts?.some?.((a: any) => a.employeeId === params?.id) || signed;
+                      const isSignedByEmployee = (doc as any).SignatureArtifacts?.some?.((a: any) => a.employeeId === params?.id) || statusByDocumentId[doc.id]?.signed;
                       
                       // Check acknowledgment status from the batched status data
                       const docStatus = statusByDocumentId[doc.id];

@@ -80,7 +80,15 @@ export default function EditOtherEntitlementsModal({
       const res = await tenantFetch(`/api/employees/${employeeId}/other-entitlements`);
       if (res.ok) {
         const data = await res.json();
-        setEntitlements(data.entitlements || []);
+        const loadedEntitlements = data.entitlements || [];
+        
+        // If hideAddButton is true and no entitlements exist, auto-add a blank one
+        // This improves UX when user comes from EntitlementChoiceDialog
+        if (hideAddButton && loadedEntitlements.length === 0) {
+          setEntitlements([{ name: '', balance: 0, unit: 'days', isEventCategory: false }]);
+        } else {
+          setEntitlements(loadedEntitlements);
+        }
       } else {
         const data = await res.json();
         setError(data.error || 'Failed to load entitlements');

@@ -185,7 +185,11 @@ export default function EmployeeFormsPage() {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "No date set";
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString("en-NZ", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   const getAssignerName = (assignedBy: FormAssignment["assignedBy"]) => {

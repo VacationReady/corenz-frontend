@@ -98,6 +98,18 @@ export default function AddCategoryModal({
       return;
     }
 
+    // Validate balance configuration if enabled
+    if (balanceRequired) {
+      if (!defaultBalance || parseFloat(defaultBalance) <= 0) {
+        toast.error("Please enter a valid default balance (greater than 0).");
+        return;
+      }
+      if (!balanceRefreshMonths || parseInt(balanceRefreshMonths, 10) < 0) {
+        toast.error("Please enter a valid refresh period (0 or more months).");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {

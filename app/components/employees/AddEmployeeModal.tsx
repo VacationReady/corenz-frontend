@@ -713,6 +713,8 @@ export default function AddEmployeeModal({
   useEffect(() => {
     // Only sync holiday fields from formData when modal first opens
     if (!formData.holidayYear) {
+      setHolidayStartMonth("");
+      setHolidayStartDay("");
       return;
     }
 
@@ -721,6 +723,11 @@ export default function AddEmployeeModal({
       // Use functional updates to avoid dependency on current values
       setHolidayStartMonth((prev) => prev === "" ? parsed.startMonth.toString() : prev);
       setHolidayStartDay((prev) => prev === "" ? parsed.startDay.toString() : prev);
+    } else {
+      // Clear fields if parsing fails (malformed data)
+      setHolidayStartMonth("");
+      setHolidayStartDay("");
+      setHolidayYearError("Invalid holiday year data. Please select again.");
     }
   }, [formData.holidayYear]); // Only depend on holidayYear
 
@@ -729,7 +736,6 @@ export default function AddEmployeeModal({
   const hasAutoPopulatedHolidayRef = useRef(false);
   
   useEffect(() => {
-    if (!formData.startDate) return;
     // Only auto-populate once per modal open
     if (hasAutoPopulatedHolidayRef.current) return;
     // Don't auto-populate if holiday year is already set
@@ -746,7 +752,7 @@ export default function AddEmployeeModal({
     setHolidayStartMonth(month);
     setHolidayStartDay(day);
     updateHolidayYearSelection(month, day);
-  }, [formData.startDate, formData.holidayYear]);
+  }, [formData.startDate]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,

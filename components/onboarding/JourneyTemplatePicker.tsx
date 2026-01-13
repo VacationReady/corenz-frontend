@@ -121,6 +121,7 @@ export function JourneyTemplatePicker({
 
   const handleClear = () => {
     onChange("");
+    setSearchQuery("");
   };
 
   return (

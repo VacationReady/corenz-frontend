@@ -186,10 +186,12 @@ export default function EditAnnualLeaveModal({
               placeholder="e.g., Annual leave carryover from previous year, Manual correction, etc."
               disabled={loading}
               rows={3}
+              required
+              aria-required="true"
               className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
             <p className="text-xs text-muted-foreground">
-              This will be recorded in the audit log
+              <span className="font-medium">Required:</span> This will be recorded in the audit log for compliance
             </p>
           </div>
 

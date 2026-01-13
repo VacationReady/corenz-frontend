@@ -134,12 +134,13 @@ function SickLeaveCard({
 }) {
   // Format date for display (e.g., "15 Jul 2025")
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return null;
+    if (!dateStr) return "Date not set";
     try {
       const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return "Invalid date";
       return date.toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" });
     } catch {
-      return null;
+      return "Invalid date";
     }
   };
 
@@ -281,12 +282,13 @@ function BalanceCard({
   
   // Format date for display (e.g., "15 Jul 2025")
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return null;
+    if (!dateStr) return "Date not set";
     try {
       const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return "Invalid date";
       return date.toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" });
     } catch {
-      return null;
+      return "Invalid date";
     }
   };
 
@@ -400,7 +402,7 @@ function BalanceCard({
       transition={{ delay: index * 0.05 }}
       className="p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30 relative"
     >
-      {isAnnualLeave && onEdit && (
+      {isAnnualLeave && balance.type === 'entitlement' && onEdit && (
         <button
           onClick={onEdit}
           className="absolute top-2 right-2 p-1.5 rounded-md bg-background/50 hover:bg-background/80 transition-colors"

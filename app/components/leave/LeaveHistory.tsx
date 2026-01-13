@@ -2,9 +2,19 @@
 
 import { useEffect, useState } from "react";
 import SectionHeading from "@/components/ui/SectionHeading";
-import { Trash2 } from "lucide-react";
+import { Trash2, AlertTriangle, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import Button from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 interface LeaveRequest {
   id: string;
@@ -20,6 +30,7 @@ export default function LeaveHistory() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; type: string; startDate: string; endDate: string } | null>(null);
 
   const fetchRequests = () => {
     setLoading(true);
@@ -37,20 +48,22 @@ export default function LeaveHistory() {
     fetchRequests();
   }, []);
 
-  const handleDelete = async (id: string, status: string) => {
+  const handleDeleteClick = (req: LeaveRequest) => {
     // Only allow deletion of pending requests for employees
-    if (status !== "PENDING") {
+    if (req.status !== "PENDING") {
       toast.error("Only pending leave requests can be cancelled");
       return;
     }
+    setConfirmDelete({ id: req.id, type: req.type, startDate: req.startDate, endDate: req.endDate });
+  };
 
-    if (!confirm("Cancel this leave request? This action cannot be undone.")) {
-      return;
-    }
-
-    setDeletingId(id);
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+    
+    setDeletingId(confirmDelete.id);
+    setConfirmDelete(null);
     try {
-      const res = await tenantFetch(`/api/leave-request/${id}`, {
+      const res = await tenantFetch(`/api/leave-request/${confirmDelete.id}`, {
         method: "DELETE",
       });
 
@@ -80,61 +93,97 @@ export default function LeaveHistory() {
             </div>
           </div>
         ) : error ? (
-          <p className="text-red-600">{error}</p>
+          <p className="text-destructive">{error}</p>
         ) : requests.length === 0 ? (
-          <p className="italic text-gray-500">No leave requests found.</p>
+          <p className="italic text-muted-foreground">No leave requests found.</p>
         ) : (
-          <table className="min-w-full border border-gray-300 rounded shadow-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 border text-left">Type</th>
-                <th className="p-2 border text-left">Start Date</th>
-                <th className="p-2 border text-left">End Date</th>
-                <th className="p-2 border text-left">Status</th>
-                <th className="p-2 border text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map((req) => (
-                <tr key={req.id} className="text-left">
-                  <td className="p-2 border">{req.type}</td>
-                  <td className="p-2 border">
-                    {new Date(req.startDate).toLocaleDateString()}
-                  </td>
-                  <td className="p-2 border">
-                    {new Date(req.endDate).toLocaleDateString()}
-                  </td>
-                  <td className="p-2 border">
-                    <span
-                      className={`px-2 py-1 rounded text-white text-sm ${
-                        req.status === "APPROVED"
-                          ? "bg-green-600"
-                          : req.status === "DECLINED"
-                            ? "bg-red-500"
-                            : "bg-yellow-500"
-                      }`}
-                    >
-                      {req.status}
-                    </span>
-                  </td>
-                  <td className="p-2 border">
-                    {req.status === "PENDING" && (
-                      <button
-                        onClick={() => handleDelete(req.id, req.status)}
-                        disabled={deletingId === req.id}
-                        className="text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50"
-                        title="Cancel leave request"
+          <div className="space-y-3">
+            {requests.map((req) => (
+              <div
+                key={req.id}
+                className="p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-border/50 flex items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Calendar className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="font-medium text-foreground">{req.type}</span>
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full text-xs font-medium",
+                          req.status === "APPROVED" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                          req.status === "DECLINED" && "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+                          req.status === "PENDING" && "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        )}
                       >
-                        <Trash2 className={`w-4 h-4 ${deletingId === req.id ? "animate-pulse" : ""}`} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        {req.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(req.startDate).toLocaleDateString()} — {new Date(req.endDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                {req.status === "PENDING" && (
+                  <button
+                    onClick={() => handleDeleteClick(req)}
+                    disabled={deletingId === req.id}
+                    className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                    title="Cancel leave request"
+                    aria-label="Cancel leave request"
+                  >
+                    <Trash2 className={cn("w-4 h-4", deletingId === req.id && "animate-pulse")} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <DialogTitle>Cancel Leave Request?</DialogTitle>
+                <DialogDescription className="mt-1">
+                  This action cannot be undone.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          {confirmDelete && (
+            <div className="p-3 rounded-lg bg-muted/50 text-sm">
+              <p className="font-medium">{confirmDelete.type}</p>
+              <p className="text-muted-foreground">
+                {new Date(confirmDelete.startDate).toLocaleDateString()} — {new Date(confirmDelete.endDate).toLocaleDateString()}
+              </p>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDelete(null)}
+            >
+              Keep Request
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={!!deletingId}
+            >
+              {deletingId ? "Cancelling..." : "Cancel Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

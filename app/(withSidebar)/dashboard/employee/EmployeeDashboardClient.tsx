@@ -30,7 +30,7 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
       title="Upcoming Leave"
       icon={Calendar}
       action={
-        <Link href="/employees" className="text-sm underline">
+        <Link href={`/employees/${employeeId}/leave`} className="text-sm underline">
           View all leave
         </Link>
       }

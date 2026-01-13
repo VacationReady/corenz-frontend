@@ -133,6 +133,7 @@ export default function AddLeaveRequestDialog({
   const [paidStatus, setPaidStatus] = useState("PAID");
   const [totalDays, setTotalDays] = useState(0);
   const [deduction, setDeduction] = useState(0);
+  const [deductionLoading, setDeductionLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   
   // First-class sick leave toggle
@@ -244,6 +245,7 @@ export default function AddLeaveRequestDialog({
 
   useEffect(() => {
     if (startDate && endDate) {
+      setDeductionLoading(true);
       (async () => {
         try {
           const res = await fetch(
@@ -257,10 +259,13 @@ export default function AddLeaveRequestDialog({
           }
         } catch {
           setDeduction(0);
+        } finally {
+          setDeductionLoading(false);
         }
       })();
     } else {
       setDeduction(0);
+      setDeductionLoading(false);
     }
   }, [startDate, endDate, employeeId]);
 
@@ -751,7 +756,13 @@ export default function AddLeaveRequestDialog({
                           <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                           <span className="text-sm font-medium text-foreground/80">Days Deducted</span>
                         </div>
-                        <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{totalDeducted}</p>
+                        <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                          {deductionLoading ? (
+                            <span className="inline-flex items-center">
+                              <span className="w-5 h-5 border-2 border-emerald-400/30 border-t-emerald-500 rounded-full animate-spin" />
+                            </span>
+                          ) : totalDeducted}
+                        </p>
                         <p className="text-xs text-muted-foreground mt-1">Per working pattern</p>
                       </div>
                     )}

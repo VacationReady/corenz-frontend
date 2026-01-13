@@ -259,7 +259,8 @@ function ApprovalCard({
             whileTap={{ scale: 0.98 }}
             onClick={() => handleAction("approve")}
             disabled={isProcessing}
-            className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            aria-label={`Approve leave request for ${request.employee?.user?.name ?? 'employee'}`}
+            className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
           >
             {isProcessing && processingAction === "approve" ? (
               <>
@@ -283,7 +284,8 @@ function ApprovalCard({
             whileTap={{ scale: 0.98 }}
             onClick={() => handleAction("decline")}
             disabled={isProcessing}
-            className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-semibold shadow-lg shadow-rose-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            aria-label={`Decline leave request for ${request.employee?.user?.name ?? 'employee'}`}
+            className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-semibold shadow-lg shadow-rose-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
           >
             {isProcessing && processingAction === "decline" ? (
               <>

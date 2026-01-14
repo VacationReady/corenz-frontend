@@ -384,6 +384,7 @@ function FormDropdown({
 
   return (
     <select
+      key={value || 'empty'}
       className="w-full border rounded-md p-2"
       value={value}
       onChange={(e) => handleChange(e.target.value)}

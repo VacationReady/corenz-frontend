@@ -573,7 +573,7 @@ function DocumentsContent() {
 
   useEffect(() => {
     if (!isUploadModalOpen) return;
-    if (category && category !== "all") return;
+    // Always reset to Uncategorised when modal opens for consistent UX
     setCategory("Uncategorised");
   }, [isUploadModalOpen]);
 

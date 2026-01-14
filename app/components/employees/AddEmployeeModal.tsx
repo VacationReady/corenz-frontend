@@ -2630,7 +2630,7 @@ export default function AddEmployeeModal({
                             type="number"
                             inputMode="numeric"
                             min={1}
-                            max={31}
+                            max={holidayStartMonth ? getDaysInMonth(parseInt(holidayStartMonth, 10)) : 31}
                             placeholder="Day"
                             value={holidayStartDay}
                             onChange={handleHolidayDayChange}

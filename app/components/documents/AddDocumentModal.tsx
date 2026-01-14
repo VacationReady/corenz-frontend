@@ -249,10 +249,21 @@ export default function AddDocumentModal({
   }, [type]);
 
   // Helper function to get employee display name
-  const getEmployeeDisplayName = (emp: any) =>
-    (emp.firstName || emp.lastName)
-      ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
-      : emp.email ?? "";
+  const getEmployeeDisplayName = (emp: any) => {
+    const firstName = emp.firstName?.trim();
+    const lastName = emp.lastName?.trim();
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    } else if (firstName) {
+      return firstName;
+    } else if (lastName) {
+      return lastName;
+    } else if (emp.email) {
+      return emp.email;
+    }
+    return "Unknown Employee";
+  };
 
   // Sort and filter employees for dropdown
   const sortedEmployees = useMemo(() => {

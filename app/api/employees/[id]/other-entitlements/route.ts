@@ -400,6 +400,42 @@ export async function PUT(
     const incomingCustomIds = new Set(customEntitlements.filter((e) => e.id).map((e) => e.id));
     const toDelete = existingCustomEntitlements.filter((e) => !incomingCustomIds.has(e.id));
 
+    // Validate category entitlement updates BEFORE transaction to provide better error messages
+    for (const ent of categoryEntitlements) {
+      if (ent.id && ent.eventCategoryId) {
+        const existingLeaveEnt = await prisma.leaveEntitlement.findUnique({
+          where: { id: ent.id },
+          select: { usedDays: true, EventCategory: { select: { name: true } } },
+        });
+        
+        if (existingLeaveEnt) {
+          const requestedRemaining = ent.balance ?? 0;
+          const usedDays = Number(existingLeaveEnt.usedDays);
+          
+          // Validation: Remaining balance cannot be negative
+          // This prevents setting a balance lower than what's already been used
+          if (requestedRemaining < 0) {
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: `Invalid balance for ${existingLeaveEnt.EventCategory?.name || 'leave category'}: Remaining balance cannot be negative.` 
+              },
+              { status: 400 }
+            );
+          }
+          
+          // Additional validation: Warn if setting balance to exactly 0 when days are used
+          // This is technically valid but might be unintended
+          if (requestedRemaining === 0 && usedDays > 0) {
+            console.warn(
+              `[OTHER_ENTITLEMENTS_PUT] Setting remaining balance to 0 for ${existingLeaveEnt.EventCategory?.name} ` +
+              `even though ${usedDays} days have been used. Total will be ${usedDays} days.`
+            );
+          }
+        }
+      }
+    }
+
     // Transaction to handle all changes
     await prisma.$transaction(async (tx) => {
       // Update category-based entitlements (LeaveEntitlement.totalDays)
@@ -414,16 +450,6 @@ export async function PUT(
           if (existingLeaveEnt) {
             const requestedRemaining = ent.balance ?? 0;
             const newTotalDays = requestedRemaining + existingLeaveEnt.usedDays;
-            
-            // Validation: Ensure totalDays is never less than usedDays
-            // This prevents negative remaining balances which violate business logic
-            if (newTotalDays < existingLeaveEnt.usedDays) {
-              throw new Error(
-                `Invalid balance update: Cannot set remaining balance to ${requestedRemaining} days ` +
-                `when ${existingLeaveEnt.usedDays} days have already been used. ` +
-                `Minimum remaining balance is 0 days.`
-              );
-            }
             
             await tx.leaveEntitlement.update({
               where: { id: ent.id },

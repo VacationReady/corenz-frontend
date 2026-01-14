@@ -195,18 +195,22 @@ export async function GET(req: Request) {
             const hasDeptOrRole = deptIds.length > 0 || roleIds.length > 0;
 
             if (hasDeptOrRole) {
-              // Only count employees who can actually view this document based on role visibility
+              // Build role visibility filter - only count users who can actually view this document
+              const roleVisibilityFilter: any[] = [];
+              if (doc.canViewEmployee) roleVisibilityFilter.push({ role: "EMPLOYEE" as const });
+              if (doc.canViewManager) roleVisibilityFilter.push({ role: "MANAGER" as const });
+              if (doc.canViewAdmin) roleVisibilityFilter.push({ role: { in: ["ADMIN" as const, "SUPER_ADMIN" as const] } });
+              
+              // If no visibility flags are set, default to all roles (backward compatibility)
+              const hasAnyVisibility = doc.canViewEmployee || doc.canViewManager || doc.canViewAdmin;
+              
               ackTargetCount = await prisma.employee.count({
                 where: {
                   isActive: true,
                   User: { 
                     companyId: session.user.companyId,
-                    OR: [
-                      doc.canViewEmployee ? { role: "EMPLOYEE" } : undefined,
-                      doc.canViewManager ? { role: "MANAGER" } : undefined,
-                      doc.canViewAdmin ? { role: { in: ["ADMIN", "SUPER_ADMIN"] } } : undefined,
-                    ].filter(Boolean) as any,
-                  },
+                    ...(hasAnyVisibility && roleVisibilityFilter.length > 0 ? { OR: roleVisibilityFilter } : {}),
+                  } as any,
                   OR: [
                     deptIds.length > 0 ? { departmentId: { in: deptIds } } : undefined,
                     roleIds.length > 0 ? { jobRoleId: { in: roleIds } } : undefined,
@@ -214,18 +218,22 @@ export async function GET(req: Request) {
                 },
               });
             } else {
-              // Only count employees who can actually view this document based on role visibility
+              // Build role visibility filter - only count users who can actually view this document
+              const roleVisibilityFilter: any[] = [];
+              if (doc.canViewEmployee) roleVisibilityFilter.push({ role: "EMPLOYEE" as const });
+              if (doc.canViewManager) roleVisibilityFilter.push({ role: "MANAGER" as const });
+              if (doc.canViewAdmin) roleVisibilityFilter.push({ role: { in: ["ADMIN" as const, "SUPER_ADMIN" as const] } });
+              
+              // If no visibility flags are set, default to all roles (backward compatibility)
+              const hasAnyVisibility = doc.canViewEmployee || doc.canViewManager || doc.canViewAdmin;
+              
               ackTargetCount = await prisma.employee.count({
                 where: { 
                   isActive: true, 
                   User: { 
                     companyId: session.user.companyId,
-                    OR: [
-                      doc.canViewEmployee ? { role: "EMPLOYEE" } : undefined,
-                      doc.canViewManager ? { role: "MANAGER" } : undefined,
-                      doc.canViewAdmin ? { role: { in: ["ADMIN", "SUPER_ADMIN"] } } : undefined,
-                    ].filter(Boolean) as any,
-                  },
+                    ...(hasAnyVisibility && roleVisibilityFilter.length > 0 ? { OR: roleVisibilityFilter } : {}),
+                  } as any,
                 },
               });
             }
@@ -392,18 +400,22 @@ export async function GET(req: Request) {
           const hasDeptOrRole = deptIds.length > 0 || roleIds.length > 0;
 
           if (hasDeptOrRole) {
-            // Only count employees who can actually view this document based on role visibility
+            // Build role visibility filter - only count users who can actually view this document
+            const roleVisibilityFilter = [];
+            if (doc.canViewEmployee) roleVisibilityFilter.push({ role: "EMPLOYEE" });
+            if (doc.canViewManager) roleVisibilityFilter.push({ role: "MANAGER" });
+            if (doc.canViewAdmin) roleVisibilityFilter.push({ role: { in: ["ADMIN", "SUPER_ADMIN"] } });
+            
+            // If no visibility flags are set, default to all roles (backward compatibility)
+            const hasAnyVisibility = doc.canViewEmployee || doc.canViewManager || doc.canViewAdmin;
+            
             ackTargetCount = await prisma.employee.count({
               where: {
                 isActive: true,
                 User: { 
                   companyId: session.user.companyId,
-                  OR: [
-                    doc.canViewEmployee ? { role: "EMPLOYEE" } : undefined,
-                    doc.canViewManager ? { role: "MANAGER" } : undefined,
-                    doc.canViewAdmin ? { role: { in: ["ADMIN", "SUPER_ADMIN"] } } : undefined,
-                  ].filter(Boolean) as any,
-                },
+                  ...(hasAnyVisibility && roleVisibilityFilter.length > 0 ? { OR: roleVisibilityFilter } : {}),
+                } as any,
                 OR: [
                   deptIds.length > 0 ? { departmentId: { in: deptIds } } : undefined,
                   roleIds.length > 0 ? { jobRoleId: { in: roleIds } } : undefined,
@@ -411,18 +423,22 @@ export async function GET(req: Request) {
               },
             });
           } else {
-            // Only count employees who can actually view this document based on role visibility
+            // Build role visibility filter - only count users who can actually view this document
+            const roleVisibilityFilter = [];
+            if (doc.canViewEmployee) roleVisibilityFilter.push({ role: "EMPLOYEE" });
+            if (doc.canViewManager) roleVisibilityFilter.push({ role: "MANAGER" });
+            if (doc.canViewAdmin) roleVisibilityFilter.push({ role: { in: ["ADMIN", "SUPER_ADMIN"] } });
+            
+            // If no visibility flags are set, default to all roles (backward compatibility)
+            const hasAnyVisibility = doc.canViewEmployee || doc.canViewManager || doc.canViewAdmin;
+            
             ackTargetCount = await prisma.employee.count({
               where: { 
                 isActive: true, 
                 User: { 
                   companyId: session.user.companyId,
-                  OR: [
-                    doc.canViewEmployee ? { role: "EMPLOYEE" } : undefined,
-                    doc.canViewManager ? { role: "MANAGER" } : undefined,
-                    doc.canViewAdmin ? { role: { in: ["ADMIN", "SUPER_ADMIN"] } } : undefined,
-                  ].filter(Boolean) as any,
-                },
+                  ...(hasAnyVisibility && roleVisibilityFilter.length > 0 ? { OR: roleVisibilityFilter } : {}),
+                } as any,
               },
             });
           }

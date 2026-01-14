@@ -50,6 +50,7 @@ export async function GET(
       select: {
         id: true,
         companyId: true,
+        isActive: true,
         annualLeaveBalance: true,
         sickLeaveBalance: true,
         alternativeDaysBalance: true,
@@ -91,6 +92,8 @@ export async function GET(
     // 5. Auto-create missing entitlements for balance-required categories
     // This ensures employees see all configured leave types, even if categories
     // were added after the employee was created
+    // NZ HRIS Compliance: Only create entitlements for ACTIVE employees
+    // Inactive/terminated employees should not accrue new leave entitlements
     const balanceRequiredCategories = await prisma.eventCategory.findMany({
       where: {
         companyId: session.user.companyId,
@@ -119,8 +122,9 @@ export async function GET(
       (c) => !existingCategoryIds.has(c.id)
     );
 
-    // Auto-create missing entitlements
-    if (missingCategories.length > 0) {
+    // Auto-create missing entitlements ONLY for active employees
+    // This prevents database pollution and maintains NZ compliance
+    if (missingCategories.length > 0 && employee.isActive) {
       const entitlementsToCreate = missingCategories.map((category) => ({
         id: crypto.randomUUID(),
         employeeId,
@@ -139,7 +143,11 @@ export async function GET(
       });
 
       console.log(
-        `[LEAVE_BALANCES_GET] Auto-created ${entitlementsToCreate.length} missing entitlements for employee ${employeeId}`
+        `[LEAVE_BALANCES_GET] Auto-created ${entitlementsToCreate.length} missing entitlements for active employee ${employeeId}`
+      );
+    } else if (missingCategories.length > 0 && !employee.isActive) {
+      console.log(
+        `[LEAVE_BALANCES_GET] Skipped auto-creating ${missingCategories.length} entitlements for inactive employee ${employeeId}`
       );
     }
 

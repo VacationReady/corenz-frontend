@@ -480,6 +480,8 @@ export async function DELETE(
       
       if (isSickLeave) {
         // Reverse sick leave usage from the ledger
+        // NZ Holidays Act 2003: Balance accuracy is critical for compliance
+        // If reversal fails, we must not delete the leave request to prevent data loss
         try {
           await reverseSickLeaveUsage(
             prisma as any,
@@ -489,6 +491,13 @@ export async function DELETE(
           );
         } catch (sickLeaveError: any) {
           console.error("Failed to reverse sick leave usage:", sickLeaveError);
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: "Failed to reverse sick leave balance. The leave request cannot be deleted to prevent data loss. Please contact support." 
+            },
+            { status: 500 }
+          );
         }
       } else {
         // Calculate how many days were deducted for regular leave

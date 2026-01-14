@@ -208,6 +208,25 @@ export default function AddLeaveRequestDialog({
       setEndDate(dateStr);
     }
   }, [initialDate, startDate]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!modalOpen) {
+      setType("");
+      setSelectedOtherEntitlement("");
+      setSubcategory("");
+      setStartDate("");
+      setEndDate("");
+      setReason("");
+      setSickReason("");
+      setSickReasonId("");
+      setPaidStatus("PAID");
+      setTotalDays(0);
+      setDeduction(0);
+      setIsSickLeave(false);
+      setValidationWarnings([]);
+    }
+  }, [modalOpen]);
   
   const fetchSickLeaveData = async () => {
     try {

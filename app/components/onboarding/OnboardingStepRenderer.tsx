@@ -350,7 +350,7 @@ export default function OnboardingStepRenderer({
         : "on_start",
       notes: typeof metadata.notes === "string" ? metadata.notes : "",
     });
-  }, [metadata, step.id]);
+  }, [metadata]);
 
   // Track whether payroll prefill is available (only for admin or self)
   const [prefillAvailable, setPrefillAvailable] = useState<boolean | null>(null);

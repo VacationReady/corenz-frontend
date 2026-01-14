@@ -51,9 +51,12 @@ export default function EditAnnualLeaveModal({
   // Initialize balance when modal opens
   useEffect(() => {
     if (isOpen) {
-      setBalanceDays(currentBalance?.toString() || '0');
+      const balanceValue = typeof currentBalance === 'number' && !isNaN(currentBalance) 
+        ? currentBalance.toString() 
+        : '';
+      setBalanceDays(balanceValue);
       setReason('');
-      setError(null);
+      setError(balanceValue === '' ? 'Current balance is invalid. Please verify before saving.' : null);
     }
   }, [isOpen, currentBalance]);
 

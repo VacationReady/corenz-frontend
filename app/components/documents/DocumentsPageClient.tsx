@@ -575,7 +575,7 @@ function DocumentsContent() {
     if (!isUploadModalOpen) return;
     if (category && category !== "all") return;
     setCategory("Uncategorised");
-  }, [isUploadModalOpen, category]);
+  }, [isUploadModalOpen]);
 
   const departmentsList = useMemo(() => {
     if (!departmentsData) return [];
@@ -877,8 +877,14 @@ function DocumentsContent() {
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!file || !name || !category || category === "all") {
-      return toast("Please fill in all fields and select a file.");
+    if (!file) {
+      return toast.error("Please select a file to upload.");
+    }
+    if (!name) {
+      return toast.error("Please enter a document name.");
+    }
+    if (!category || category === "all") {
+      return toast.error("Please select a category for this document.");
     }
     if (!canViewManager && !canViewEmployee) {
       return toast.error("Select at least one audience (Managers or Employees).");

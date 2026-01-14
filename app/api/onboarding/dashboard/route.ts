@@ -59,7 +59,7 @@ export async function GET(_req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, data: insights });
+    return NextResponse.json(insights);
   } catch (error) {
     console.error("Dashboard error:", error);
     return NextResponse.json(

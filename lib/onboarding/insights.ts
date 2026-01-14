@@ -202,8 +202,8 @@ export async function getOnboardingInsights(
 		});
 	});
 
-	const greaterThan3Days = instances.filter((inst) => !inst.completedAt && (now - inst.startedAt.getTime()) > 3 * 24 * 60 * 60 * 1000).length;
-	const greaterThan7Days = instances.filter((inst) => !inst.completedAt && (now - inst.startedAt.getTime()) > 7 * 24 * 60 * 60 * 1000).length;
+	const greaterThan3Days = instances.filter((inst) => !inst.completedAt && inst.startedAt && (now - inst.startedAt.getTime()) > 3 * 24 * 60 * 60 * 1000).length;
+	const greaterThan7Days = instances.filter((inst) => !inst.completedAt && inst.startedAt && (now - inst.startedAt.getTime()) > 7 * 24 * 60 * 60 * 1000).length;
 
 	const completionRatios = instances.map((inst) => {
 		const total = inst.OnboardingStepInstance.length;

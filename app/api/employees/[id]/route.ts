@@ -141,11 +141,11 @@ export async function DELETE(
 
     // 🔒 Bug Fix 2.2: Prevent deletion of the last admin
     // Ensure at least one admin remains in the company
-    if (employee.User?.role === "ADMIN") {
+    if (employee.User?.role === "ADMIN" || employee.User?.role === "SUPER_ADMIN") {
       const adminCount = await prisma.user.count({
         where: { 
           companyId: session.user.companyId, 
-          role: "ADMIN",
+          role: { in: ["ADMIN", "SUPER_ADMIN"] },
           id: { not: employee.userId },
         },
       });
@@ -220,6 +220,7 @@ export async function DELETE(
       await tx.user.updateMany({ where: { managerId: userId }, data: { managerId: null } });
 
       // Leave
+      await tx.leaveBalanceLedger.deleteMany({ where: { employeeId } });
       await tx.leaveEntitlement.deleteMany({ where: { employeeId } });
       await tx.leaveRequest.deleteMany({
         where: {

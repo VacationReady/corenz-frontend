@@ -326,9 +326,9 @@ function buildDocumentSettings(
         id: doc.id,
         name: doc.name,
         category: doc.category ?? null,
-        mandatory: doc.requireAckFromNewStarters || doc.requiresAck || doc.requiresSignature,
+        mandatory: doc.requiresAck || doc.requiresSignature,
         requiresSignature: doc.requiresSignature,
-        requiresAcknowledgement: doc.requireAckFromNewStarters || doc.requiresAck,
+        requiresAcknowledgement: doc.requiresAck,
         helper: doc.description,
         createdAt: doc.createdAt.toISOString(),
       });
@@ -341,9 +341,9 @@ function buildDocumentSettings(
         id: doc.id,
         name: doc.name,
         category: doc.category ?? null,
-        mandatory: doc.requireAckFromNewStarters || doc.requiresAck || doc.requiresSignature,
+        mandatory: doc.requiresAck || doc.requiresSignature,
         requiresSignature: doc.requiresSignature,
-        requiresAcknowledgement: doc.requireAckFromNewStarters || doc.requiresAck,
+        requiresAcknowledgement: doc.requiresAck,
         helper: doc.description,
         createdAt: doc.createdAt.toISOString(),
       });

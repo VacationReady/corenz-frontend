@@ -1194,7 +1194,7 @@ function SendSurveyPageContent() {
                                     {isSelected ? (
                                       <Check className="w-4 h-4" />
                                     ) : (
-                                      `${emp.firstName[0]}${emp.lastName[0]}`
+                                      `${emp.firstName?.[0] || '?'}${emp.lastName?.[0] || '?'}`
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
@@ -1585,6 +1585,15 @@ function SendSurveyPageContent() {
             <Button
               onClick={() => setStep(step + 1)}
               disabled={!canProceed}
+              title={
+                !canProceed && step === 2 && hasInsufficientRecipientsForAnonymous
+                  ? `Anonymous surveys require at least ${MINIMUM_ANONYMOUS_RECIPIENTS} recipients`
+                  : !canProceed && step === 2
+                  ? "Please select recipients to continue"
+                  : !canProceed && step === 1
+                  ? "Please select a template and enter a survey name"
+                  : undefined
+              }
               className={cn(
                 "h-12 px-8 text-white shadow-lg transition-all",
                 canProceed

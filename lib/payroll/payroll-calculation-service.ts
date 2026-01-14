@@ -291,7 +291,7 @@ export async function calculatePayroll(
   const leaveResult = calculateLeaveAccrual({
     grossEarnings: grossPay,
     hoursWorked: totalHours,
-    employmentStartDate,
+    startDate: employmentStartDate,
     currentDate: input.payPeriodEnd,
     annualLeaveMethod: 'EIGHT_PERCENT',
     currentAnnualLeaveBalance: employee.annualLeaveBalance

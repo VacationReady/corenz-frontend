@@ -131,6 +131,11 @@ export default function EditAnnualLeaveModal({
   const balanceChange = balanceDays ? parseFloat(balanceDays) - currentBalance : 0;
   const hasChanges = Math.abs(balanceChange) > 0.01;
 
+  // Format balance to remove unnecessary trailing zeros (e.g., 15.00 → 15, 15.25 → 15.25)
+  const formatBalance = (value: number) => {
+    return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2).replace(/\.?0+$/, '');
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !loading && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
@@ -153,11 +158,11 @@ export default function EditAnnualLeaveModal({
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Current balance: <strong>{currentBalance?.toFixed(2) || '0'} days</strong>
+              Current balance: <strong>{formatBalance(currentBalance || 0)} days</strong>
               {hasChanges && (
                 <span className={balanceChange > 0 ? 'text-green-600' : 'text-red-600'}>
-                  {' '}→ {balanceDays ? parseFloat(balanceDays).toFixed(2) : '0'} days
-                  {' '}({balanceChange > 0 ? '+' : ''}{balanceChange.toFixed(2)} days)
+                  {' '}→ {balanceDays ? formatBalance(parseFloat(balanceDays)) : '0'} days
+                  {' '}({balanceChange > 0 ? '+' : ''}{formatBalance(balanceChange)} days)
                 </span>
               )}
             </AlertDescription>

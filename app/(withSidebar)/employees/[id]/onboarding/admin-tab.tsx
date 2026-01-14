@@ -76,11 +76,11 @@ export default function OnboardingAdminTab({
                 {instance.template?.name || "Unknown Template"}
               </div>
               <div className="text-xs text-muted-foreground">
-                Started: {new Date(instance.startedAt).toLocaleString()}
+                Started: {new Date(instance.startedAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                 {instance.completedAt && (
                   <>
                     {" | "}Completed:{" "}
-                    {new Date(instance.completedAt).toLocaleString()}
+                    {new Date(instance.completedAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </>
                 )}
               </div>
@@ -110,7 +110,7 @@ export default function OnboardingAdminTab({
                 </Badge>
                 {step.completedAt && (
                   <span className="text-xs text-muted-foreground">
-                    {new Date(step.completedAt).toLocaleString()}
+                    {new Date(step.completedAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 )}
               </li>

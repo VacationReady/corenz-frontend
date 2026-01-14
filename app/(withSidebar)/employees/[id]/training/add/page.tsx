@@ -626,11 +626,11 @@ export default function AddTraining() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Completed:</span>
-                      <span className="font-medium">{dateCompleted ? new Date(dateCompleted).toLocaleDateString() : "—"}</span>
+                      <span className="font-medium">{dateCompleted ? new Date(dateCompleted).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Expires:</span>
-                      <span className="font-medium">{expiryDate ? new Date(expiryDate).toLocaleDateString() : "Never"}</span>
+                      <span className="font-medium">{expiryDate ? new Date(expiryDate).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" }) : "Never"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Certificate:</span>

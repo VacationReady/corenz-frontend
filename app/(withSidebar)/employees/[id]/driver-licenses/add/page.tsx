@@ -541,11 +541,11 @@ export default function AddDriverLicence() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Issue Date:</span>
-                      <span className="font-medium">{issueDate ? new Date(issueDate).toLocaleDateString() : "—"}</span>
+                      <span className="font-medium">{issueDate ? new Date(issueDate).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Expiry Date:</span>
-                      <span className="font-medium">{expiryDate ? new Date(expiryDate).toLocaleDateString() : "—"}</span>
+                      <span className="font-medium">{expiryDate ? new Date(expiryDate).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Document:</span>

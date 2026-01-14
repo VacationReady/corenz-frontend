@@ -183,6 +183,17 @@ const DocumentCard = ({
     return '📁';
   };
 
+  const formatDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) 
+        ? "—" 
+        : date.toLocaleDateString("en-NZ", { month: "short", day: "numeric", year: "numeric" });
+    } catch {
+      return "—";
+    }
+  };
+
   const isSignedByEmployee = (doc as any).SignatureArtifacts?.some?.((a: any) => a.employeeId === params?.id) || signed;
 
   return (
@@ -292,12 +303,7 @@ const DocumentCard = ({
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" />
-              {(() => {
-                const date = new Date(doc.createdAt);
-                return isNaN(date.getTime()) 
-                  ? "Date unknown" 
-                  : date.toLocaleDateString("en-NZ", { month: "short", day: "numeric", year: "numeric" });
-              })()}
+              {formatDate(doc.createdAt)}
             </span>
             <span>{formatFileSize(doc.size)}</span>
           </div>

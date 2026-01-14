@@ -226,7 +226,7 @@ export default function EditOtherEntitlementsModal({
                               onChange={(e) =>
                                 handleUpdateEntitlement(index, 'name', e.target.value)
                               }
-                              placeholder="e.g., Time in Lieu"
+                              placeholder="e.g., TOIL, Bereavement Leave"
                               className="h-9 rounded-lg"
                             />
                           )}

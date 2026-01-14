@@ -133,23 +133,7 @@ export async function POST(
       );
     }
 
-    // Check if employee is a recipient
-    const recipient = await prisma.surveyRecipient.findFirst({
-      where: {
-        surveyId: id,
-        employeeId: employee.id,
-        status: "PENDING",
-      },
-    });
-
-    if (!recipient) {
-      return NextResponse.json(
-        { error: "You are not authorized to respond to this survey" },
-        { status: 403 }
-      );
-    }
-
-    // Check if response already exists
+    // Check if response already exists first to provide accurate error message
     const existingResponse = await prisma.surveyResponse.findUnique({
       where: {
         surveyId_employeeId: {
@@ -161,7 +145,30 @@ export async function POST(
 
     if (existingResponse) {
       return NextResponse.json(
-        { error: "Response already submitted" },
+        { error: "You have already completed this survey" },
+        { status: 400 }
+      );
+    }
+
+    // Check if employee is a recipient (without status filter for better error messages)
+    const recipient = await prisma.surveyRecipient.findFirst({
+      where: {
+        surveyId: id,
+        employeeId: employee.id,
+      },
+    });
+
+    if (!recipient) {
+      return NextResponse.json(
+        { error: "You are not a recipient of this survey" },
+        { status: 403 }
+      );
+    }
+
+    // Verify recipient hasn't already responded (double-check for race conditions)
+    if (recipient.status === "RESPONDED" || recipient.status === "COMPLETED") {
+      return NextResponse.json(
+        { error: "You have already completed this survey" },
         { status: 400 }
       );
     }
@@ -185,11 +192,10 @@ export async function POST(
       },
     });
 
-    // Update survey response count and rate atomically
+    // Update survey response count - responseRate is computed on-the-fly in queries
     const surveyStats = await prisma.survey.findUnique({
       where: { id },
       select: {
-        totalRecipients: true,
         _count: {
           select: {
             SurveyResponses: true,
@@ -200,15 +206,11 @@ export async function POST(
 
     if (surveyStats) {
       const totalResponses = surveyStats._count.SurveyResponses;
-      const responseRate = surveyStats.totalRecipients > 0 
-        ? (totalResponses / surveyStats.totalRecipients) * 100 
-        : 0;
 
       await prisma.survey.update({
         where: { id },
         data: {
           responses: totalResponses,
-          responseRate: responseRate,
         },
       });
     }

@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
       activeSurveys,
       completedSurveys,
       totalResponses,
-      averageResponseRate,
       recentSurveys,
       responseTrends,
     ] = await Promise.all([
@@ -53,16 +52,6 @@ export async function GET(request: NextRequest) {
             companyId: session.user.companyId,
           },
           submittedAt: { gte: startDate },
-        },
-      }),
-
-      // Average response rate
-      prisma.survey.aggregate({
-        where: {
-          companyId: session.user.companyId,
-        },
-        _avg: {
-          responseRate: true,
         },
       }),
 
@@ -137,21 +126,35 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
 
-    const pendingActions = await prisma.survey.count({
+    // Get active surveys with deadline approaching or that exist
+    const activeSurveysForPending = await prisma.survey.findMany({
       where: {
         companyId: session.user.companyId,
         status: "ACTIVE",
-        OR: [
-          {
-            deadline: { lte: threeDaysFromNow },
+        totalRecipients: { gt: 0 },
+      },
+      select: {
+        id: true,
+        deadline: true,
+        totalRecipients: true,
+        _count: {
+          select: {
+            SurveyResponses: true,
           },
-          {
-            responseRate: { lt: 50 },
-            totalRecipients: { gt: 0 },
-          },
-        ],
+        },
       },
     });
+
+    // Calculate pending actions based on actual response counts
+    const pendingActions = activeSurveysForPending.filter(survey => {
+      const hasDeadlineApproaching = survey.deadline && new Date(survey.deadline) <= threeDaysFromNow;
+      const responseRate = survey.totalRecipients > 0 
+        ? (survey._count.SurveyResponses / survey.totalRecipients) * 100 
+        : 0;
+      const hasLowResponseRate = responseRate < 50;
+      
+      return hasDeadlineApproaching || hasLowResponseRate;
+    }).length;
 
     return NextResponse.json({
       totalSurveys,

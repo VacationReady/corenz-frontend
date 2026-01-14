@@ -392,11 +392,14 @@ export default function SurveysDashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={[
-                          { name: 'Active', value: stats.activeSurveys, color: '#10b981' },
-                          { name: 'Completed', value: stats.completedSurveys, color: '#6366f1' },
-                          { name: 'Draft', value: stats.totalSurveys - stats.activeSurveys - stats.completedSurveys, color: '#f59e0b' },
-                        ]}
+                        data={(() => {
+                          const otherSurveys = Math.max(0, stats.totalSurveys - stats.activeSurveys - stats.completedSurveys);
+                          return [
+                            { name: 'Active', value: stats.activeSurveys, color: '#10b981' },
+                            { name: 'Completed', value: stats.completedSurveys, color: '#6366f1' },
+                            { name: 'Other', value: otherSurveys, color: '#f59e0b' },
+                          ].filter(item => item.value > 0);
+                        })()}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -405,11 +408,14 @@ export default function SurveysDashboard() {
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {[
-                          { name: 'Active', value: stats.activeSurveys, color: '#10b981' },
-                          { name: 'Completed', value: stats.completedSurveys, color: '#6366f1' },
-                          { name: 'Draft', value: stats.totalSurveys - stats.activeSurveys - stats.completedSurveys, color: '#f59e0b' },
-                        ].map((entry, index) => (
+                        {(() => {
+                          const otherSurveys = Math.max(0, stats.totalSurveys - stats.activeSurveys - stats.completedSurveys);
+                          return [
+                            { name: 'Active', value: stats.activeSurveys, color: '#10b981' },
+                            { name: 'Completed', value: stats.completedSurveys, color: '#6366f1' },
+                            { name: 'Other', value: otherSurveys, color: '#f59e0b' },
+                          ].filter(item => item.value > 0);
+                        })().map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>

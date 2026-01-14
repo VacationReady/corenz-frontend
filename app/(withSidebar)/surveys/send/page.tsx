@@ -1194,12 +1194,12 @@ function SendSurveyPageContent() {
                                     {isSelected ? (
                                       <Check className="w-4 h-4" />
                                     ) : (
-                                      `${emp.firstName?.[0] || '?'}${emp.lastName?.[0] || '?'}`
+                                      `${(emp.firstName?.[0] || emp.email?.[0] || '?').toUpperCase()}${(emp.lastName?.[0] || '').toUpperCase()}`
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <span className="font-medium text-sm text-slate-900 block">
-                                      {emp.firstName} {emp.lastName}
+                                      {emp.firstName && emp.lastName ? `${emp.firstName} ${emp.lastName}` : emp.firstName || emp.lastName || emp.email}
                                     </span>
                                     <span className="text-xs text-slate-500 truncate block">
                                       {emp.departmentName} • {emp.jobRoleName}
@@ -1293,7 +1293,7 @@ function SendSurveyPageContent() {
                                     <Checkbox checked={isExcluded} className="pointer-events-none" />
                                     <div className="flex-1 min-w-0">
                                       <span className="font-medium text-sm text-slate-900">
-                                        {emp.firstName} {emp.lastName}
+                                        {emp.firstName && emp.lastName ? `${emp.firstName} ${emp.lastName}` : emp.firstName || emp.lastName || emp.email}
                                       </span>
                                       <span className="text-xs text-slate-500 ml-2">
                                         {emp.departmentName}

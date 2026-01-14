@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       const assignment = await tx.onboardingAssignment.create({
         data: {
-          id: `assignment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: crypto.randomUUID(),
           userId: employee.userId,
           templateId: template.id,
           progress: [],
@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
 
       const onboardingInstance = await tx.onboardingInstance.create({
         data: {
-          id: `instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: crypto.randomUUID(),
           employeeId,
           templateId: template.id,
           status: "active",
@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
 
       await tx.onboardingStepInstance.createMany({
         data: template.OnboardingStep.map((step: any, index: number) => ({
-          id: `step_instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${step.id}`,
+          id: crypto.randomUUID(),
           onboardingInstanceId: onboardingInstance.id,
           stepId: step.id,
           status: "pending",

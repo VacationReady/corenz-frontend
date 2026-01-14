@@ -180,19 +180,23 @@ export function useEmployeeModalData(enabled: boolean = true) {
   );
 
   // Employees - use paginated fetcher since limit=all is not supported
+  // NZ HRIS: Only fetch active employees for manager/reference dropdowns
+  // This prevents inactive/terminated employees from being assigned as managers
   const {
     data: employeesResponse,
     error: employeesError,
     isLoading: employeesLoading,
     mutate: revalidateEmployees,
   } = useSWRImmutable<EmployeeSummary[]>(
-    enabled ? `/api/employees?select=id,firstName,lastName,email&status=active&_v=${manualRevalidate}` : null,
+    enabled
+      ? `/api/employees?select=id,firstName,lastName,email&status=active&_v=${manualRevalidate}`
+      : null,
     paginatedEmployeeFetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 30000,
+      dedupingInterval: 60000,
       shouldRetryOnError: true,
-      errorRetryCount: 2,
+      errorRetryCount: 3,
       errorRetryInterval: 1000,
     }
   );

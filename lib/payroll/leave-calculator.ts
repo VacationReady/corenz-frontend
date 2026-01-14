@@ -55,8 +55,8 @@ export interface LeaveAccrualParams {
   /** Hours worked in this pay period */
   hoursWorked: number;
   
-  /** Employee's employment start date */
-  employmentStartDate: Date;
+  /** Employee's employment start date (matches Employee.startDate field) */
+  startDate: Date;
   
   /** Current date (for calculating employment duration) */
   currentDate: Date;
@@ -127,7 +127,7 @@ export function calculateLeaveAccrual(
   const {
     grossEarnings,
     hoursWorked,
-    employmentStartDate,
+    startDate,
     currentDate,
     annualLeaveMethod,
     contractedWeeklyHours = 40,
@@ -142,13 +142,13 @@ export function calculateLeaveAccrual(
     throw new Error('Earnings and hours cannot be negative');
   }
   
-  if (employmentStartDate > currentDate) {
+  if (startDate > currentDate) {
     throw new Error('Employment start date cannot be in the future');
   }
   
   // Calculate employment duration
   const employmentDurationMonths = getEmploymentDurationMonths(
-    employmentStartDate,
+    startDate,
     currentDate
   );
   

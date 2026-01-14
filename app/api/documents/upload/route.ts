@@ -274,7 +274,9 @@ export async function POST(req: Request) {
       throw err;
     }
 
-    const acknowledgementDueDate = signatureDueAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    // Acknowledgements always use 7-day deadline (independent from signature deadline)
+    // NZ HRIS: Policy acknowledgements should be completed promptly regardless of signature requirements
+    const acknowledgementDueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     let employeeForDocument: { id: string; userId: string | null } | null = null;
 

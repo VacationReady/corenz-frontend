@@ -430,8 +430,9 @@ export async function GET(
       });
     }
 
-    // Add alternative days if any
-    if (employee.alternativeDaysBalance > 0) {
+    // Add alternative days balance (always show, even when 0, for consistent UI)
+    // NZ HRIS: Display all leave types consistently so employees understand their entitlements
+    if (employee.alternativeDaysBalance !== null && employee.alternativeDaysBalance !== undefined) {
       balances.push({
         id: `stored-alt-${employeeId}`,
         type: "stored",

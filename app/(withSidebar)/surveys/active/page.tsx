@@ -78,6 +78,7 @@ export default function ActiveSurveysPage() {
               
               acc.push({
                 ...survey,
+                templateName: survey.Form?.name || "Unknown Template",
                 status: (survey.status || "").toLowerCase(),
                 deadline: deadlineValue,
                 daysRemaining,
@@ -257,6 +258,9 @@ export default function ActiveSurveysPage() {
               <div className="text-2xl font-bold">
                 {surveys.filter(s => s.status === "active").length}
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Currently running
+              </p>
             </CardContent>
           </Card>
 
@@ -269,6 +273,9 @@ export default function ActiveSurveysPage() {
               <div className="text-2xl font-bold">
                 {surveys.reduce((sum, s) => sum + s.responses, 0)}
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Across all surveys
+              </p>
             </CardContent>
           </Card>
 
@@ -283,6 +290,9 @@ export default function ActiveSurveysPage() {
                   ? Math.round(surveys.reduce((sum, s) => sum + s.responseRate, 0) / surveys.length)
                   : 0}%
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Average completion
+              </p>
             </CardContent>
           </Card>
 
@@ -295,6 +305,9 @@ export default function ActiveSurveysPage() {
               <div className="text-2xl font-bold">
                 {surveys.filter(s => typeof s.daysRemaining === "number" && s.daysRemaining <= 3).length}
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Due within 3 days
+              </p>
             </CardContent>
           </Card>
         </div>

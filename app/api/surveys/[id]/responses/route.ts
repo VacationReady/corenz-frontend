@@ -185,13 +185,33 @@ export async function POST(
       },
     });
 
-    // Update survey response count
-    await prisma.survey.update({
+    // Update survey response count and rate atomically
+    const surveyStats = await prisma.survey.findUnique({
       where: { id },
-      data: {
-        responses: { increment: 1 },
+      select: {
+        totalRecipients: true,
+        _count: {
+          select: {
+            SurveyResponses: true,
+          },
+        },
       },
     });
+
+    if (surveyStats) {
+      const totalResponses = surveyStats._count.SurveyResponses;
+      const responseRate = surveyStats.totalRecipients > 0 
+        ? (totalResponses / surveyStats.totalRecipients) * 100 
+        : 0;
+
+      await prisma.survey.update({
+        where: { id },
+        data: {
+          responses: totalResponses,
+          responseRate: responseRate,
+        },
+      });
+    }
 
     // Mark action item as completed
     if (recipient.actionItemId) {

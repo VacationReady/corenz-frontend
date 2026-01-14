@@ -62,10 +62,20 @@ export async function POST(
 
     // Send reminder emails
     try {
-      const emailRecipients = pendingRecipients.map(recipient => ({
-        email: recipient.Employee.User.email,
-        name: `${recipient.Employee.User.firstName || ''} ${recipient.Employee.User.lastName || ''}`.trim(),
-      }));
+      // Filter out recipients with missing employee/user data and map to email format
+      const emailRecipients = pendingRecipients
+        .filter(recipient => recipient.Employee?.User?.email)
+        .map(recipient => ({
+          email: recipient.Employee.User.email,
+          name: `${recipient.Employee.User.firstName || ''} ${recipient.Employee.User.lastName || ''}`.trim() || 'Employee',
+        }));
+
+      if (emailRecipients.length === 0) {
+        return NextResponse.json(
+          { error: "No valid recipients found to send reminders to" },
+          { status: 400 }
+        );
+      }
 
       const emailResult = await sendSurveyReminder({
         surveyName: survey.name,

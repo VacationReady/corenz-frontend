@@ -108,6 +108,31 @@ export async function GET(request: NextRequest) {
         : 0,
     }));
 
+    // Calculate accurate average response rate from all surveys with recipients
+    const allSurveysForAverage = await prisma.survey.findMany({
+      where: {
+        companyId: session.user.companyId,
+        totalRecipients: { gt: 0 },
+      },
+      select: {
+        _count: {
+          select: {
+            SurveyRecipients: true,
+            SurveyResponses: true,
+          },
+        },
+      },
+    });
+
+    const calculatedAverageResponseRate = allSurveysForAverage.length > 0
+      ? allSurveysForAverage.reduce((sum, survey) => {
+          const rate = survey._count.SurveyRecipients > 0
+            ? (survey._count.SurveyResponses / survey._count.SurveyRecipients) * 100
+            : 0;
+          return sum + rate;
+        }, 0) / allSurveysForAverage.length
+      : 0;
+
     // Calculate pending actions (surveys with low response rates or approaching deadline)
     const now = new Date();
     const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
@@ -133,7 +158,7 @@ export async function GET(request: NextRequest) {
       activeSurveys,
       completedSurveys,
       totalResponses,
-      averageResponseRate: averageResponseRate._avg.responseRate || 0,
+      averageResponseRate: calculatedAverageResponseRate,
       pendingActions,
       recentSurveys: recentSurveysWithRate,
       responseTrends,

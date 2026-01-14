@@ -154,16 +154,19 @@ export async function POST(
       const validatedData = bulkCreateInstanceSchema.parse(body);
       
       // Verify all employees exist and belong to company
+      // Use tenant-scoped query to prevent information leakage about employee IDs from other tenants
       const employees = await prisma.employee.findMany({
         where: {
           id: { in: validatedData.participantIds },
           companyId: session.user.companyId,
         },
+        select: { id: true },
       });
 
       if (employees.length !== validatedData.participantIds.length) {
+        // Don't reveal which specific IDs are invalid to prevent tenant ID enumeration
         return NextResponse.json(
-          { error: "Some employees not found or not authorized" },
+          { error: "One or more employees could not be found. Please verify all employee selections." },
           { status: 400 }
         );
       }

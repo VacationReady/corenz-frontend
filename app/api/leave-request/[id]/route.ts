@@ -275,6 +275,26 @@ export async function PATCH(
           
           if (sickDays > 0) {
             const sickHours = daysToHours(sickDays);
+            
+            // NZ Holidays Act 2003: Validate balance BEFORE approving to prevent negative balances
+            const employeeBalance = await prisma.employee.findUnique({
+              where: { id: leave.employeeId },
+              select: { sickLeaveBalance: true },
+            });
+            const currentBalance = Number(employeeBalance?.sickLeaveBalance || 0);
+            
+            if (currentBalance < sickHours) {
+              const availableDays = roundToTwoDecimals(currentBalance / 8); // HOURS_PER_DAY
+              return NextResponse.json(
+                { 
+                  success: false, 
+                  error: `Cannot approve: Insufficient sick leave balance. Employee has ${availableDays} days available, but ${sickDays} days requested.` 
+                },
+                { status: 400 }
+              );
+            }
+            
+            // Balance is sufficient - record the usage
             try {
               await recordSickLeaveUsage(
                 prisma as any,
@@ -285,7 +305,14 @@ export async function PATCH(
               );
             } catch (sickLeaveError: any) {
               console.error("Failed to record sick leave usage:", sickLeaveError);
-              // Don't block approval if sick leave recording fails
+              // If recording fails, reject the approval to maintain data consistency
+              return NextResponse.json(
+                { 
+                  success: false, 
+                  error: "Failed to process sick leave balance. Please try again or contact support." 
+                },
+                { status: 500 }
+              );
             }
           }
         }

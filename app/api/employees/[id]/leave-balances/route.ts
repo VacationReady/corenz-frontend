@@ -329,12 +329,16 @@ export async function GET(
       const usedDays = formatLeaveBalance(usedHours / 8);
       
       // Count pending sick leave requests
+      // Support both new leaveType field and legacy EventCategory-based sick leave
       const pendingSickCount = await prisma.leaveRequest.count({
         where: {
           employeeId,
           companyId: session.user.companyId,
-          leaveType: "SICK",
           approvalStatus: "PENDING",
+          OR: [
+            { leaveType: "SICK" },
+            { EventCategory: { name: { contains: "sick", mode: "insensitive" } } },
+          ],
         },
       });
       
@@ -365,14 +369,17 @@ export async function GET(
       const remainingUnearned = formatLeaveBalance(Math.max(0, futureEntitlement - leaveInAdvanceUsed));
       
       // Count pending annual leave requests
+      // Support multiple naming patterns for annual leave categories
       const pendingAnnualCount = await prisma.leaveRequest.count({
         where: {
           employeeId,
           companyId: session.user.companyId,
           approvalStatus: "PENDING",
-          EventCategory: {
-            name: { contains: "Annual", mode: "insensitive" },
-          },
+          OR: [
+            { leaveType: "ANNUAL" },
+            { EventCategory: { name: { contains: "Annual", mode: "insensitive" } } },
+            { EventCategory: { name: { contains: "Holiday", mode: "insensitive" } } },
+          ],
         },
       });
       

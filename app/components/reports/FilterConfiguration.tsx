@@ -46,6 +46,12 @@ import { DEFAULT_TIMEZONE } from "@/lib/datetime";
 import { Badge } from "@/components/ui/Badge";
 import Checkbox from "@/components/ui/Checkbox";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface FilterConfigurationProps {
   filterGroup: FilterGroup;
@@ -316,6 +322,7 @@ export default function FilterConfiguration({
   }, [filteredSortFields]);
 
   return (
+    <TooltipProvider>
     <div className="space-y-6">
       {/* Header */}
       <motion.div 
@@ -371,7 +378,26 @@ export default function FilterConfiguration({
               <p className="text-xs text-muted-foreground">Define how results are ordered</p>
             </div>
           </div>
-          {sorts.length < 3 && availableSortFields.length > 0 && (
+          {selectedFields.length === 0 ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    className="rounded-lg glass-subtle border-white/30 h-9 px-3 opacity-50 cursor-not-allowed"
+                  >
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    Add Sort Level
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Select fields in the previous step first</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : sorts.length < 3 && availableSortFields.length > 0 && (
             <Button
               variant="outline"
               size="sm"
@@ -604,7 +630,26 @@ export default function FilterConfiguration({
                 Clear All
               </Button>
             )}
-            {availableFilterFields.length > 0 && (
+            {selectedFields.length === 0 ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      className="rounded-lg glass-subtle border-white/30 h-9 px-3 opacity-50 cursor-not-allowed"
+                    >
+                      <Plus className="w-4 h-4 mr-1.5" />
+                      Add Filter
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Select fields in the previous step first</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : availableFilterFields.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -757,6 +802,7 @@ export default function FilterConfiguration({
         )}
       </motion.div>
     </div>
+    </TooltipProvider>
   );
 }
 

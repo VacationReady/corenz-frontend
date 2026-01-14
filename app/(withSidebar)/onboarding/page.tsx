@@ -100,7 +100,7 @@ export default async function OnboardingDashboardPage() {
               ) : null}
               <Badge variant="outline" className="text-xs">
                 {telemetrySummary?.lastUpdatedAt
-                  ? new Date(telemetrySummary.lastUpdatedAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                  ? new Date(telemetrySummary.lastUpdatedAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Auckland" })
                   : "No telemetry captured"}
               </Badge>
             </div>
@@ -203,7 +203,7 @@ export default async function OnboardingDashboardPage() {
                       <td className="p-3">{event.occurrenceCount}</td>
                       <td className="p-3">
                         {event.lastSeenAt
-                          ? new Date(event.lastSeenAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                          ? new Date(event.lastSeenAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Auckland" })
                           : "-"}
                       </td>
                     </tr>

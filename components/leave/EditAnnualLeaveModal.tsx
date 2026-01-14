@@ -51,7 +51,7 @@ export default function EditAnnualLeaveModal({
   // Initialize balance when modal opens
   useEffect(() => {
     if (isOpen) {
-      setBalanceDays(formatLeaveBalance(currentBalance).toString());
+      setBalanceDays(currentBalance?.toString() || '0');
       setReason('');
       setError(null);
     }
@@ -150,11 +150,11 @@ export default function EditAnnualLeaveModal({
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Current balance: <strong>{formatLeaveBalance(currentBalance)} days</strong>
+              Current balance: <strong>{currentBalance?.toFixed(2) || '0'} days</strong>
               {hasChanges && (
                 <span className={balanceChange > 0 ? 'text-green-600' : 'text-red-600'}>
-                  {' '}→ {balanceDays ? formatLeaveBalance(parseFloat(balanceDays)) : '0'} days
-                  {' '}({balanceChange > 0 ? '+' : ''}{formatLeaveBalance(balanceChange)} days)
+                  {' '}→ {balanceDays ? parseFloat(balanceDays).toFixed(2) : '0'} days
+                  {' '}({balanceChange > 0 ? '+' : ''}{balanceChange.toFixed(2)} days)
                 </span>
               )}
             </AlertDescription>

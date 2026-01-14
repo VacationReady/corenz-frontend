@@ -255,7 +255,7 @@ export function EnhancedFormRenderer({
         reset(serialised);
         toast.info(
           parsed?.updatedAt
-            ? `Restored a local draft from ${new Date(parsed.updatedAt).toLocaleString()}.`
+            ? `Restored a local draft from ${new Date(parsed.updatedAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Auckland" })}.`
             : "Restored a local draft from this device.",
         );
       }

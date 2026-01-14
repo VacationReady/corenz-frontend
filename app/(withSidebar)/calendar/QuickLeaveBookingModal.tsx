@@ -447,6 +447,7 @@ export default function QuickLeaveBookingModal({
       weekday: "short",
       month: "short",
       day: "numeric",
+      timeZone: "Pacific/Auckland",
     });
   };
 

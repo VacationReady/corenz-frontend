@@ -10,6 +10,7 @@ async function findBestOnboardingTemplate(employee: any, companyId: string) {
     const byJobRole = await prisma.onboardingTemplate.findFirst({
       where: { 
         companyId,
+        isActive: true,
         JobRole: { some: { id: employee.jobRoleId } } 
       },
       include: { OnboardingStep: true },
@@ -21,6 +22,7 @@ async function findBestOnboardingTemplate(employee: any, companyId: string) {
     const byDept = await prisma.onboardingTemplate.findFirst({
       where: { 
         companyId,
+        isActive: true,
         Department: { some: { id: employee.departmentId } } 
       },
       include: { OnboardingStep: true },
@@ -29,7 +31,7 @@ async function findBestOnboardingTemplate(employee: any, companyId: string) {
   }
   // 3. Default (fallback)
   return await prisma.onboardingTemplate.findFirst({
-    where: { companyId, isDefault: true },
+    where: { companyId, isDefault: true, isActive: true },
     include: { OnboardingStep: true },
   });
 }

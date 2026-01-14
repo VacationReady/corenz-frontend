@@ -119,6 +119,31 @@ export default function AddDriverLicence() {
       return;
     }
 
+    // Date validation
+    const issueDateObj = new Date(issueDate);
+    const expiryDateObj = new Date(expiryDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time for date-only comparison
+
+    // Prevent future issue dates
+    if (issueDateObj > today) {
+      toast.error("Issue date cannot be in the future");
+      return;
+    }
+
+    // Prevent expiry date before issue date
+    if (expiryDateObj < issueDateObj) {
+      toast.error("Expiry date cannot be before issue date");
+      return;
+    }
+
+    // Warn about already-expired licenses (but allow submission for historical records)
+    if (expiryDateObj < today) {
+      toast.error("Warning: This license has already expired. Please verify the dates before submitting.", {
+        duration: 5000,
+      });
+    }
+
     const formData = new FormData();
     formData.append("type", licenceType);
     formData.append("licenceNumber", licenceNumber);

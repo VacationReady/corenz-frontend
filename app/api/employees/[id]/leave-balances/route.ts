@@ -137,12 +137,18 @@ export async function GET(
 
     // 5b. Get category IDs that go to "Other Entitlements" section
     // These are categories with balanceRequired=true that are NOT core leave types
-    const coreLeaveNames = ["annual leave", "sickness", "sick leave"];
+    // Use partial matching to handle variations like "Annual Leave", "Sick Leave", "Sickness"
+    const isCoreLeaveType = (name: string): boolean => {
+      const normalized = name.toLowerCase();
+      return normalized.includes("annual") || 
+             normalized.includes("sick") || 
+             normalized.includes("alternative day");
+    };
+    
     const otherEntitlementCategoryIds = new Set(
       entitlements
         .filter((e) => {
-          const name = e.EventCategory.name.toLowerCase();
-          return (e.EventCategory as any).balanceRequired && !coreLeaveNames.includes(name);
+          return (e.EventCategory as any).balanceRequired && !isCoreLeaveType(e.EventCategory.name);
         })
         .map((e) => e.eventCategoryId)
     );

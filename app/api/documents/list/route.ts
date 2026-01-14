@@ -146,17 +146,26 @@ export async function GET(req: Request) {
               explicitEmpIds.size > 0 || deptIds.length > 0 || roleIds.length > 0;
 
             if (hasAnyTarget) {
-              const scopedCount = await prisma.employee.count({
+              // Count unique employees who match EITHER explicit assignment OR dept/role criteria
+              // This prevents double-counting employees who appear in both groups
+              const orConditions: any[] = [];
+              if (explicitEmpIds.size > 0) {
+                orConditions.push({ id: { in: Array.from(explicitEmpIds) } });
+              }
+              if (deptIds.length > 0) {
+                orConditions.push({ departmentId: { in: deptIds } });
+              }
+              if (roleIds.length > 0) {
+                orConditions.push({ jobRoleId: { in: roleIds } });
+              }
+              
+              signatureTargetCount = await prisma.employee.count({
                 where: {
                   isActive: true,
                   User: { companyId: session.user.companyId },
-                  OR: [
-                    deptIds.length > 0 ? { departmentId: { in: deptIds } } : undefined,
-                    roleIds.length > 0 ? { jobRoleId: { in: roleIds } } : undefined,
-                  ].filter(Boolean) as any,
+                  OR: orConditions,
                 },
               });
-              signatureTargetCount = scopedCount + explicitEmpIds.size;
             } else {
               signatureTargetCount = await prisma.employee.count({
                 where: { isActive: true, User: { companyId: session.user.companyId } },
@@ -315,17 +324,26 @@ export async function GET(req: Request) {
             explicitEmpIds.size > 0 || deptIds.length > 0 || roleIds.length > 0;
 
           if (hasAnyTarget) {
-            const scopedCount = await prisma.employee.count({
+            // Count unique employees who match EITHER explicit assignment OR dept/role criteria
+            // This prevents double-counting employees who appear in both groups
+            const orConditions: any[] = [];
+            if (explicitEmpIds.size > 0) {
+              orConditions.push({ id: { in: Array.from(explicitEmpIds) } });
+            }
+            if (deptIds.length > 0) {
+              orConditions.push({ departmentId: { in: deptIds } });
+            }
+            if (roleIds.length > 0) {
+              orConditions.push({ jobRoleId: { in: roleIds } });
+            }
+            
+            signatureTargetCount = await prisma.employee.count({
               where: {
                 isActive: true,
                 User: { companyId: session.user.companyId },
-                OR: [
-                  deptIds.length > 0 ? { departmentId: { in: deptIds } } : undefined,
-                  roleIds.length > 0 ? { jobRoleId: { in: roleIds } } : undefined,
-                ].filter(Boolean) as any,
+                OR: orConditions,
               },
             });
-            signatureTargetCount = scopedCount + explicitEmpIds.size;
           } else {
             signatureTargetCount = await prisma.employee.count({
               where: { isActive: true, User: { companyId: session.user.companyId } },

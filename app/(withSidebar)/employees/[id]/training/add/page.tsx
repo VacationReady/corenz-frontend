@@ -140,6 +140,33 @@ export default function AddTraining() {
       return;
     }
 
+    // Date validation
+    const completedDateObj = new Date(dateCompleted);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time for date-only comparison
+
+    // Prevent future completion dates
+    if (completedDateObj > today) {
+      toast.error("Completion date cannot be in the future");
+      return;
+    }
+
+    // If expiry date is provided, validate it's after completion date
+    if (expiryDate) {
+      const expiryDateObj = new Date(expiryDate);
+      if (expiryDateObj < completedDateObj) {
+        toast.error("Expiry date cannot be before completion date");
+        return;
+      }
+      
+      // Warn about already-expired certifications
+      if (expiryDateObj < today) {
+        toast.error("Warning: This certification has already expired. Please verify the dates before submitting.", {
+          duration: 5000,
+        });
+      }
+    }
+
     setLoading(true);
     const formData = new FormData();
     formData.append("employeeId", employeeId);

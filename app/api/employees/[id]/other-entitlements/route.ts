@@ -412,7 +412,19 @@ export async function PUT(
             where: { id: ent.id },
           });
           if (existingLeaveEnt) {
-            const newTotalDays = (ent.balance ?? 0) + existingLeaveEnt.usedDays;
+            const requestedRemaining = ent.balance ?? 0;
+            const newTotalDays = requestedRemaining + existingLeaveEnt.usedDays;
+            
+            // Validation: Ensure totalDays is never less than usedDays
+            // This prevents negative remaining balances which violate business logic
+            if (newTotalDays < existingLeaveEnt.usedDays) {
+              throw new Error(
+                `Invalid balance update: Cannot set remaining balance to ${requestedRemaining} days ` +
+                `when ${existingLeaveEnt.usedDays} days have already been used. ` +
+                `Minimum remaining balance is 0 days.`
+              );
+            }
+            
             await tx.leaveEntitlement.update({
               where: { id: ent.id },
               data: {

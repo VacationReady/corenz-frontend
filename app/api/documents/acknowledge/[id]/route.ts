@@ -48,7 +48,7 @@ export async function GET(
           User: { companyId: session.user.companyId },
           ...(deptIds.length > 0 ? { departmentId: { in: deptIds } } : {}),
           ...(jobRoleIds.length > 0
-            ? { User: { jobRoleId: { in: jobRoleIds } } }
+            ? { jobRoleId: { in: jobRoleIds } }
             : {}),
         },
         include: {

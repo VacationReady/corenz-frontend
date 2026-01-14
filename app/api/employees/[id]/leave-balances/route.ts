@@ -88,7 +88,62 @@ export async function GET(
       );
     }
 
-    // 5. Fetch leave entitlements with category information
+    // 5. Auto-create missing entitlements for balance-required categories
+    // This ensures employees see all configured leave types, even if categories
+    // were added after the employee was created
+    const balanceRequiredCategories = await prisma.eventCategory.findMany({
+      where: {
+        companyId: session.user.companyId,
+        isActive: true,
+        balanceRequired: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        defaultBalance: true,
+      },
+    });
+
+    // Check which entitlements already exist
+    const existingEntitlements = await prisma.leaveEntitlement.findMany({
+      where: {
+        employeeId,
+        companyId: session.user.companyId,
+        eventCategoryId: { in: balanceRequiredCategories.map((c) => c.id) },
+      },
+      select: { eventCategoryId: true },
+    });
+
+    const existingCategoryIds = new Set(existingEntitlements.map((e) => e.eventCategoryId));
+    const missingCategories = balanceRequiredCategories.filter(
+      (c) => !existingCategoryIds.has(c.id)
+    );
+
+    // Auto-create missing entitlements
+    if (missingCategories.length > 0) {
+      const entitlementsToCreate = missingCategories.map((category) => ({
+        id: crypto.randomUUID(),
+        employeeId,
+        eventCategoryId: category.id,
+        companyId: session.user.companyId,
+        totalDays: category.defaultBalance || 0,
+        usedDays: 0,
+        carryoverDays: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      await prisma.leaveEntitlement.createMany({
+        data: entitlementsToCreate,
+        skipDuplicates: true,
+      });
+
+      console.log(
+        `[LEAVE_BALANCES_GET] Auto-created ${entitlementsToCreate.length} missing entitlements for employee ${employeeId}`
+      );
+    }
+
+    // 5b. Fetch leave entitlements with category information
     // Only fetch entitlements for categories that have balanceRequired=true
     // OR are Annual Leave/Sickness (core leave types that always show)
     const entitlements = await prisma.leaveEntitlement.findMany({

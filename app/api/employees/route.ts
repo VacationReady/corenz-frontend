@@ -1251,6 +1251,54 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ============================================================================
+    // AUTO-CREATE LEAVE ENTITLEMENTS FOR BALANCE-REQUIRED CATEGORIES
+    // ============================================================================
+    // Event categories with balanceRequired=true should automatically create
+    // LeaveEntitlement records for new employees so they appear in leave balances.
+    // This supports self-service leave types like Bereavement, Study Leave, etc.
+    // ============================================================================
+    try {
+      const balanceRequiredCategories = await prisma.eventCategory.findMany({
+        where: {
+          companyId,
+          isActive: true,
+          balanceRequired: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          defaultBalance: true,
+          balanceRefreshMonths: true,
+        },
+      });
+
+      if (balanceRequiredCategories.length > 0) {
+        const entitlementsToCreate = balanceRequiredCategories.map((category) => ({
+          id: crypto.randomUUID(),
+          employeeId: employee.id,
+          eventCategoryId: category.id,
+          companyId,
+          totalDays: category.defaultBalance ? roundToTwoDecimals(category.defaultBalance) : 0,
+          usedDays: 0,
+          carryoverDays: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+
+        await prisma.leaveEntitlement.createMany({
+          data: entitlementsToCreate,
+          skipDuplicates: true,
+        });
+
+        console.log(
+          `[employees/POST] Auto-created ${entitlementsToCreate.length} leave entitlements for balance-required categories for employee ${employee.id}`,
+        );
+      }
+    } catch (e) {
+      console.warn("Auto-creation of leave entitlements for balance-required categories failed:", e);
+    }
+
     // Create rota group memberships for shift-based scheduling
     if (rotaGroupIds.length > 0) {
       try {

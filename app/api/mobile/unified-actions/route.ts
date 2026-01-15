@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
         status: item.status as UnifiedActionItem['status'],
         dueDate: item.dueDate?.toISOString(),
         urgent: item.priority === 'HIGH' || item.priority === 'URGENT' || 
-          (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
+          (item.dueDate ? new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) : false),
         metadata: {
           ...metadata,
           actionItemId: item.id,

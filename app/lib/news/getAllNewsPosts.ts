@@ -67,6 +67,8 @@ export async function getAllNewsPosts(
       where: { id: userId },
       select: {
         role: true,
+        departmentId: true,
+        jobRoleId: true,
         Department_User_departmentIdToDepartment: {
           select: { name: true },
         },
@@ -83,11 +85,24 @@ export async function getAllNewsPosts(
       },
     });
 
+    console.log("🔍 [getAllNewsPosts] Raw user query result:", JSON.stringify(requestingUser, null, 2));
+
     if (requestingUser) {
       isAdmin = requestingUser.role === "ADMIN" || requestingUser.role === "SUPER_ADMIN";
       departmentName = requestingUser.Department_User_departmentIdToDepartment?.name ?? null;
       jobRoleName = requestingUser.JobRole?.name ?? null;
       locationName = requestingUser.Employee?.Location?.name ?? null;
+      
+      console.log("🔍 [getAllNewsPosts] Extracted values:", {
+        departmentId: requestingUser.departmentId,
+        jobRoleId: requestingUser.jobRoleId,
+        departmentName,
+        jobRoleName,
+        locationName,
+        hasDepartmentRelation: !!requestingUser.Department_User_departmentIdToDepartment,
+        hasJobRoleRelation: !!requestingUser.JobRole,
+        hasEmployeeRelation: !!requestingUser.Employee,
+      });
     }
   }
 

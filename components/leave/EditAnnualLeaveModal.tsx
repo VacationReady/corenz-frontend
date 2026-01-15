@@ -75,6 +75,11 @@ export default function EditAnnualLeaveModal({
       return;
     }
 
+    if (balanceNum === 0) {
+      setError('Balance of 0 days is unusual. Please verify this is correct. If the employee has no entitlement, consider their employment status.');
+      return;
+    }
+
     if (balanceNum > 200) {
       setError('Balance seems unusually high. Please verify the value.');
       return;

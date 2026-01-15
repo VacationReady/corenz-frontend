@@ -292,17 +292,17 @@ export default function QuickLeaveBookingModal({
       return;
     }
 
+    // Check if selected category is sick leave
+    const isSickCategory = selectedCat?.name?.toLowerCase().includes('sick') ?? false;
+    
+    // Validate sick reason is provided for sick leave BEFORE setting loading state
+    if (isSickCategory && !sickReason) {
+      toast.error("Please select a reason for sickness");
+      return;
+    }
+
     setLoading(true);
     try {
-      // Check if selected category is sick leave
-      const isSickCategory = selectedCat?.name?.toLowerCase().includes('sick') ?? false;
-      
-      // Validate sick reason is provided for sick leave
-      if (isSickCategory && !sickReason) {
-        toast.error("Please select a reason for sickness");
-        setLoading(false);
-        return;
-      }
       
       const res = await fetch(`/api/employees/${selectedEmployee}/leave-requests`, {
         method: "POST",

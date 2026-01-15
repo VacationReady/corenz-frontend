@@ -998,7 +998,8 @@ function DocumentsContent() {
   const resetUploadForm = () => {
     setFile(null);
     setName("");
-    setCategory("");
+    // Preserve category for bulk uploads - don't reset
+    // setCategory("");
     setRequiresAck(false);
     setRequireAckFromNewStarters(false);
     setRequiresSignature(false);
@@ -1425,7 +1426,13 @@ function DocumentsContent() {
         </div>
 
         {/* Upload Modal */}
-        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+        <Dialog open={isUploadModalOpen} onOpenChange={(open) => {
+          if (!open) {
+            // Reset category when modal is closed to prevent accidental wrong category selection
+            setCategory("");
+          }
+          setIsUploadModalOpen(open);
+        }}>
           <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-2xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
             {/* Header */}
             <div className="px-8 pt-8 pb-6 flex-shrink-0 border-b border-slate-100 dark:border-slate-800">

@@ -244,7 +244,9 @@ export default function EditOtherEntitlementsModal({
                               value={entitlement.balance}
                               onChange={(e) => {
                                 const value = parseFloat(e.target.value) || 0;
-                                const rounded = Math.round(value * 4) / 4;
+                                // Prevent negative balances
+                                const clamped = Math.max(0, value);
+                                const rounded = Math.round(clamped * 4) / 4;
                                 handleUpdateEntitlement(index, 'balance', rounded);
                               }}
                               className="h-9 rounded-lg"

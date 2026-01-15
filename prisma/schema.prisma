@@ -1355,16 +1355,17 @@ model Location {
 }
 
 model NewsPost {
-  id            String         @id
-  title         String
-  slug          String
-  content       Json
-  authorId      String
-  publishedAt   DateTime?
-  pinned        Boolean        @default(false)
-  tags          String[]
-  audience      Json
-  attachments   String[]
+  id               String         @id
+  title            String
+  slug             String
+  content          Json
+  authorId         String
+  publishedAt      DateTime?
+  pinned           Boolean        @default(false)
+  tags             String[]
+  audience         Json
+  audienceMatchMode String        @default("ALL") // "ALL" = must match all filters, "ANY" = match any filter
+  attachments      String[]
   videoEmbedUrl String?
   sendEmail     Boolean        @default(false)
   createdAt     DateTime       @default(now())

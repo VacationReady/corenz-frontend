@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Users, Building2, Briefcase, MapPin, ChevronDown, X, Check } from "lucide-react";
+import { Users, Building2, Briefcase, MapPin, ChevronDown, X, Check, Info, AlertTriangle, Loader2 } from "lucide-react";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 type AudienceFilter = {
   departments?: string[];
   roles?: string[];
   locations?: string[];
   type?: "all" | "custom";
+  matchMode?: "ALL" | "ANY";
 };
 
 interface Props {
@@ -162,6 +164,10 @@ export default function AudienceSelector({
   onChange,
   refreshKey,
 }: Props) {
+  const tenantFetch = useTenantFetch();
+  const [previewCount, setPreviewCount] = useState<number | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
   const { data, error, isLoading } = useSWR(
     ["/api/audience", refreshKey],
     ([url]) => fetcher(url),
@@ -335,11 +341,218 @@ export default function AudienceSelector({
         />
       </div>
 
+      {/* Audience Match Mode Toggle - Only show when custom filters are selected */}
+      {hasCustomAudience && (
+        <div className="space-y-3 p-4 bg-muted/30 rounded-xl border border-border/50">
+          <div className="flex items-center gap-2">
+            <Info className="w-4 h-4 text-blue-500" />
+            <span className="text-sm font-medium text-foreground">Audience Matching</span>
+          </div>
+          
+          <div className="space-y-2">
+            <label
+              className={cn(
+                "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                (value.matchMode === "ALL" || !value.matchMode)
+                  ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
+                  : "bg-background border-border hover:border-primary/30"
+              )}
+            >
+              <input
+                type="radio"
+                name="matchMode"
+                value="ALL"
+                checked={value.matchMode === "ALL" || !value.matchMode}
+                onChange={() => onChange({ ...value, matchMode: "ALL" })}
+                className="mt-0.5 accent-primary"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">Match ALL conditions</span>
+                  <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold rounded uppercase">
+                    Recommended
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  User must match <strong>every</strong> selected filter to see this post.
+                  More precise targeting for specific audiences.
+                </p>
+              </div>
+            </label>
+
+            <label
+              className={cn(
+                "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                value.matchMode === "ANY"
+                  ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
+                  : "bg-background border-border hover:border-primary/30"
+              )}
+            >
+              <input
+                type="radio"
+                name="matchMode"
+                value="ANY"
+                checked={value.matchMode === "ANY"}
+                onChange={() => onChange({ ...value, matchMode: "ANY" })}
+                className="mt-0.5 accent-primary"
+              />
+              <div className="flex-1">
+                <span className="font-medium text-sm">Match ANY condition</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  User must match <strong>at least one</strong> selected filter to see this post.
+                  Broader reach across multiple groups.
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Audience Preview Count */}
+      <AudiencePreviewCount
+        value={value}
+        tenantFetch={tenantFetch}
+        previewCount={previewCount}
+        setPreviewCount={setPreviewCount}
+        isLoadingPreview={isLoadingPreview}
+        setIsLoadingPreview={setIsLoadingPreview}
+      />
+    </div>
+  );
+}
+
+// Separate component for preview count to handle the debounced fetch
+function AudiencePreviewCount({
+  value,
+  tenantFetch,
+  previewCount,
+  setPreviewCount,
+  isLoadingPreview,
+  setIsLoadingPreview,
+}: {
+  value: AudienceFilter;
+  tenantFetch: ReturnType<typeof useTenantFetch>;
+  previewCount: number | null;
+  setPreviewCount: (count: number | null) => void;
+  isLoadingPreview: boolean;
+  setIsLoadingPreview: (loading: boolean) => void;
+}) {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch preview when audience changes (debounced)
+  useEffect(() => {
+    // Clear any pending timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Debounce the API call
+    timeoutRef.current = setTimeout(async () => {
+      setIsLoadingPreview(true);
+      try {
+        const res = await tenantFetch("/api/news/audience-preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            audience: value,
+            matchMode: value.matchMode || "ALL",
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPreviewCount(data.count);
+        }
+      } catch (err) {
+        console.error("Failed to fetch audience preview:", err);
+      } finally {
+        setIsLoadingPreview(false);
+      }
+    }, 500);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [
+    value.type,
+    value.matchMode,
+    JSON.stringify(value.departments),
+    JSON.stringify(value.roles),
+    JSON.stringify(value.locations),
+    tenantFetch,
+    setPreviewCount,
+    setIsLoadingPreview,
+  ]);
+
+  const hasCustomAudience =
+    (value.departments && value.departments.length > 0) ||
+    (value.roles && value.roles.length > 0) ||
+    (value.locations && value.locations.length > 0);
+
+  const totalSelected =
+    (value.departments?.length || 0) +
+    (value.roles?.length || 0) +
+    (value.locations?.length || 0);
+
+  return (
+    <div className="space-y-3">
+      {/* Preview Count */}
+      <div className={cn(
+        "p-4 rounded-xl border transition-all",
+        previewCount === 0
+          ? "bg-amber-500/10 border-amber-500/30"
+          : "bg-muted/30 border-border/50"
+      )}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {isLoadingPreview ? (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            ) : previewCount === 0 ? (
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+            ) : (
+              <Users className="w-4 h-4 text-emerald-500" />
+            )}
+            <span className="text-sm font-medium">
+              {isLoadingPreview ? (
+                "Calculating..."
+              ) : previewCount === null ? (
+                "Select audience"
+              ) : (
+                <>
+                  This post will be visible to{" "}
+                  <span className={cn(
+                    "font-bold",
+                    previewCount === 0 ? "text-amber-500" : "text-emerald-600 dark:text-emerald-400"
+                  )}>
+                    {previewCount}
+                  </span>
+                  {" "}user{previewCount !== 1 ? "s" : ""}
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+
+        {previewCount === 0 && !isLoadingPreview && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+            No users match the current filters. Consider adjusting your audience selection
+            {value.matchMode === "ALL" && hasCustomAudience && (
+              <> or switching to "Match ANY condition" for broader reach</>.
+            )}
+          </p>
+        )}
+      </div>
+
       {/* Summary */}
       {hasCustomAudience && (
         <div className="p-3 bg-muted/50 rounded-xl">
           <p className="text-xs text-muted-foreground">
-            Targeting <span className="font-semibold text-foreground">{totalSelected}</span> filter{totalSelected !== 1 ? "s" : ""} selected
+            <span className="font-semibold text-foreground">{totalSelected}</span> filter{totalSelected !== 1 ? "s" : ""} selected
+            {" · "}
+            <span className="font-medium">
+              {value.matchMode === "ANY" ? "OR" : "AND"} logic
+            </span>
           </p>
         </div>
       )}

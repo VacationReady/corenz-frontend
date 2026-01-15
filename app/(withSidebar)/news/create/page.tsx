@@ -62,6 +62,7 @@ interface NewsDraftPayload {
     departments?: string[];
     roles?: string[];
     locations?: string[];
+    matchMode?: "ALL" | "ANY";
   };
   isDraft: boolean;
   // UI-only cover controls (autosaved locally)
@@ -187,7 +188,8 @@ export default function CreateNewsPostPage() {
     departments?: string[];
     roles?: string[];
     locations?: string[];
-  }>({ type: "all" });
+    matchMode?: "ALL" | "ANY";
+  }>({ type: "all", matchMode: "ALL" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittingAction, setSubmittingAction] = useState<
     "draft" | "publish" | null
@@ -424,6 +426,7 @@ export default function CreateNewsPostPage() {
           attachments: uploadedAttachments,
           sendEmail,
           audience,
+          audienceMatchMode: audience.matchMode || "ALL",
           tags,
           pinned,
           featured,

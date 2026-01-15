@@ -111,65 +111,143 @@ export async function getAllNewsPosts(
     }
   }
 
-  // Build audience filter - user should see post if they match ANY specified dimension
-  const audienceWhereClause = isAdmin || !userId ? {} : {
+  // Helper: check if a dimension filter is empty/null
+  const dimensionIsEmpty = (path: string) => ({
     OR: [
-      // Show if post targets all users (type is "all" or null/undefined with no specific targeting)
-      { audience: { path: ["type"], equals: "all" } },
-      {
-        AND: [
-          {
-            OR: [
-              { audience: { path: ["type"], equals: Prisma.AnyNull } },
-              { audience: { path: ["type"], equals: Prisma.DbNull } },
-            ],
-          },
-          {
-            OR: [
-              { audience: { path: ["departments"], equals: Prisma.AnyNull } },
-              { audience: { path: ["departments"], equals: [] } },
-            ],
-          },
-          {
-            OR: [
-              { audience: { path: ["roles"], equals: Prisma.AnyNull } },
-              { audience: { path: ["roles"], equals: [] } },
-            ],
-          },
-          {
-            OR: [
-              { audience: { path: ["locations"], equals: Prisma.AnyNull } },
-              { audience: { path: ["locations"], equals: [] } },
-            ],
-          },
-        ],
-      },
-      // Show if user's department matches (and departments are specified)
-      ...(departmentName ? [{
-        AND: [
-          { audience: { path: ["departments"], not: Prisma.AnyNull } },
-          { audience: { path: ["departments"], not: { equals: [] } } },
-          { audience: { path: ["departments"], array_contains: [departmentName] } },
-        ],
-      }] : []),
-      // Show if user's role matches (and roles are specified)
-      ...(jobRoleName ? [{
-        AND: [
-          { audience: { path: ["roles"], not: Prisma.AnyNull } },
-          { audience: { path: ["roles"], not: { equals: [] } } },
-          { audience: { path: ["roles"], array_contains: [jobRoleName] } },
-        ],
-      }] : []),
-      // Show if user's location matches (and locations are specified)
-      ...(locationName ? [{
-        AND: [
-          { audience: { path: ["locations"], not: Prisma.AnyNull } },
-          { audience: { path: ["locations"], not: { equals: [] } } },
-          { audience: { path: ["locations"], array_contains: [locationName] } },
-        ],
-      }] : []),
+      { audience: { path: [path], equals: Prisma.AnyNull } },
+      { audience: { path: [path], equals: Prisma.DbNull } },
+      { audience: { path: [path], equals: [] } },
     ],
+  });
+
+  // Helper: check if user matches a dimension
+  const userMatchesDimension = (path: string, value: string | null) => {
+    if (!value) return null;
+    return {
+      audience: { path: [path], array_contains: [value] },
+    };
   };
+
+  // Helper: check if dimension is populated AND user matches it
+  const dimensionPopulatedAndMatches = (path: string, value: string | null) => {
+    if (!value) return null;
+    return {
+      AND: [
+        { audience: { path: [path], not: Prisma.AnyNull } },
+        { audience: { path: [path], not: { equals: [] } } },
+        { audience: { path: [path], array_contains: [value] } },
+      ],
+    };
+  };
+
+  // Helper: check if dimension is populated AND user does NOT match it
+  const dimensionPopulatedAndNoMatch = (path: string, value: string | null) => {
+    // If user has no value for this dimension, they fail the check
+    if (!value) {
+      return {
+        AND: [
+          { audience: { path: [path], not: Prisma.AnyNull } },
+          { audience: { path: [path], not: { equals: [] } } },
+        ],
+      };
+    }
+    return {
+      AND: [
+        { audience: { path: [path], not: Prisma.AnyNull } },
+        { audience: { path: [path], not: { equals: [] } } },
+        { NOT: { audience: { path: [path], array_contains: [value] } } },
+      ],
+    };
+  };
+
+  /**
+   * Audience Matching Logic:
+   * 
+   * ALL mode (default): User must match ALL populated filter dimensions.
+   *   - If departments is populated, user must be in one of those departments
+   *   - If roles is populated, user must have one of those roles  
+   *   - If locations is populated, user must be in one of those locations
+   *   - Empty dimensions don't disqualify the user
+   * 
+   * ANY mode: User must match AT LEAST ONE populated filter dimension.
+   *   - User matches if their department, role, OR location matches any filter
+   *   - Empty dimensions don't count as a match
+   */
+  const buildAudienceFilter = () => {
+    if (isAdmin || !userId) return {};
+
+    // Condition: post targets all users
+    const targetsAll = { audience: { path: ["type"], equals: "all" } };
+
+    // Condition: no specific targeting (type is null AND all dimensions empty)
+    const noTargeting = {
+      AND: [
+        {
+          OR: [
+            { audience: { path: ["type"], equals: Prisma.AnyNull } },
+            { audience: { path: ["type"], equals: Prisma.DbNull } },
+          ],
+        },
+        dimensionIsEmpty("departments"),
+        dimensionIsEmpty("roles"),
+        dimensionIsEmpty("locations"),
+      ],
+    };
+
+    // ALL mode filter: user must match every populated dimension
+    // For each dimension: either it's empty OR user matches it
+    const allModeFilter = {
+      AND: [
+        { OR: [{ audienceMatchMode: "ALL" }, { audienceMatchMode: null }] },
+        // Department: empty OR user matches
+        {
+          OR: [
+            dimensionIsEmpty("departments"),
+            ...(departmentName ? [userMatchesDimension("departments", departmentName)] : []),
+          ].filter(Boolean),
+        },
+        // Role: empty OR user matches
+        {
+          OR: [
+            dimensionIsEmpty("roles"),
+            ...(jobRoleName ? [userMatchesDimension("roles", jobRoleName)] : []),
+          ].filter(Boolean),
+        },
+        // Location: empty OR user matches
+        {
+          OR: [
+            dimensionIsEmpty("locations"),
+            ...(locationName ? [userMatchesDimension("locations", locationName)] : []),
+          ].filter(Boolean),
+        },
+      ],
+    };
+
+    // ANY mode filter: user must match at least one populated dimension
+    const anyModeMatches = [
+      dimensionPopulatedAndMatches("departments", departmentName),
+      dimensionPopulatedAndMatches("roles", jobRoleName),
+      dimensionPopulatedAndMatches("locations", locationName),
+    ].filter(Boolean);
+
+    const anyModeFilter = anyModeMatches.length > 0 ? {
+      AND: [
+        { audienceMatchMode: "ANY" },
+        { OR: anyModeMatches },
+      ],
+    } : null;
+
+    return {
+      OR: [
+        targetsAll,
+        noTargeting,
+        allModeFilter,
+        ...(anyModeFilter ? [anyModeFilter] : []),
+      ],
+    };
+  };
+
+  const audienceWhereClause = buildAudienceFilter();
 
   // Build where clause based on options
   const baseWhereClause = {

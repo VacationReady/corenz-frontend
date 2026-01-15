@@ -155,7 +155,7 @@ async function getHandler(req: NextRequest) {
       },
       Employee: {
         select: {
-          Department_Employee_departmentIdToDepartment: {
+          Department: {
             select: { name: true },
           },
           JobRole: {
@@ -179,7 +179,7 @@ async function getHandler(req: NextRequest) {
   // Check User table first, then fall back to Employee table for department/role
   const departmentName =
     requestingUser.Department_User_departmentIdToDepartment?.name ?? 
-    requestingUser.Employee?.Department_Employee_departmentIdToDepartment?.name ?? 
+    requestingUser.Employee?.Department?.name ?? 
     null;
   const jobRoleName = 
     requestingUser.JobRole?.name ?? 

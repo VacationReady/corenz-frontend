@@ -538,7 +538,7 @@ function AudiencePreviewCount({
           <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
             No users match the current filters. Consider adjusting your audience selection
             {value.matchMode === "ALL" && hasCustomAudience && (
-              <> or switching to "Match ANY condition" for broader reach</>.
+              <> or switching to "Match ANY condition" for broader reach</>
             )}
           </p>
         )}

@@ -397,14 +397,16 @@ export default function EventManagerPage() {
                                 )
                               }
                               disabled={
-                                category.name.toLowerCase().includes("sick") ||
+                                // Only disable for actual sick leave categories, not any category containing "sick"
+                                (category.name.toLowerCase() === "sick leave" || 
+                                 category.name.toLowerCase() === "sickness") ||
                                 savingKey === `${category.id}:includeInGeneralVisibility`
                               }
                             />
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="max-w-[280px] text-xs">
-                          {category.name.toLowerCase().includes("sick") ? (
+                          {(category.name.toLowerCase() === "sick leave" || category.name.toLowerCase() === "sickness") ? (
                             <p>Sickness visibility is always restricted and cannot be changed.</p>
                           ) : (
                             <>

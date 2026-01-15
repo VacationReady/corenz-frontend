@@ -75,9 +75,19 @@ export default function EditAnnualLeaveModal({
       return;
     }
 
+    // Allow zero balance but show warning (legitimate for casual employees or exhausted leave)
     if (balanceNum === 0) {
-      setError('Balance of 0 days is unusual. Please verify this is correct. If the employee has no entitlement, consider their employment status.');
-      return;
+      const confirmed = confirm(
+        'Setting balance to 0 days.\n\n' +
+        'This is unusual but valid for:\n' +
+        '• Casual employees (who receive 8% holiday pay instead)\n' +
+        '• Employees who have used all their leave\n' +
+        '• New employees before first accrual\n\n' +
+        'Continue with 0 days balance?'
+      );
+      if (!confirmed) {
+        return;
+      }
     }
 
     if (balanceNum > 200) {

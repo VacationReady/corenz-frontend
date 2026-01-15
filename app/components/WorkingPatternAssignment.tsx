@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/Select";
 import { toast } from "sonner";
 import { ProfileUpdateSuccessAnimation } from "@/components/animations";
+import { calculateHoursForDay } from "@/lib/working-pattern-utils";
 
 interface Pattern {
   id: string;
@@ -91,11 +92,9 @@ export default function WorkingPatternAssignment({
       weekCount++;
       
       for (const day of week.days) {
-        if (day.type === 'FULL_DAY') {
-          totalHours += day.hoursPerDay ? day.hoursPerDay : 8;
-        } else if (day.type.includes('HALF_DAY')) {
-          totalHours += day.hoursPerDay ? day.hoursPerDay / 2 : 4;
-        }
+        // Use the utility function to properly calculate hours for all day types including TIMED
+        const dayHours = calculateHoursForDay(day as any, 30);
+        totalHours += dayHours;
       }
     }
 

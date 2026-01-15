@@ -113,10 +113,15 @@ export default function ViewWorkingPatternModal({ pattern }: ViewWorkingPatternM
   // Calculate total hours per week for standard patterns
   const calculateWeeklyHours = (week: WorkingPatternWeek): number => {
     return week.days.reduce((total, day) => {
+      // hoursPerDay already contains the actual hours for the day, no need to divide
+      if (day.hoursPerDay != null && day.hoursPerDay > 0) {
+        return total + day.hoursPerDay;
+      }
+      // Fallback to defaults only if hoursPerDay is not set
       if (day.type === "FULL_DAY") {
-        return total + (day.hoursPerDay || 8);
+        return total + 8;
       } else if (day.type === "HALF_DAY_AM" || day.type === "HALF_DAY_PM") {
-        return total + (day.hoursPerDay ? day.hoursPerDay / 2 : 4);
+        return total + 4;
       }
       return total;
     }, 0);

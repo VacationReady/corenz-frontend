@@ -5,6 +5,7 @@ import NewsPageClient from "@/components/news/NewsPageClient"; // ✅ Missing im
 import { redirect } from "next/navigation";
 import { FeatureGuardedPage } from "@/components/FeatureGuardedPage";
 import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
+import { hasPermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function NewsPage() {
     isDraft: post.isDraft,
   }));
 
-  // Determine permissions
+  // Determine permissions - check if user has "news" edit permission
   let canPost = false;
 
   if (session?.user?.email && session?.user?.companyId) {
@@ -61,10 +62,15 @@ export default async function NewsPage() {
           companyId: session.user.companyId,
         },
       },
+      include: {
+        PermissionProfile: true,
+      },
     });
 
-    if (dbUser?.role && ["ADMIN", "SUPER_ADMIN", "MANAGER"].includes(dbUser.role)) {
-      canPost = true;
+    if (dbUser) {
+      // Use the permissions system to check for "news" edit permission
+      // This respects both role-based and custom permission profiles
+      canPost = hasPermission(dbUser as any, "news", "edit");
     }
   }
 

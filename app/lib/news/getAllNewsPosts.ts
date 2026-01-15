@@ -91,34 +91,35 @@ export async function getAllNewsPosts(
     }
   }
 
-  // Helper function for audience dimension visibility
-  const audienceDimensionVisibility = (
-    key: "departments" | "roles" | "locations",
-    value: string | null,
-  ) => {
-    const or: any[] = [
-      { audience: { path: [key], equals: Prisma.AnyNull } },
-      { audience: { path: [key], equals: [] } },
-    ];
-
-    if (value) {
-      or.push({ audience: { path: [key], array_contains: [value] } });
-    }
-
-    return { OR: or };
-  };
-
-  // Build audience filter
+  // Build audience filter - user should see post if they match ANY specified dimension
   const audienceWhereClause = isAdmin || !userId ? {} : {
     OR: [
+      // Show if post targets all users
       { audience: { path: ["type"], equals: "all" } },
-      {
+      // Show if user's department matches (and departments are specified)
+      ...(departmentName ? [{
         AND: [
-          audienceDimensionVisibility("departments", departmentName),
-          audienceDimensionVisibility("roles", jobRoleName),
-          audienceDimensionVisibility("locations", locationName),
+          { audience: { path: ["departments"], not: Prisma.AnyNull } },
+          { audience: { path: ["departments"], not: { equals: [] } } },
+          { audience: { path: ["departments"], array_contains: [departmentName] } },
         ],
-      },
+      }] : []),
+      // Show if user's role matches (and roles are specified)
+      ...(jobRoleName ? [{
+        AND: [
+          { audience: { path: ["roles"], not: Prisma.AnyNull } },
+          { audience: { path: ["roles"], not: { equals: [] } } },
+          { audience: { path: ["roles"], array_contains: [jobRoleName] } },
+        ],
+      }] : []),
+      // Show if user's location matches (and locations are specified)
+      ...(locationName ? [{
+        AND: [
+          { audience: { path: ["locations"], not: Prisma.AnyNull } },
+          { audience: { path: ["locations"], not: { equals: [] } } },
+          { audience: { path: ["locations"], array_contains: [locationName] } },
+        ],
+      }] : []),
     ],
   };
 

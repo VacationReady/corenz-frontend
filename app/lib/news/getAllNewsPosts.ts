@@ -77,6 +77,14 @@ export async function getAllNewsPosts(
         },
         Employee: {
           select: {
+            departmentId: true,
+            jobRoleId: true,
+            Department_Employee_departmentIdToDepartment: {
+              select: { name: true },
+            },
+            JobRole: {
+              select: { name: true },
+            },
             Location: {
               select: { name: true },
             },
@@ -89,19 +97,28 @@ export async function getAllNewsPosts(
 
     if (requestingUser) {
       isAdmin = requestingUser.role === "ADMIN" || requestingUser.role === "SUPER_ADMIN";
-      departmentName = requestingUser.Department_User_departmentIdToDepartment?.name ?? null;
-      jobRoleName = requestingUser.JobRole?.name ?? null;
+      
+      // Check User table first, then fall back to Employee table for department/role
+      departmentName = 
+        requestingUser.Department_User_departmentIdToDepartment?.name ?? 
+        requestingUser.Employee?.Department_Employee_departmentIdToDepartment?.name ?? 
+        null;
+      
+      jobRoleName = 
+        requestingUser.JobRole?.name ?? 
+        requestingUser.Employee?.JobRole?.name ?? 
+        null;
+      
       locationName = requestingUser.Employee?.Location?.name ?? null;
       
       console.log("🔍 [getAllNewsPosts] Extracted values:", {
-        departmentId: requestingUser.departmentId,
-        jobRoleId: requestingUser.jobRoleId,
+        userDepartmentId: requestingUser.departmentId,
+        userJobRoleId: requestingUser.jobRoleId,
+        employeeDepartmentId: requestingUser.Employee?.departmentId,
+        employeeJobRoleId: requestingUser.Employee?.jobRoleId,
         departmentName,
         jobRoleName,
         locationName,
-        hasDepartmentRelation: !!requestingUser.Department_User_departmentIdToDepartment,
-        hasJobRoleRelation: !!requestingUser.JobRole,
-        hasEmployeeRelation: !!requestingUser.Employee,
       });
     }
   }

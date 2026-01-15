@@ -155,6 +155,12 @@ async function getHandler(req: NextRequest) {
       },
       Employee: {
         select: {
+          Department_Employee_departmentIdToDepartment: {
+            select: { name: true },
+          },
+          JobRole: {
+            select: { name: true },
+          },
           Location: {
             select: { name: true },
           },
@@ -170,9 +176,15 @@ async function getHandler(req: NextRequest) {
   const isAdmin =
     requestingUser.role === "ADMIN" || requestingUser.role === "SUPER_ADMIN";
 
+  // Check User table first, then fall back to Employee table for department/role
   const departmentName =
-    requestingUser.Department_User_departmentIdToDepartment?.name ?? null;
-  const jobRoleName = requestingUser.JobRole?.name ?? null;
+    requestingUser.Department_User_departmentIdToDepartment?.name ?? 
+    requestingUser.Employee?.Department_Employee_departmentIdToDepartment?.name ?? 
+    null;
+  const jobRoleName = 
+    requestingUser.JobRole?.name ?? 
+    requestingUser.Employee?.JobRole?.name ?? 
+    null;
   const locationName = requestingUser.Employee?.Location?.name ?? null;
 
   const baseWhereClause = {

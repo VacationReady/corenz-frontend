@@ -731,6 +731,79 @@ export default function AddEmployeeModal({
     }
   }, [formData.holidayYear]); // Only depend on holidayYear
 
+  // Holiday year selection update function (must be before useEffect that uses it)
+  const updateHolidayYearSelection = useCallback((
+    monthValue: string,
+    dayValue: string,
+  ) => {
+    if (!monthValue) {
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
+      setHolidayYearError(null);
+      return;
+    }
+
+    const month = parseInt(monthValue, 10);
+    if (Number.isNaN(month) || month < 1 || month > 12) {
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
+      setHolidayYearError("Please choose a valid month.");
+      return;
+    }
+
+    if (!dayValue) {
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
+      setHolidayYearError(null);
+      return;
+    }
+
+    const day = parseInt(dayValue, 10);
+    if (Number.isNaN(day)) {
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
+      setHolidayYearError("Day must be a number.");
+      return;
+    }
+
+    if (day < 1 || day > 31) {
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
+      setHolidayYearError("Day must be between 1 and 31.");
+      return;
+    }
+
+    const maxDay = getDaysInMonth(month);
+    if (day > maxDay) {
+      const monthName =
+        monthOptions.find((option) => option.value === monthValue)?.label ||
+        "The selected month";
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
+      setHolidayYearError(
+        `${monthName} has only ${maxDay} days. Adjust the day to continue.`,
+      );
+      return;
+    }
+
+    const { endMonth, endDay } = calculateHolidayYearEnd(month, day);
+    const payload = JSON.stringify({
+      startMonth: month,
+      startDay: day,
+      endMonth,
+      endDay,
+    });
+
+    setFormData((prev) => (prev.holidayYear === payload ? prev : { ...prev, holidayYear: payload }));
+    setHolidayYearError(null);
+  }, [monthOptions]);
+
   // Auto-populate holiday year from start date (QOL feature)
   // Reset auto-population flag when start date changes to allow re-population
   const hasAutoPopulatedHolidayRef = useRef(false);
@@ -963,77 +1036,6 @@ export default function AddEmployeeModal({
     return () => clearTimeout(timeoutId);
   }, [formData, initialFormData, storageKey]);
 
-  const updateHolidayYearSelection = (
-    monthValue: string,
-    dayValue: string,
-  ) => {
-    if (!monthValue) {
-      setFormData((prev) =>
-        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
-      );
-      setHolidayYearError(null);
-      return;
-    }
-
-    const month = parseInt(monthValue, 10);
-    if (Number.isNaN(month) || month < 1 || month > 12) {
-      setFormData((prev) =>
-        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
-      );
-      setHolidayYearError("Please choose a valid month.");
-      return;
-    }
-
-    if (!dayValue) {
-      setFormData((prev) =>
-        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
-      );
-      setHolidayYearError(null);
-      return;
-    }
-
-    const day = parseInt(dayValue, 10);
-    if (Number.isNaN(day)) {
-      setFormData((prev) =>
-        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
-      );
-      setHolidayYearError("Day must be a number.");
-      return;
-    }
-
-    if (day < 1 || day > 31) {
-      setFormData((prev) =>
-        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
-      );
-      setHolidayYearError("Day must be between 1 and 31.");
-      return;
-    }
-
-    const maxDay = getDaysInMonth(month);
-    if (day > maxDay) {
-      const monthName =
-        monthOptions.find((option) => option.value === monthValue)?.label ||
-        "The selected month";
-      setFormData((prev) =>
-        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
-      );
-      setHolidayYearError(
-        `${monthName} has only ${maxDay} days. Adjust the day to continue.`,
-      );
-      return;
-    }
-
-    const { endMonth, endDay } = calculateHolidayYearEnd(month, day);
-    const payload = JSON.stringify({
-      startMonth: month,
-      startDay: day,
-      endMonth,
-      endDay,
-    });
-
-    setFormData((prev) => (prev.holidayYear === payload ? prev : { ...prev, holidayYear: payload }));
-    setHolidayYearError(null);
-  };
 
   const handleHolidayMonthChange = (value: string) => {
     setHolidayStartMonth(value);

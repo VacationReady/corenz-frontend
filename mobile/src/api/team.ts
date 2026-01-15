@@ -41,7 +41,9 @@ export async function getMyTeam(params?: {
     throw new Error('Failed to fetch team');
   }
 
-  return response.json();
+  const result = await response.json();
+  // API returns { data, pagination } format
+  return Array.isArray(result) ? result : (result.data || []);
 }
 
 /**
@@ -70,7 +72,9 @@ export async function getAllEmployees(params?: {
     throw new Error('Failed to fetch employees');
   }
 
-  return response.json();
+  const result = await response.json();
+  // API returns { data, pagination } format
+  return Array.isArray(result) ? result : (result.data || []);
 }
 
 /**

@@ -13,7 +13,6 @@ const EventCategorySchema = z.object({
   }),
   requiresApproval: z.boolean().optional().default(true),
   adminOnly: z.boolean().optional().default(false),
-  defaultPaidStatus: z.enum(["PAID", "UNPAID"]).optional().default("PAID"),
   iconKey: z.string().min(1, "Icon is required."),
   color: z.string().optional(),
   isActive: z.boolean().optional().default(true),
@@ -117,7 +116,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, categoryType, requiresApproval, adminOnly, defaultPaidStatus, iconKey, color, isActive, balanceRequired, defaultBalance, balanceRefreshMonths } = parse.data;
+    const { name, categoryType, requiresApproval, adminOnly, iconKey, color, isActive, balanceRequired, defaultBalance, balanceRefreshMonths } = parse.data;
 
     const existing = await prisma.eventCategory.findFirst({
       where: { name, companyId: session.user.companyId },
@@ -140,7 +139,6 @@ export async function POST(req: Request) {
         categoryType,
         requiresApproval,
         adminOnly,
-        defaultPaidStatus: defaultPaidStatus ?? "PAID",
         iconKey,
         color,
         isActive: isActive ?? true,

@@ -618,14 +618,46 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
               label="Department"
               action={canEdit && <ManageButton onClick={() => { setManageKind("department"); setManageOpen(true); }} />}
             >
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  readOnly
-                  value={form?.department?.name || ""}
-                  className="h-11 pl-10 rounded-xl bg-muted/30"
-                />
-              </div>
+              {canEdit ? (
+                <Select
+                  value={form.departmentId || undefined}
+                  onValueChange={(v) => setForm((f: any) => ({ ...f, departmentId: v }))}
+                >
+                  <SelectTrigger className="w-full h-11 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-muted-foreground" />
+                      <SelectValue placeholder="Select department" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                    <div className="px-2 py-2 border-t border-muted/40 mt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-primary"
+                        onClick={() => { setManageKind("department"); setManageOpen(true); }}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add new option
+                      </Button>
+                    </div>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    readOnly
+                    value={form?.department?.name || ""}
+                    className="h-11 pl-10 rounded-xl bg-muted/30"
+                  />
+                </div>
+              )}
             </FormField>
 
             {/* Job Role */}

@@ -52,7 +52,17 @@ export default function LeaveScreen() {
         getLeavePolicies(),
       ]);
 
-      if (balancesData.status === 'fulfilled') setBalances(balancesData.value);
+      if (balancesData.status === 'fulfilled') {
+        const allBalances = balancesData.value;
+        // Filter to show only annual leave, or if not found, show non-zero balances
+        const annualLeave = allBalances.filter(b => 
+          b.policyName.toLowerCase().includes('annual')
+        );
+        const filteredBalances = annualLeave.length > 0 
+          ? annualLeave 
+          : allBalances.filter(b => b.remaining > 0);
+        setBalances(filteredBalances);
+      }
       if (requestsData.status === 'fulfilled') setRequests(requestsData.value);
       if (policiesData.status === 'fulfilled') setPolicies(policiesData.value);
     } catch (error) {
@@ -279,16 +289,28 @@ export default function LeaveScreen() {
               <Text style={styles.dateText}>{startDate.toLocaleDateString()}</Text>
             </TouchableOpacity>
             {showStartPicker && (
-              <DateTimePicker
-                value={startDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, date) => {
-                  setShowStartPicker(Platform.OS === 'ios');
-                  if (date) setStartDate(date);
-                }}
-                minimumDate={new Date()}
-              />
+              <View>
+                <DateTimePicker
+                  value={startDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, date) => {
+                    if (Platform.OS === 'android') {
+                      setShowStartPicker(false);
+                    }
+                    if (date) setStartDate(date);
+                  }}
+                  minimumDate={new Date()}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={styles.datePickerDone}
+                    onPress={() => setShowStartPicker(false)}
+                  >
+                    <Text style={styles.datePickerDoneText}>Done</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
 
             {/* End Date */}
@@ -301,16 +323,28 @@ export default function LeaveScreen() {
               <Text style={styles.dateText}>{endDate.toLocaleDateString()}</Text>
             </TouchableOpacity>
             {showEndPicker && (
-              <DateTimePicker
-                value={endDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, date) => {
-                  setShowEndPicker(Platform.OS === 'ios');
-                  if (date) setEndDate(date);
-                }}
-                minimumDate={startDate}
-              />
+              <View>
+                <DateTimePicker
+                  value={endDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, date) => {
+                    if (Platform.OS === 'android') {
+                      setShowEndPicker(false);
+                    }
+                    if (date) setEndDate(date);
+                  }}
+                  minimumDate={startDate}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={styles.datePickerDone}
+                    onPress={() => setShowEndPicker(false)}
+                  >
+                    <Text style={styles.datePickerDoneText}>Done</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
 
             {/* Reason */}
@@ -494,5 +528,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 32,
     marginBottom: 16,
+  },
+  datePickerDone: {
+    backgroundColor: '#3b82f6',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  datePickerDoneText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

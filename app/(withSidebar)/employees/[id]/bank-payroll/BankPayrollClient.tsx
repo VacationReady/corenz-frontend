@@ -392,7 +392,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     
     if (!hoursPerWeek) {
       setCalculatedHourlyRate(null);
-      setHourlyRateMessage("Can't calculate - no working pattern");
+      setHourlyRateMessage("Assign a working pattern in Employee Settings to enable auto-calculation");
       return;
     }
 

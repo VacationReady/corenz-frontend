@@ -732,13 +732,20 @@ export default function AddEmployeeModal({
   }, [formData.holidayYear]); // Only depend on holidayYear
 
   // Auto-populate holiday year from start date (QOL feature)
-  // Use a ref to track if we've already auto-populated to prevent loops
+  // Reset auto-population flag when start date changes to allow re-population
   const hasAutoPopulatedHolidayRef = useRef(false);
+  const lastStartDateRef = useRef<string>("");
   
   useEffect(() => {
-    // Only auto-populate once per modal open
+    // Reset flag if start date changed
+    if (lastStartDateRef.current !== formData.startDate) {
+      hasAutoPopulatedHolidayRef.current = false;
+      lastStartDateRef.current = formData.startDate;
+    }
+    
+    // Only auto-populate once per start date
     if (hasAutoPopulatedHolidayRef.current) return;
-    // Don't auto-populate if holiday year is already set
+    // Don't auto-populate if holiday year is already manually set
     if (formData.holidayYear) return;
     
     const startDate = new Date(formData.startDate);
@@ -752,7 +759,7 @@ export default function AddEmployeeModal({
     setHolidayStartMonth(month);
     setHolidayStartDay(day);
     updateHolidayYearSelection(month, day);
-  }, [formData.startDate]);
+  }, [formData.startDate, formData.holidayYear, updateHolidayYearSelection]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -1237,9 +1244,9 @@ export default function AddEmployeeModal({
         irdNumber: formData.irdNumber || "",
         taxCode: formData.taxCode || "",
         kiwiSaverEnrolled: formData.kiwiSaverEnrolled,
-        kiwiSaverEmployeeRate: formData.kiwiSaverEmployeeRate
+        kiwiSaverEmployeeRate: formData.kiwiSaverEmployeeRate && formData.kiwiSaverEmployeeRate.trim() !== ""
           ? parseFloat(formData.kiwiSaverEmployeeRate) / 100
-          : undefined,
+          : null,
         bankAccountNumber: formData.bankAccountNumber || "",
         residencyStatus: formData.residencyStatus || "",
         emergencyContactName: formData.emergencyContactName || "",
@@ -2669,9 +2676,17 @@ export default function AddEmployeeModal({
                           open={isWorkingPatternSelectOpen}
                           onOpenChange={handleWorkingPatternOpenChange}
                           value={formData.workingPatternId || undefined}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, workingPatternId: value })
-                          }
+                          onValueChange={(value) => {
+                            const newPattern = workingPatterns.find((p) => p.id === value);
+                            const isNewPatternShiftBased = newPattern?.patternType === "SHIFT_BASED";
+                            
+                            // Clear rota groups if switching to non-shift-based pattern
+                            setFormData({
+                              ...formData,
+                              workingPatternId: value,
+                              rotaGroupIds: isNewPatternShiftBased ? formData.rotaGroupIds : [],
+                            });
+                          }}
                         >
                           <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
                             <SelectValue placeholder="Select working pattern" />

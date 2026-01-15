@@ -196,8 +196,9 @@ test("GET /api/news enforces department audience", async () => {
   const findManyArgs = mockNewsPostFindMany.mock.calls[0].arguments[0];
   // Ensure query includes audience filter
   assert.ok(findManyArgs.where.AND);
+  // The audience filter is now at AND[2] (baseWhereClause, publishedFilter, audienceWhereClause)
   assert.equal(
-    findManyArgs.where.AND[1].OR[0].audience.path[0],
+    findManyArgs.where.AND[2].OR[0].audience.path[0],
     "type",
   );
 });

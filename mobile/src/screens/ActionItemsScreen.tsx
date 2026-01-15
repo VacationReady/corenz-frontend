@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,272 +7,635 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+  Linking,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import {
-  getMyActionItems,
+  getUnifiedActionItems,
   completeActionItem,
-  updateActionItemStatus,
-  ActionItem,
+  approveLeaveRequest,
+  declineLeaveRequest,
+  approveChangeRequest,
+  declineChangeRequest,
+  approveTimesheet,
+  rejectTimesheet,
+  acknowledgeDocument,
+  signDocument,
+  UnifiedActionItem,
+  ActionItemCounts,
+  ActionItemType,
 } from '../api/action-items';
-import Card from '../components/Card';
-import Badge from '../components/Badge';
-import Button from '../components/Button';
 import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+type FilterType = 'all' | 'approvals' | 'documents' | 'tasks';
+
+interface ActionModalState {
+  visible: boolean;
+  item: UnifiedActionItem | null;
+  action: 'approve' | 'decline' | 'view' | null;
+}
+
+const TYPE_CONFIG: Record<ActionItemType, { icon: string; color: string; bgColor: string; label: string }> = {
+  SURVEY: { icon: 'clipboard-outline', color: '#8b5cf6', bgColor: '#f3e8ff', label: 'Survey' },
+  DOCUMENT_SIGNATURE: { icon: 'create-outline', color: '#0ea5e9', bgColor: '#e0f2fe', label: 'Sign' },
+  DOCUMENT_ACKNOWLEDGEMENT: { icon: 'document-text-outline', color: '#f59e0b', bgColor: '#fef3c7', label: 'Review' },
+  LEAVE_APPROVAL: { icon: 'calendar-outline', color: '#10b981', bgColor: '#d1fae5', label: 'Leave' },
+  TIMESHEET_APPROVAL: { icon: 'time-outline', color: '#6366f1', bgColor: '#e0e7ff', label: 'Timesheet' },
+  CHANGE_REQUEST: { icon: 'swap-horizontal-outline', color: '#ec4899', bgColor: '#fce7f3', label: 'Change' },
+  TASK: { icon: 'checkbox-outline', color: '#64748b', bgColor: '#f1f5f9', label: 'Task' },
+  BULK_UPDATE_APPROVAL: { icon: 'people-outline', color: '#14b8a6', bgColor: '#ccfbf1', label: 'Bulk' },
+  EXIT_INTERVIEW_FORM: { icon: 'exit-outline', color: '#f43f5e', bgColor: '#ffe4e6', label: 'Exit' },
+};
+
 export default function ActionItemsScreen() {
+  const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [items, setItems] = useState<ActionItem[]>([]);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending');
+  const [items, setItems] = useState<UnifiedActionItem[]>([]);
+  const [counts, setCounts] = useState<ActionItemCounts>({ total: 0, surveys: 0, approvals: 0, timesheets: 0, documents: 0, changeRequests: 0, tasks: 0 });
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [modal, setModal] = useState<ActionModalState>({ visible: false, item: null, action: null });
+  const [declineReason, setDeclineReason] = useState('');
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const data = await getMyActionItems();
+      const { items: data, counts: itemCounts } = await getUnifiedActionItems();
       setItems(data);
+      setCounts(itemCounts);
     } catch (error) {
       console.error('Failed to load action items:', error);
+      Alert.alert('Error', 'Failed to load action items. Please try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadData();
-  };
+  }, [loadData]);
 
-  const handleComplete = async (itemId: string) => {
+  const removeItem = useCallback((itemId: string) => {
+    setItems(prev => prev.filter(i => i.id !== itemId));
+  }, []);
+
+  const handleAction = async (item: UnifiedActionItem, action: 'approve' | 'decline' | 'complete') => {
+    setProcessing(item.id);
+    
     try {
-      await completeActionItem(itemId);
-      setItems((prev) =>
-        prev.map((item) =>
-          item.id === itemId
-            ? { ...item, status: 'COMPLETED', completedAt: new Date().toISOString() }
-            : item
-        )
-      );
-      Alert.alert('Success', 'Action item marked as complete');
+      switch (item.type) {
+        case 'LEAVE_APPROVAL':
+          if (action === 'approve') {
+            await approveLeaveRequest(item.metadata?.decisionId || item.id);
+            Alert.alert('Success', 'Leave request approved');
+          } else if (action === 'decline') {
+            if (!declineReason.trim()) {
+              Alert.alert('Required', 'Please provide a reason for declining');
+              setProcessing(null);
+              return;
+            }
+            await declineLeaveRequest(item.metadata?.decisionId || item.id, declineReason);
+            Alert.alert('Success', 'Leave request declined');
+          }
+          break;
+
+        case 'CHANGE_REQUEST':
+          if (action === 'approve') {
+            await approveChangeRequest(item.metadata?.requestId || item.id);
+            Alert.alert('Success', 'Change request approved');
+          } else if (action === 'decline') {
+            if (!declineReason.trim()) {
+              Alert.alert('Required', 'Please provide a reason for declining');
+              setProcessing(null);
+              return;
+            }
+            await declineChangeRequest(item.metadata?.requestId || item.id, declineReason);
+            Alert.alert('Success', 'Change request declined');
+          }
+          break;
+
+        case 'TIMESHEET_APPROVAL':
+          if (action === 'approve') {
+            await approveTimesheet(item.metadata?.timesheetId);
+            Alert.alert('Success', 'Timesheet approved');
+          } else if (action === 'decline') {
+            if (!declineReason.trim()) {
+              Alert.alert('Required', 'Please provide a reason for rejecting');
+              setProcessing(null);
+              return;
+            }
+            await rejectTimesheet(item.metadata?.timesheetId, declineReason);
+            Alert.alert('Success', 'Timesheet rejected');
+          }
+          break;
+
+        case 'DOCUMENT_ACKNOWLEDGEMENT':
+          await acknowledgeDocument(item.metadata?.documentId || item.id);
+          Alert.alert('Success', 'Document acknowledged');
+          break;
+
+        case 'DOCUMENT_SIGNATURE':
+          // For now, open in browser for signature - mobile signature capture would be a future enhancement
+          const docUrl = item.metadata?.documentUrl;
+          if (docUrl) {
+            Alert.alert(
+              'Sign Document',
+              'Document signing requires the desktop app for the best experience. Would you like to open it in your browser?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Open', onPress: () => Linking.openURL(docUrl) },
+              ]
+            );
+          } else {
+            Alert.alert('Info', 'Please sign this document on the desktop app for the best experience.');
+          }
+          setProcessing(null);
+          return;
+
+        case 'SURVEY':
+          // Navigate to survey completion
+          if (item.metadata?.surveyId) {
+            navigation.navigate('Surveys', { surveyId: item.metadata.surveyId, actionItemId: item.metadata.actionItemId });
+          } else {
+            Alert.alert('Error', 'Survey data not available');
+          }
+          setProcessing(null);
+          return;
+
+        case 'EXIT_INTERVIEW_FORM':
+          // Open exit interview form
+          if (item.metadata?.formLink) {
+            Linking.openURL(item.metadata.formLink);
+          } else if (item.metadata?.completionTokenHash) {
+            Alert.alert('Info', 'Please complete this form on the desktop app.');
+          }
+          setProcessing(null);
+          return;
+
+        default:
+          // Generic task completion
+          if (action === 'complete') {
+            await completeActionItem(item.metadata?.actionItemId || item.id);
+            Alert.alert('Success', 'Task completed');
+          }
+      }
+
+      removeItem(item.id);
+      setModal({ visible: false, item: null, action: null });
+      setDeclineReason('');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to complete action item');
+      Alert.alert('Error', error.message || 'Action failed. Please try again.');
+    } finally {
+      setProcessing(null);
     }
   };
 
-  const handleStatusChange = async (itemId: string, status: ActionItem['status']) => {
-    try {
-      await updateActionItemStatus(itemId, status);
-      setItems((prev) =>
-        prev.map((item) => (item.id === itemId ? { ...item, status } : item))
-      );
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update action item');
-    }
+  const openActionModal = (item: UnifiedActionItem, action: 'approve' | 'decline' | 'view') => {
+    setModal({ visible: true, item, action });
+    setDeclineReason('');
   };
+
+  const getFilteredItems = useCallback(() => {
+    switch (filter) {
+      case 'approvals':
+        return items.filter(i => ['LEAVE_APPROVAL', 'TIMESHEET_APPROVAL', 'CHANGE_REQUEST', 'BULK_UPDATE_APPROVAL'].includes(i.type));
+      case 'documents':
+        return items.filter(i => ['DOCUMENT_SIGNATURE', 'DOCUMENT_ACKNOWLEDGEMENT'].includes(i.type));
+      case 'tasks':
+        return items.filter(i => ['SURVEY', 'TASK', 'EXIT_INTERVIEW_FORM'].includes(i.type));
+      default:
+        return items;
+    }
+  }, [items, filter]);
+
+  const filteredItems = getFilteredItems();
 
   if (loading) {
     return <LoadingState message="Loading your action items..." />;
   }
 
-  const filteredItems = items.filter((item) => {
-    if (filter === 'all') return true;
-    if (filter === 'pending') return item.status !== 'COMPLETED';
-    if (filter === 'completed') return item.status === 'COMPLETED';
-    return true;
-  });
-
-  const pendingCount = items.filter((i) => i.status !== 'COMPLETED').length;
-  const completedCount = items.filter((i) => i.status === 'COMPLETED').length;
-
-  const priorityColor = (priority: string) => {
-    switch (priority) {
-      case 'URGENT':
-        return '#ef4444';
-      case 'HIGH':
-        return '#f59e0b';
-      case 'MEDIUM':
-        return '#3b82f6';
-      case 'LOW':
-        return '#64748b';
-      default:
-        return '#64748b';
-    }
+  const renderTypeIcon = (type: ActionItemType, size: number = 20) => {
+    const config = TYPE_CONFIG[type] || TYPE_CONFIG.TASK;
+    return (
+      <View style={[styles.typeIconContainer, { backgroundColor: config.bgColor }]}>
+        <Ionicons name={config.icon as any} size={size} color={config.color} />
+      </View>
+    );
   };
 
-  const statusVariant = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'success';
-      case 'IN_PROGRESS':
-        return 'info';
-      case 'PENDING':
-        return 'warning';
-      case 'CANCELLED':
-        return 'neutral';
-      default:
-        return 'neutral';
-    }
+  const renderActionItem = (item: UnifiedActionItem) => {
+    const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.TASK;
+    const isApprovalType = ['LEAVE_APPROVAL', 'TIMESHEET_APPROVAL', 'CHANGE_REQUEST', 'BULK_UPDATE_APPROVAL'].includes(item.type);
+    const isDocumentType = ['DOCUMENT_SIGNATURE', 'DOCUMENT_ACKNOWLEDGEMENT'].includes(item.type);
+    const isProcessing = processing === item.id;
+
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={styles.itemCard}
+        onPress={() => openActionModal(item, 'view')}
+        activeOpacity={0.7}
+      >
+        <View style={styles.itemContent}>
+          {/* Left: Type Icon */}
+          <View style={styles.itemLeft}>
+            {renderTypeIcon(item.type, 22)}
+            {item.urgent && <View style={styles.urgentDot} />}
+          </View>
+
+          {/* Center: Content */}
+          <View style={styles.itemCenter}>
+            <View style={styles.itemTitleRow}>
+              <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+              <View style={[styles.typeBadge, { backgroundColor: config.bgColor }]}>
+                <Text style={[styles.typeBadgeText, { color: config.color }]}>{config.label}</Text>
+              </View>
+            </View>
+            {item.subtitle && (
+              <Text style={styles.itemSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+            )}
+            {item.dueDate && (
+              <View style={styles.dueDateRow}>
+                <Ionicons name="time-outline" size={12} color="#94a3b8" />
+                <Text style={styles.dueDateText}>
+                  Due {new Date(item.dueDate).toLocaleDateString()}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.itemActions}>
+          {isApprovalType ? (
+            <>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.declineBtn]}
+                onPress={() => openActionModal(item, 'decline')}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color="#ef4444" />
+                ) : (
+                  <Ionicons name="close" size={18} color="#ef4444" />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.approveBtn]}
+                onPress={() => handleAction(item, 'approve')}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color="#10b981" />
+                ) : (
+                  <Ionicons name="checkmark" size={18} color="#10b981" />
+                )}
+              </TouchableOpacity>
+            </>
+          ) : isDocumentType ? (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.primaryBtn]}
+              onPress={() => handleAction(item, 'complete')}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.primaryBtnText}>{item.actionLabel || 'Review'}</Text>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.primaryBtn]}
+              onPress={() => handleAction(item, 'complete')}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.primaryBtnText}>{item.actionLabel || 'Complete'}</Text>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderDeclineModal = () => {
+    if (!modal.item || modal.action !== 'decline') return null;
+    const config = TYPE_CONFIG[modal.item.type] || TYPE_CONFIG.TASK;
+
+    return (
+      <Modal
+        visible={modal.visible && modal.action === 'decline'}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModal({ visible: false, item: null, action: null })}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.modalIcon, { backgroundColor: '#fee2e2' }]}>
+                <Ionicons name="close-circle-outline" size={28} color="#ef4444" />
+              </View>
+              <Text style={styles.modalTitle}>Decline Request</Text>
+              <Text style={styles.modalSubtitle}>{modal.item.title}</Text>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.inputLabel}>Reason for declining *</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Please provide a reason..."
+                placeholderTextColor="#94a3b8"
+                value={declineReason}
+                onChangeText={setDeclineReason}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setModal({ visible: false, item: null, action: null })}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, { backgroundColor: '#ef4444' }]}
+                onPress={() => handleAction(modal.item!, 'decline')}
+                disabled={processing === modal.item?.id}
+              >
+                {processing === modal.item?.id ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.modalConfirmText}>Decline</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  const renderDetailModal = () => {
+    if (!modal.item || modal.action !== 'view') return null;
+    const config = TYPE_CONFIG[modal.item.type] || TYPE_CONFIG.TASK;
+    const isApprovalType = ['LEAVE_APPROVAL', 'TIMESHEET_APPROVAL', 'CHANGE_REQUEST', 'BULK_UPDATE_APPROVAL'].includes(modal.item.type);
+
+    return (
+      <Modal
+        visible={modal.visible && modal.action === 'view'}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModal({ visible: false, item: null, action: null })}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.modalIcon, { backgroundColor: config.bgColor }]}>
+                <Ionicons name={config.icon as any} size={28} color={config.color} />
+              </View>
+              <Text style={styles.modalTitle}>{modal.item.title}</Text>
+              {modal.item.subtitle && (
+                <Text style={styles.modalSubtitle}>{modal.item.subtitle}</Text>
+              )}
+            </View>
+
+            <View style={styles.modalBody}>
+              {modal.item.description && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Description</Text>
+                  <Text style={styles.detailValue}>{modal.item.description}</Text>
+                </View>
+              )}
+              
+              {modal.item.type === 'LEAVE_APPROVAL' && modal.item.metadata && (
+                <>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Employee</Text>
+                    <Text style={styles.detailValue}>{modal.item.metadata.employeeName}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Leave Type</Text>
+                    <Text style={styles.detailValue}>{modal.item.metadata.leaveType}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Dates</Text>
+                    <Text style={styles.detailValue}>
+                      {new Date(modal.item.metadata.startDate).toLocaleDateString()} - {new Date(modal.item.metadata.endDate).toLocaleDateString()}
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {modal.item.type === 'CHANGE_REQUEST' && modal.item.metadata && (
+                <>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Employee</Text>
+                    <Text style={styles.detailValue}>{modal.item.metadata.employeeName}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Section</Text>
+                    <Text style={styles.detailValue}>{modal.item.metadata.section}</Text>
+                  </View>
+                </>
+              )}
+
+              {modal.item.dueDate && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Due Date</Text>
+                  <Text style={[styles.detailValue, modal.item.urgent && styles.urgentText]}>
+                    {new Date(modal.item.dueDate).toLocaleDateString()}
+                    {modal.item.urgent && ' (Urgent)'}
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Priority</Text>
+                <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(modal.item.priority) + '20' }]}>
+                  <Text style={[styles.priorityText, { color: getPriorityColor(modal.item.priority) }]}>
+                    {modal.item.priority}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setModal({ visible: false, item: null, action: null })}
+              >
+                <Text style={styles.modalCancelText}>Close</Text>
+              </TouchableOpacity>
+              
+              {isApprovalType ? (
+                <>
+                  <TouchableOpacity
+                    style={[styles.modalConfirmBtn, { backgroundColor: '#ef4444', flex: 1, marginRight: 8 }]}
+                    onPress={() => {
+                      setModal({ ...modal, action: 'decline' });
+                    }}
+                  >
+                    <Text style={styles.modalConfirmText}>Decline</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalConfirmBtn, { backgroundColor: '#10b981', flex: 1 }]}
+                    onPress={() => handleAction(modal.item!, 'approve')}
+                    disabled={processing === modal.item?.id}
+                  >
+                    {processing === modal.item?.id ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.modalConfirmText}>Approve</Text>
+                    )}
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.modalConfirmBtn, { backgroundColor: config.color }]}
+                  onPress={() => handleAction(modal.item!, 'complete')}
+                  disabled={processing === modal.item?.id}
+                >
+                  {processing === modal.item?.id ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.modalConfirmText}>{modal.item.actionLabel || 'Complete'}</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
   };
 
   return (
     <View style={styles.container}>
-      {/* Stats Bar */}
-      <View style={styles.statsBar}>
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{pendingCount}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+      {/* Header Stats */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Action Items</Text>
+          <View style={styles.totalBadge}>
+            <Text style={styles.totalBadgeText}>{counts.total}</Text>
+          </View>
         </View>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{completedCount}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{items.length}</Text>
-          <Text style={styles.statLabel}>Total</Text>
-        </View>
-      </View>
-
-      {/* Filter Tabs */}
-      <View style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[styles.filterTab, filter === 'pending' && styles.filterTabActive]}
-          onPress={() => setFilter('pending')}
+        
+        {/* Category Pills */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoryScroll}
+          contentContainerStyle={styles.categoryContainer}
         >
-          <Text
-            style={[styles.filterTabText, filter === 'pending' && styles.filterTabTextActive]}
+          <TouchableOpacity
+            style={[styles.categoryPill, filter === 'all' && styles.categoryPillActive]}
+            onPress={() => setFilter('all')}
           >
-            Pending ({pendingCount})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterTab, filter === 'completed' && styles.filterTabActive]}
-          onPress={() => setFilter('completed')}
-        >
-          <Text
-            style={[styles.filterTabText, filter === 'completed' && styles.filterTabTextActive]}
+            <Ionicons name="apps-outline" size={16} color={filter === 'all' ? '#fff' : '#64748b'} />
+            <Text style={[styles.categoryPillText, filter === 'all' && styles.categoryPillTextActive]}>
+              All ({counts.total})
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.categoryPill, filter === 'approvals' && styles.categoryPillActive]}
+            onPress={() => setFilter('approvals')}
           >
-            Completed ({completedCount})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
-          onPress={() => setFilter('all')}
-        >
-          <Text style={[styles.filterTabText, filter === 'all' && styles.filterTabTextActive]}>
-            All ({items.length})
-          </Text>
-        </TouchableOpacity>
+            <Ionicons name="checkmark-circle-outline" size={16} color={filter === 'approvals' ? '#fff' : '#64748b'} />
+            <Text style={[styles.categoryPillText, filter === 'approvals' && styles.categoryPillTextActive]}>
+              Approvals ({counts.approvals + counts.timesheets + counts.changeRequests})
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.categoryPill, filter === 'documents' && styles.categoryPillActive]}
+            onPress={() => setFilter('documents')}
+          >
+            <Ionicons name="document-outline" size={16} color={filter === 'documents' ? '#fff' : '#64748b'} />
+            <Text style={[styles.categoryPillText, filter === 'documents' && styles.categoryPillTextActive]}>
+              Documents ({counts.documents})
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.categoryPill, filter === 'tasks' && styles.categoryPillActive]}
+            onPress={() => setFilter('tasks')}
+          >
+            <Ionicons name="checkbox-outline" size={16} color={filter === 'tasks' ? '#fff' : '#64748b'} />
+            <Text style={[styles.categoryPillText, filter === 'tasks' && styles.categoryPillTextActive]}>
+              Tasks ({counts.surveys + counts.tasks})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Items List */}
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor="#3b82f6"
+            colors={['#3b82f6']}
+          />
+        }
       >
         {filteredItems.length === 0 ? (
           <EmptyState
             icon="checkmark-done-outline"
-            title="No action items"
+            title="All caught up!"
             description={
-              filter === 'completed'
-                ? 'Completed items will appear here'
-                : 'You have no pending action items'
+              filter === 'all'
+                ? 'You have no pending action items'
+                : `No ${filter} items pending`
             }
           />
         ) : (
-          filteredItems
-            .sort((a, b) => {
-              // Sort by priority first, then by due date
-              const priorityOrder = { URGENT: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
-              const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 4;
-              const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 4;
-              if (aPriority !== bPriority) return aPriority - bPriority;
-              
-              if (a.dueDate && b.dueDate) {
-                return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-              }
-              return 0;
-            })
-            .map((item) => (
-              <Card key={item.id}>
-                <View style={styles.itemHeader}>
-                  <View style={styles.itemHeaderLeft}>
-                    <View
-                      style={[styles.priorityIndicator, { backgroundColor: priorityColor(item.priority) }]}
-                    />
-                    <View style={styles.itemHeaderText}>
-                      <Text style={styles.itemTitle}>{item.title}</Text>
-                      <Text style={styles.itemCategory}>{item.category}</Text>
-                    </View>
-                  </View>
-                  <Badge text={item.status} variant={statusVariant(item.status)} size="small" />
-                </View>
-
-                {item.description && (
-                  <Text style={styles.itemDescription}>{item.description}</Text>
-                )}
-
-                <View style={styles.itemMeta}>
-                  {item.dueDate && (
-                    <View style={styles.metaItem}>
-                      <Ionicons name="calendar-outline" size={16} color="#64748b" />
-                      <Text style={styles.metaText}>
-                        Due: {new Date(item.dueDate).toLocaleDateString()}
-                      </Text>
-                    </View>
-                  )}
-                  {item.assignedBy && (
-                    <View style={styles.metaItem}>
-                      <Ionicons name="person-outline" size={16} color="#64748b" />
-                      <Text style={styles.metaText}>
-                        From: {item.assignedBy.firstName} {item.assignedBy.lastName}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {item.status !== 'COMPLETED' && (
-                  <View style={styles.itemActions}>
-                    {item.status === 'PENDING' && (
-                      <Button
-                        title="Start"
-                        onPress={() => handleStatusChange(item.id, 'IN_PROGRESS')}
-                        variant="outline"
-                        size="small"
-                        style={{ flex: 1, marginRight: 8 }}
-                      />
-                    )}
-                    <Button
-                      title={item.status === 'IN_PROGRESS' ? 'Mark Complete' : 'Complete'}
-                      onPress={() => handleComplete(item.id)}
-                      variant="primary"
-                      size="small"
-                      style={{ flex: 1 }}
-                    />
-                  </View>
-                )}
-
-                {item.completedAt && (
-                  <View style={styles.completedBanner}>
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                    <Text style={styles.completedText}>
-                      Completed on {new Date(item.completedAt).toLocaleDateString()}
-                    </Text>
-                  </View>
-                )}
-              </Card>
-            ))
+          filteredItems.map(renderActionItem)
         )}
+        
+        {/* Bottom padding */}
+        <View style={{ height: 20 }} />
       </ScrollView>
+
+      {/* Modals */}
+      {renderDeclineModal()}
+      {renderDetailModal()}
     </View>
   );
+}
+
+function getPriorityColor(priority: string): string {
+  switch (priority) {
+    case 'URGENT': return '#ef4444';
+    case 'HIGH': return '#f59e0b';
+    case 'MEDIUM': return '#3b82f6';
+    case 'LOW': return '#64748b';
+    default: return '#64748b';
+  }
 }
 
 const styles = StyleSheet.create({
@@ -280,127 +643,303 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  statsBar: {
-    flexDirection: 'row',
+  header: {
     backgroundColor: '#fff',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  stat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#e2e8f0',
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  filterTab: {
-    flex: 1,
-    paddingVertical: 8,
+  headerContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 16,
   },
-  filterTabActive: {
-    borderBottomColor: '#3b82f6',
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.5,
   },
-  filterTabText: {
+  totalBadge: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  totalBadgeText: {
+    color: '#fff',
     fontSize: 14,
+    fontWeight: '700',
+  },
+  categoryScroll: {
+    flexGrow: 0,
+  },
+  categoryContainer: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    gap: 6,
+  },
+  categoryPillActive: {
+    backgroundColor: '#3b82f6',
+  },
+  categoryPillText: {
+    fontSize: 13,
     fontWeight: '600',
     color: '#64748b',
   },
-  filterTabTextActive: {
-    color: '#3b82f6',
+  categoryPillTextActive: {
+    color: '#fff',
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 16,
   },
-  itemHeader: {
+  itemCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  itemContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 12,
   },
-  itemHeaderLeft: {
+  itemLeft: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  typeIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  urgentDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ef4444',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  itemCenter: {
+    flex: 1,
+  },
+  itemTitleRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  itemTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0f172a',
     flex: 1,
     marginRight: 8,
   },
-  priorityIndicator: {
-    width: 4,
-    height: '100%',
-    borderRadius: 2,
-    marginRight: 12,
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  itemHeaderText: {
-    flex: 1,
-  },
-  itemTitle: {
-    fontSize: 16,
+  typeBadgeText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#0f172a',
+  },
+  itemSubtitle: {
+    fontSize: 13,
+    color: '#64748b',
     marginBottom: 4,
   },
-  itemCategory: {
-    fontSize: 13,
-    color: '#64748b',
-  },
-  itemDescription: {
-    fontSize: 14,
-    color: '#475569',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  itemMeta: {
-    gap: 8,
-    marginBottom: 12,
-  },
-  metaItem: {
+  dueDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
-  metaText: {
-    fontSize: 13,
-    color: '#64748b',
-    marginLeft: 6,
+  dueDateText: {
+    fontSize: 12,
+    color: '#94a3b8',
   },
   itemActions: {
     flexDirection: 'row',
-    marginTop: 8,
+    justifyContent: 'flex-end',
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    paddingTop: 12,
+    marginTop: 4,
   },
-  completedBanner: {
-    flexDirection: 'row',
+  actionBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
     alignItems: 'center',
-    backgroundColor: '#f0fdf4',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
+    justifyContent: 'center',
+    minWidth: 44,
   },
-  completedText: {
+  declineBtn: {
+    backgroundColor: '#fef2f2',
+  },
+  approveBtn: {
+    backgroundColor: '#f0fdf4',
+  },
+  primaryBtn: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 20,
+  },
+  primaryBtnText: {
+    color: '#fff',
     fontSize: 13,
-    color: '#16a34a',
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 8,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  modalIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  modalBody: {
+    padding: 24,
+  },
+  inputLabel: {
+    fontSize: 14,
     fontWeight: '600',
-    marginLeft: 8,
+    color: '#374151',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: '#0f172a',
+    minHeight: 100,
+  },
+  detailRow: {
+    marginBottom: 16,
+  },
+  detailLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 15,
+    color: '#0f172a',
+    fontWeight: '500',
+  },
+  urgentText: {
+    color: '#ef4444',
+  },
+  priorityBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  priorityText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    padding: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    gap: 12,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalConfirmText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
 });

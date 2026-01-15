@@ -15,8 +15,26 @@ import PerformanceScreen from '../screens/PerformanceScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import CompanyCalendarScreen from '../screens/CompanyCalendarScreen';
 
+import {
+  ProfileOverviewScreen,
+  PersonalInfoScreen,
+  EmploymentDetailsScreen,
+  EmergencyContactsScreen,
+  BankPayrollScreen,
+  LeaveBalancesScreen,
+  DocumentsScreen,
+} from '../screens/profile';
+
 const Tab = createBottomTabNavigator();
 const MoreStack = createNativeStackNavigator();
+const TeamStack = createNativeStackNavigator();
+
+const profileScreenOptions = {
+  headerStyle: { backgroundColor: '#fff' },
+  headerTitleStyle: { fontWeight: '700' as const, fontSize: 18, color: '#0f172a' },
+  headerTintColor: '#3b82f6',
+  headerShadowVisible: false,
+};
 
 function MoreStackNavigator({ onLogout }: { onLogout: () => void }) {
   return (
@@ -64,7 +82,99 @@ function MoreStackNavigator({ onLogout }: { onLogout: () => void }) {
         component={LeaveScreen}
         options={{ title: 'My Leave Requests' }}
       />
+      {/* Profile Screens */}
+      <MoreStack.Screen
+        name="MyProfile"
+        component={ProfileOverviewScreen}
+        options={{ title: 'My Profile', ...profileScreenOptions }}
+        initialParams={{ isOwnProfile: true }}
+      />
+      <MoreStack.Screen
+        name="PersonalInfo"
+        component={PersonalInfoScreen}
+        options={{ title: 'Personal Information', ...profileScreenOptions }}
+      />
+      <MoreStack.Screen
+        name="EmploymentDetails"
+        component={EmploymentDetailsScreen}
+        options={{ title: 'Employment Details', ...profileScreenOptions }}
+      />
+      <MoreStack.Screen
+        name="EmergencyContacts"
+        component={EmergencyContactsScreen}
+        options={{ title: 'Emergency Contacts', ...profileScreenOptions }}
+      />
+      <MoreStack.Screen
+        name="BankPayroll"
+        component={BankPayrollScreen}
+        options={{ title: 'Bank & Payroll', ...profileScreenOptions }}
+      />
+      <MoreStack.Screen
+        name="LeaveBalances"
+        component={LeaveBalancesScreen}
+        options={{ title: 'Leave Balances', ...profileScreenOptions }}
+      />
+      <MoreStack.Screen
+        name="Documents"
+        component={DocumentsScreen}
+        options={{ title: 'Documents', ...profileScreenOptions }}
+      />
     </MoreStack.Navigator>
+  );
+}
+
+function TeamStackNavigator() {
+  return (
+    <TeamStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#fff' },
+        headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#0f172a' },
+        headerTintColor: '#3b82f6',
+        headerShadowVisible: false,
+      }}
+    >
+      <TeamStack.Screen
+        name="TeamMain"
+        component={TeamScreen}
+        options={{ headerShown: false }}
+      />
+      {/* Employee Profile Screens (for admins viewing team members) */}
+      <TeamStack.Screen
+        name="EmployeeProfile"
+        component={ProfileOverviewScreen}
+        options={{ title: 'Employee Profile' }}
+      />
+      <TeamStack.Screen
+        name="PersonalInfo"
+        component={PersonalInfoScreen}
+        options={{ title: 'Personal Information' }}
+      />
+      <TeamStack.Screen
+        name="EmploymentDetails"
+        component={EmploymentDetailsScreen}
+        options={{ title: 'Employment Details' }}
+      />
+      <TeamStack.Screen
+        name="EmergencyContacts"
+        component={EmergencyContactsScreen}
+        options={{ title: 'Emergency Contacts' }}
+      />
+      <TeamStack.Screen
+        name="BankPayroll"
+        component={BankPayrollScreen}
+        options={{ title: 'Bank & Payroll' }}
+      />
+      <TeamStack.Screen
+        name="LeaveBalances"
+        component={LeaveBalancesScreen}
+        options={{ title: 'Leave Balances' }}
+      />
+      <TeamStack.Screen
+        name="Documents"
+        component={DocumentsScreen}
+        options={{ title: 'Documents' }}
+      />
+    </TeamStack.Navigator>
   );
 }
 
@@ -145,7 +255,8 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
         />
         <Tab.Screen 
           name="Team" 
-          component={TeamScreen}
+          component={TeamStackNavigator}
+          options={{ headerShown: false }}
         />
         <Tab.Screen 
           name="More" 

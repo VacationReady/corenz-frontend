@@ -238,7 +238,7 @@ export default function CompanyCalendarScreen() {
       Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     };
     loadData();
-  }, []);
+  }, [fetchEvents, fetchDepartments]);
 
   useEffect(() => { fetchEvents(); }, [currentYear, currentMonth]);
 
@@ -342,7 +342,6 @@ export default function CompanyCalendarScreen() {
               <TouchableOpacity style={styles.navButton} onPress={goToPreviousMonth}><Ionicons name="chevron-back" size={24} color="#0f172a" /></TouchableOpacity>
               <TouchableOpacity style={styles.monthTitleContainer} onPress={goToToday}>
                 <Text style={styles.monthTitle}>{MONTHS[currentMonth]} {currentYear}</Text>
-                <View style={styles.todayBadge}><Text style={styles.todayBadgeText}>Today</Text></View>
               </TouchableOpacity>
               <TouchableOpacity style={styles.navButton} onPress={goToNextMonth}><Ionicons name="chevron-forward" size={24} color="#0f172a" /></TouchableOpacity>
             </View>
@@ -494,7 +493,7 @@ export default function CompanyCalendarScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   scrollView: { flex: 1 },
-  header: { paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 24, paddingHorizontal: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  header: { paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 40, paddingHorizontal: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
   headerIconContainer: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 14 },

@@ -72,7 +72,7 @@ export default function MoreScreen({ navigation, onLogout }: MoreScreenProps) {
             <Text style={styles.avatarText}>
               {userName
                 .split(' ')
-                .map((n) => n[0])
+                .map((n: string) => n[0])
                 .join('')
                 .toUpperCase()}
             </Text>
@@ -130,17 +130,17 @@ export default function MoreScreen({ navigation, onLogout }: MoreScreenProps) {
             <MenuItem
               icon="person-outline"
               title="My Profile"
-              onPress={() => {}}
+              onPress={() => navigation?.navigate('MyProfile', { isOwnProfile: true })}
             />
             <MenuItem
               icon="document-outline"
               title="My Documents"
-              onPress={() => {}}
+              onPress={() => navigation?.navigate('Documents', { employeeId: employee?.id })}
             />
             <MenuItem
               icon="card-outline"
               title="Payroll & Benefits"
-              onPress={() => {}}
+              onPress={() => navigation?.navigate('BankPayroll', { employeeId: employee?.id, canEdit: false })}
               showBorder={false}
             />
           </Card>

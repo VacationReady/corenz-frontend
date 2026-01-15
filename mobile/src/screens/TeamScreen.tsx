@@ -12,19 +12,23 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { getMyTeam, getAllEmployees, Employee } from '../api/team';
+import { getUserRole } from '../api/profile';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
 
 export default function TeamScreen() {
+  const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<'team' | 'directory'>('team');
+  const [userRole, setUserRole] = useState({ role: 'EMPLOYEE', isAdmin: false, isManager: false });
 
   const loadData = async () => {
     try {
@@ -48,6 +52,7 @@ export default function TeamScreen() {
   useEffect(() => {
     setLoading(true);
     loadData();
+    getUserRole().then(setUserRole).catch(console.error);
   }, [view]);
 
   useEffect(() => {
@@ -202,73 +207,112 @@ export default function TeamScreen() {
           />
         ) : (
           filteredEmployees.map((employee) => (
-            <Card key={employee.id}>
-              <View style={styles.employeeCard}>
-                <View style={styles.employeeLeft}>
-                  {getAvatarUrl(employee.profileImage) ? (
-                    <Image source={{ uri: getAvatarUrl(employee.profileImage)! }} style={styles.avatar} />
-                  ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <Text style={styles.avatarText}>
-                        {getInitials(employee.firstName, employee.lastName)}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.employeeInfo}>
-                    <Text style={styles.employeeName}>
-                      {employee.firstName} {employee.lastName}
-                    </Text>
-                    {employee.jobTitle && (
-                      <Text style={styles.employeeTitle}>{employee.jobTitle}</Text>
-                    )}
-                    {employee.department && (
-                      <View style={styles.employeeDepartment}>
-                        <Ionicons name="briefcase-outline" size={14} color="#64748b" />
-                        <Text style={styles.employeeDepartmentText}>{employee.department}</Text>
+            <TouchableOpacity
+              key={employee.id}
+              activeOpacity={userRole.isAdmin || userRole.isManager ? 0.7 : 1}
+              onPress={() => {
+                if (userRole.isAdmin || userRole.isManager) {
+                  navigation.navigate('EmployeeProfile', { 
+                    employeeId: employee.id, 
+                    isOwnProfile: false 
+                  });
+                }
+              }}
+            >
+              <Card>
+                <View style={styles.employeeCard}>
+                  <View style={styles.employeeLeft}>
+                    {getAvatarUrl(employee.profileImage) ? (
+                      <Image source={{ uri: getAvatarUrl(employee.profileImage)! }} style={styles.avatar} />
+                    ) : (
+                      <View style={styles.avatarPlaceholder}>
+                        <Text style={styles.avatarText}>
+                          {getInitials(employee.firstName, employee.lastName)}
+                        </Text>
                       </View>
+                    )}
+                    <View style={styles.employeeInfo}>
+                      <Text style={styles.employeeName}>
+                        {employee.firstName} {employee.lastName}
+                      </Text>
+                      {employee.jobTitle && (
+                        <Text style={styles.employeeTitle}>{employee.jobTitle}</Text>
+                      )}
+                      {employee.department && (
+                        <View style={styles.employeeDepartment}>
+                          <Ionicons name="briefcase-outline" size={14} color="#64748b" />
+                          <Text style={styles.employeeDepartmentText}>{employee.department}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  <View style={styles.employeeRight}>
+                    <Badge
+                      text={getStatusLabel(employee.status)}
+                      variant={getStatusVariant(employee.status)}
+                      size="small"
+                    />
+                    {(userRole.isAdmin || userRole.isManager) && (
+                      <Ionicons name="chevron-forward" size={20} color="#94a3b8" style={{ marginTop: 8 }} />
                     )}
                   </View>
                 </View>
-                <View style={styles.employeeRight}>
-                  <Badge
-                    text={getStatusLabel(employee.status)}
-                    variant={getStatusVariant(employee.status)}
-                    size="small"
-                  />
-                </View>
-              </View>
 
-              {/* Contact Actions */}
-              <View style={styles.contactActions}>
-                {employee.email && (
-                  <TouchableOpacity 
-                    style={styles.contactButton}
-                    onPress={() => handleEmail(employee.email!)}
-                  >
-                    <Ionicons name="mail-outline" size={20} color="#3b82f6" />
-                    <Text style={styles.contactButtonText}>Email</Text>
-                  </TouchableOpacity>
-                )}
-                {employee.phone && (
-                  <TouchableOpacity 
-                    style={styles.contactButton}
-                    onPress={() => handleCall(employee.phone!)}
-                  >
-                    <Ionicons name="call-outline" size={20} color="#3b82f6" />
-                    <Text style={styles.contactButtonText}>Call</Text>
-                  </TouchableOpacity>
-                )}
-                {employee.phone && (
-                  <TouchableOpacity 
-                    style={styles.contactButton}
-                    onPress={() => handleMessage(employee.phone!)}
-                  >
-                    <Ionicons name="chatbubble-outline" size={20} color="#3b82f6" />
-                    <Text style={styles.contactButtonText}>Message</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </Card>
+                {/* Contact Actions */}
+                <View style={styles.contactActions}>
+                  {employee.email && (
+                    <TouchableOpacity 
+                      style={styles.contactButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleEmail(employee.email!);
+                      }}
+                    >
+                      <Ionicons name="mail-outline" size={20} color="#3b82f6" />
+                      <Text style={styles.contactButtonText}>Email</Text>
+                    </TouchableOpacity>
+                  )}
+                  {employee.phone && (
+                    <TouchableOpacity 
+                      style={styles.contactButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleCall(employee.phone!);
+                      }}
+                    >
+                      <Ionicons name="call-outline" size={20} color="#3b82f6" />
+                      <Text style={styles.contactButtonText}>Call</Text>
+                    </TouchableOpacity>
+                  )}
+                  {employee.phone && (
+                    <TouchableOpacity 
+                      style={styles.contactButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleMessage(employee.phone!);
+                      }}
+                    >
+                      <Ionicons name="chatbubble-outline" size={20} color="#3b82f6" />
+                      <Text style={styles.contactButtonText}>Message</Text>
+                    </TouchableOpacity>
+                  )}
+                  {(userRole.isAdmin || userRole.isManager) && (
+                    <TouchableOpacity 
+                      style={[styles.contactButton, styles.viewProfileButton]}
+                      onPress={() => {
+                        navigation.navigate('EmployeeProfile', { 
+                          employeeId: employee.id, 
+                          isOwnProfile: false 
+                        });
+                      }}
+                    >
+                      <Ionicons name="person-outline" size={20} color="#8b5cf6" />
+                      <Text style={[styles.contactButtonText, { color: '#8b5cf6' }]}>Profile</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </Card>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -405,5 +449,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#3b82f6',
     marginLeft: 6,
+  },
+  viewProfileButton: {
+    backgroundColor: '#f3e8ff',
+    borderRadius: 8,
   },
 });

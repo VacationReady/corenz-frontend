@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { getSession } from '../api/auth';
 import { getEmployeeProfile } from '../api/hr-data';
-import { getMyActionItems } from '../api/action-items';
+import { getUnifiedActionItems } from '../api/action-items';
 import { getPendingSurveys } from '../api/surveys';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -47,13 +47,13 @@ export default function HomeScreen() {
 
       // Load stats in parallel
       const [actions, surveys] = await Promise.allSettled([
-        getMyActionItems(),
+        getUnifiedActionItems(),
         getPendingSurveys(),
       ]);
 
       setStats({
         pendingActions: actions.status === 'fulfilled' 
-          ? actions.value.filter((a: any) => a.status !== 'COMPLETED').length 
+          ? actions.value.counts.total
           : 0,
         pendingSurveys: surveys.status === 'fulfilled' ? surveys.value.length : 0,
       });

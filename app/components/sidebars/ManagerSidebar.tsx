@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { LogOut, X, LayoutDashboard, Calendar, Users as UsersIcon, Target, ClipboardList, CalendarClock, GitCompare, Network, FileText } from "lucide-react";
+import { LogOut, X, LayoutDashboard, Calendar, Users as UsersIcon, Target, ClipboardList, CalendarClock, GitCompare, Network, FileText, Megaphone } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { getLogoutCallbackUrl } from "@/lib/logout-url";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
@@ -44,6 +44,7 @@ export default function ManagerSidebar({
     { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={16} /> },
     { label: "Employees", href: "/employees", icon: <UsersIcon size={16} /> },
     { label: "Calendar", href: "/calendar", icon: <Calendar size={16} /> },
+    { label: "News", href: "/news", icon: <Megaphone size={16} /> },
     { label: "Team Schedule", href: "/rota", icon: <CalendarClock size={16} /> },
     { label: "Timesheets", href: "/admin/timesheets/hub", icon: <ClipboardList size={16} /> },
     { label: "Reconciliation", href: "/admin/reconciliation", icon: <GitCompare size={16} /> },

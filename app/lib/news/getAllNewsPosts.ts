@@ -1,5 +1,6 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
+import { Prisma } from "@prisma/client";
 
 type ReactionCounts = Record<string, number>;
 
@@ -54,39 +55,123 @@ export async function getAllNewsPosts(
     return avatarUrl;
   };
 
+  // Fetch requesting user's profile for audience filtering
+  let requestingUser: any = null;
+  let isAdmin = false;
+  let departmentName: string | null = null;
+  let jobRoleName: string | null = null;
+  let locationName: string | null = null;
+
+  if (userId) {
+    requestingUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: true,
+        Department_User_departmentIdToDepartment: {
+          select: { name: true },
+        },
+        JobRole: {
+          select: { name: true },
+        },
+        Employee: {
+          select: {
+            Location: {
+              select: { name: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (requestingUser) {
+      isAdmin = requestingUser.role === "ADMIN" || requestingUser.role === "SUPER_ADMIN";
+      departmentName = requestingUser.Department_User_departmentIdToDepartment?.name ?? null;
+      jobRoleName = requestingUser.JobRole?.name ?? null;
+      locationName = requestingUser.Employee?.Location?.name ?? null;
+    }
+  }
+
+  // Helper function for audience dimension visibility
+  const audienceDimensionVisibility = (
+    key: "departments" | "roles" | "locations",
+    value: string | null,
+  ) => {
+    const or: any[] = [
+      { audience: { path: [key], equals: Prisma.AnyNull } },
+      { audience: { path: [key], equals: [] } },
+    ];
+
+    if (value) {
+      or.push({ audience: { path: [key], array_contains: [value] } });
+    }
+
+    return { OR: or };
+  };
+
+  // Build audience filter
+  const audienceWhereClause = isAdmin || !userId ? {} : {
+    OR: [
+      { audience: { path: ["type"], equals: "all" } },
+      {
+        AND: [
+          audienceDimensionVisibility("departments", departmentName),
+          audienceDimensionVisibility("roles", jobRoleName),
+          audienceDimensionVisibility("locations", locationName),
+        ],
+      },
+    ],
+  };
+
   // Build where clause based on options
-  const whereClause: any = {
+  const baseWhereClause = {
     OR: [
       { companyId },
       { User: { is: { companyId } } },
     ],
   };
 
+  let whereClause: any;
+
   if (!includeDrafts) {
-    // Only published posts
-    whereClause.publishedAt = { not: null };
+    // Only published posts with audience filtering
+    whereClause = {
+      AND: [
+        baseWhereClause,
+        { publishedAt: { not: null } },
+        audienceWhereClause,
+      ],
+    };
   } else if (userId) {
-    // Include drafts only for the author or admins
-    // For now, include all drafts for the requesting user's own posts
-    whereClause.OR = [
-      // Published posts for this company
-      {
-        publishedAt: { not: null },
-        OR: [
-          { companyId },
-          { User: { is: { companyId } } },
-        ],
-      },
-      // Drafts authored by the current user
-      {
-        publishedAt: null,
-        authorId: userId,
-        OR: [
-          { companyId },
-          { User: { is: { companyId } } },
-        ],
-      },
-    ];
+    // Include drafts only for the author, plus published posts with audience filtering
+    whereClause = {
+      OR: [
+        // Published posts for this company with audience filtering
+        {
+          AND: [
+            { publishedAt: { not: null } },
+            baseWhereClause,
+            audienceWhereClause,
+          ],
+        },
+        // Drafts authored by the current user (no audience filter for own drafts)
+        {
+          publishedAt: null,
+          authorId: userId,
+          OR: [
+            { companyId },
+            { User: { is: { companyId } } },
+          ],
+        },
+      ],
+    };
+  } else {
+    // No user ID provided, just use base clause with audience filtering
+    whereClause = {
+      AND: [
+        baseWhereClause,
+        audienceWhereClause,
+      ],
+    };
   }
 
   const posts = await prisma.newsPost.findMany({

@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, LayoutDashboard, Calendar, Clock, Users, X, Target, ClipboardList, CalendarClock, FileText } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Clock, Users, X, Target, ClipboardList, CalendarClock, FileText, Megaphone } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { getLogoutCallbackUrl } from "@/lib/logout-url";
 import clsx from "clsx";
@@ -50,6 +50,7 @@ export default function EmployeeSidebar({
     },
     { label: "Employees", href: "/employees", icon: <Users size={18} /> },
     { label: "Calendar", href: "/calendar", icon: <Calendar size={18} /> },
+    { label: "News", href: "/news", icon: <Megaphone size={18} /> },
     { label: "My Timesheet", href: "/employee/timesheet", icon: <ClipboardList size={18} /> },
     { label: "My Schedule", href: "/employee/schedule", icon: <CalendarClock size={18} /> },
     { label: "My Performance", href: "/performance", icon: <Target size={18} /> },

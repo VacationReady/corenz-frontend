@@ -59,7 +59,8 @@
         {
           "cameraPermission": "Allow Corenz Time Tracking to access your camera for attendance photo verification."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

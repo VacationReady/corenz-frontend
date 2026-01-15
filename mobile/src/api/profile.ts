@@ -47,6 +47,7 @@ export interface EmployeeProfile {
     firstName: string | null;
     lastName: string | null;
   } | null;
+  managerId?: string | null;
 }
 
 export interface EmergencyContact {
@@ -90,7 +91,8 @@ export async function getMyFullProfile(): Promise<EmployeeProfile | null> {
     throw new Error('Failed to fetch profile');
   }
   
-  return response.json();
+  const data = await response.json();
+  return data.employee || data;
 }
 
 /**

@@ -174,7 +174,7 @@ export default function ProfileOverviewScreen() {
     return <LoadingState message="Loading profile..." />;
   }
 
-  if (!profile) {
+  if (!profile || !profile.User) {
     return (
       <View style={styles.errorContainer}>
         <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />

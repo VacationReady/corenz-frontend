@@ -55,8 +55,8 @@ export default function EmploymentDetailsScreen() {
       if (data) {
         setProfile(data);
         const managerName = data.Manager 
-          ? `${data.Manager.firstName || ''} ${data.Manager.lastName || ''}`.trim()
-          : '';
+          ? `${data.Manager.firstName || ''} ${data.Manager.lastName || ''}`.trim() || 'Not assigned'
+          : 'Not assigned';
         setFormData({
           jobTitle: data.jobTitle || '',
           department: data.Department?.name || '',

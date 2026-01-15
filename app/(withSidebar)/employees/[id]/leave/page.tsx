@@ -1082,7 +1082,7 @@ function LeavePageContent() {
                   <Switch
                     id="upcoming-only-filter"
                     checked={upcomingOnly}
-                    onChange={(checked) => {
+                    onCheckedChange={(checked) => {
                       setUpcomingOnly(checked);
                       eventsCacheRef.current = null;
                       calendarRef.current?.getApi().refetchEvents();

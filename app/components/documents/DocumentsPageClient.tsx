@@ -573,9 +573,12 @@ function DocumentsContent() {
 
   useEffect(() => {
     if (!isUploadModalOpen) return;
-    // Always reset to Uncategorised when modal opens for consistent UX
-    setCategory("Uncategorised");
-  }, [isUploadModalOpen]);
+    // Only set default category if empty (e.g., first upload or after reset)
+    // This preserves the user's category selection for bulk uploads
+    if (!category) {
+      setCategory("Uncategorised");
+    }
+  }, [isUploadModalOpen, category]);
 
   const departmentsList = useMemo(() => {
     if (!departmentsData) return [];

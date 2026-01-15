@@ -304,9 +304,11 @@ export default function EditOtherEntitlementsModal({
                 <div className="text-center py-8 text-muted-foreground">
                   <Gift className="w-10 h-10 mx-auto mb-3 opacity-30" />
                   <p className="text-sm">No other entitlements</p>
-                  {!hideAddButton && (
-                    <p className="text-xs mt-1">Click "Add Entitlement" to create one</p>
-                  )}
+                  <p className="text-xs mt-1">
+                    {hideAddButton 
+                      ? "Save to create a custom entitlement for this employee"
+                      : "Click \"Add Entitlement\" to create one"}
+                  </p>
                 </div>
               )}
 

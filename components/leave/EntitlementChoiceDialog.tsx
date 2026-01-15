@@ -188,7 +188,7 @@ export default function EntitlementChoiceDialog({
                         Add Balance for This Employee Only
                       </h4>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Track a custom balance just for {employeeName || 'this employee'}. Cannot be booked via self-service.
+                        Track a custom balance just for {employeeName || 'the selected employee'}. Cannot be booked via self-service.
                       </p>
                     </div>
                   </div>

@@ -65,10 +65,6 @@ async function postHandler(req: NextRequest) {
       title,
       sendEmail: normalizedSendEmail,
       audience: normalizedAudience,
-      audienceType: normalizedAudience.type,
-      audienceDepartments: normalizedAudience.departments,
-      audienceRoles: normalizedAudience.roles,
-      audienceLocations: normalizedAudience.locations,
     });
 
     const slug = await generateUniqueSlug(title, companyId);

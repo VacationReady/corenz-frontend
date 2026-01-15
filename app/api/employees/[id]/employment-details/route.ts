@@ -27,6 +27,9 @@ export async function GET(
         Department: {
           select: { id: true, name: true },
         },
+        JobRole: {
+          select: { id: true, name: true },
+        },
         // Optionally join Location if we later add relation
       },
     });
@@ -56,6 +59,7 @@ export async function GET(
       locationId: employee.locationId,
       startDate: employee.startDate,
       department: employee.Department,
+      jobRole: employee.JobRole,
       manager: validatedManager,
       isActive: employee.isActive,
     });
@@ -101,6 +105,7 @@ export async function PATCH(
       "locationId",
       "startDate",
       "departmentId",
+      "jobRoleId",
       "managerId",
       "isActive",
     ] as const;

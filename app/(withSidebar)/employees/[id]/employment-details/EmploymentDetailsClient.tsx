@@ -96,7 +96,7 @@ function ManageOptionsModal({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  kind: "employment" | "contract" | "location" | "department" | null;
+  kind: "employment" | "contract" | "location" | "department" | "jobRole" | null;
   options: Array<{ id: string; label?: string; name?: string }>;
   onAdd: (label: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -109,6 +109,7 @@ function ManageOptionsModal({
     contract: "Manage Contract Types",
     location: "Manage Locations",
     department: "Manage Departments",
+    jobRole: "Manage Job Roles",
   };
 
   const placeholders = {
@@ -116,6 +117,7 @@ function ManageOptionsModal({
     contract: "Add new contract type",
     location: "Add new location",
     department: "Add new department",
+    jobRole: "Add new job role",
   };
 
   const handleAdd = async () => {
@@ -208,16 +210,19 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
   const [contractTypes, setContractTypes] = useState<Array<{ id: string; label: string }>>([]);
   const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+  const [jobRoles, setJobRoles] = useState<Array<{ id: string; name: string }>>([]);
 
   const [newOption, setNewOption] = useState("");
-  const [manageKind, setManageKind] = useState<"employment" | "contract" | "location" | "department" | null>(null);
+  const [manageKind, setManageKind] = useState<"employment" | "contract" | "location" | "department" | "jobRole" | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
   const [selectedManagerEmployeeId, setSelectedManagerEmployeeId] = useState<string>("none");
   const [managerSearch, setManagerSearch] = useState("");
+  const [jobRoleSearch, setJobRoleSearch] = useState("");
   // Control select open states so they close when opening Manage dialog
   const [employmentSelectOpen, setEmploymentSelectOpen] = useState(false);
   const [contractSelectOpen, setContractSelectOpen] = useState(false);
   const [locationSelectOpen, setLocationSelectOpen] = useState(false);
+  const [jobRoleSelectOpen, setJobRoleSelectOpen] = useState(false);
   const [isManagerSelectOpen, setIsManagerSelectOpen] = useState(false);
 
   const canEdit =
@@ -272,23 +277,39 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
     [sortedEmployees, managerSearch, shouldShowManagerSearch],
   );
 
+  const shouldShowJobRoleSearch = jobRoles.length > 10;
+  const jobRoleOptions = useMemo(
+    () =>
+      shouldShowJobRoleSearch
+        ? filterBySearch(jobRoles, (role) => role.name, jobRoleSearch)
+        : jobRoles,
+    [jobRoles, jobRoleSearch, shouldShowJobRoleSearch],
+  );
+
   const handleManagerOpenChange = (open: boolean) => {
     setIsManagerSelectOpen(open);
     if (!open) setManagerSearch("");
   };
 
+  const handleJobRoleOpenChange = (open: boolean) => {
+    setJobRoleSelectOpen(open);
+    if (!open) setJobRoleSearch("");
+  };
+
   const reloadOptions = async (isActive?: () => boolean) => {
-    const [et, ct, loc, deps] = await Promise.all([
+    const [et, ct, loc, deps, roles] = await Promise.all([
       tenantFetch(`/api/employment-type-options`).then((r) => r.json()).catch(() => []),
       tenantFetch(`/api/contract-type-options`).then((r) => r.json()).catch(() => []),
       tenantFetch(`/api/locations`).then((r) => r.json()).catch(() => []),
       tenantFetch(`/api/departments`).then((r) => r.json()).catch(() => []),
+      tenantFetch(`/api/job-roles`).then((r) => r.json()).catch(() => []),
     ]);
     if (isActive && !isActive()) return;
     setEmploymentTypes(et);
     setContractTypes(ct);
     setLocations(loc);
     setDepartments(deps);
+    setJobRoles(roles);
   };
 
   useEffect(() => {
@@ -407,6 +428,8 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
       await tenantFetch(`/api/locations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
     } else if (manageKind === "department") {
       await tenantFetch(`/api/departments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
+    } else if (manageKind === "jobRole") {
+      await tenantFetch(`/api/job-roles`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
     }
     setNewOption("");
     await reloadOptions();
@@ -421,6 +444,8 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
       await tenantFetch(`/api/locations`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     } else if (manageKind === "department") {
       await tenantFetch(`/api/departments`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    } else if (manageKind === "jobRole") {
+      await tenantFetch(`/api/job-roles`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     }
     await reloadOptions();
   };
@@ -430,6 +455,7 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
     if (manageKind === "contract") return contractTypes;
     if (manageKind === "location") return locations.map(l => ({ id: l.id, label: l.name }));
     if (manageKind === "department") return departments.map(d => ({ id: d.id, label: d.name }));
+    if (manageKind === "jobRole") return jobRoles.map(r => ({ id: r.id, label: r.name }));
     return [];
   };
 
@@ -602,6 +628,52 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
               </div>
             </FormField>
 
+            {/* Job Role */}
+            <FormField
+              label="Job role"
+              action={canEdit && <ManageButton onClick={() => { setManageKind("jobRole"); setManageOpen(true); }} />}
+            >
+              {canEdit ? (
+                <Select
+                  open={jobRoleSelectOpen}
+                  onOpenChange={handleJobRoleOpenChange}
+                  value={form.jobRoleId || undefined}
+                  onValueChange={(v) => setForm((f: any) => ({ ...f, jobRoleId: v }))}
+                >
+                  <SelectTrigger className="w-full h-11 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20">
+                    <SelectValue placeholder="Select job role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {shouldShowJobRoleSearch && (
+                      <SelectSearchInput
+                        value={jobRoleSearch}
+                        onChange={setJobRoleSearch}
+                        placeholder="Search job roles..."
+                      />
+                    )}
+                    {jobRoleOptions.map((role) => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
+                    <div className="px-2 py-2 border-t border-muted/40 mt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-primary"
+                        onClick={() => { setJobRoleSelectOpen(false); setManageKind("jobRole"); setManageOpen(true); }}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add new option
+                      </Button>
+                    </div>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input readOnly value={form?.jobRole?.name || ""} className="h-11 rounded-xl bg-muted/30" />
+              )}
+            </FormField>
+
             {/* Start Date */}
             <FormField label="Start date">
               <div className="relative">
@@ -689,6 +761,8 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
               await tenantFetch(`/api/locations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
             } else if (manageKind === "department") {
               await tenantFetch(`/api/departments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
+            } else if (manageKind === "jobRole") {
+              await tenantFetch(`/api/job-roles`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
             }
             await reloadOptions();
           }}
@@ -701,6 +775,8 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
               await tenantFetch(`/api/locations`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
             } else if (manageKind === "department") {
               await tenantFetch(`/api/departments`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+            } else if (manageKind === "jobRole") {
+              await tenantFetch(`/api/job-roles`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
             }
             await reloadOptions();
           }}

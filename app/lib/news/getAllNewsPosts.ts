@@ -88,15 +88,6 @@ export async function getAllNewsPosts(
       departmentName = requestingUser.Department_User_departmentIdToDepartment?.name ?? null;
       jobRoleName = requestingUser.JobRole?.name ?? null;
       locationName = requestingUser.Employee?.Location?.name ?? null;
-      
-      console.log("🔍 [getAllNewsPosts] User audience data:", {
-        userId,
-        role: requestingUser.role,
-        isAdmin,
-        departmentName,
-        jobRoleName,
-        locationName,
-      });
     }
   }
 
@@ -212,8 +203,6 @@ export async function getAllNewsPosts(
     };
   }
 
-  console.log("🔍 [getAllNewsPosts] Where clause:", JSON.stringify(whereClause, null, 2));
-
   const posts = await prisma.newsPost.findMany({
     where: whereClause,
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
@@ -244,16 +233,6 @@ export async function getAllNewsPosts(
         select: { readAt: true },
       } : false,
     },
-  });
-
-  console.log("🔍 [getAllNewsPosts] Found posts:", posts.length);
-  posts.forEach((post, idx) => {
-    console.log(`🔍 [getAllNewsPosts] Post ${idx + 1}:`, {
-      id: post.id,
-      title: post.title,
-      publishedAt: post.publishedAt,
-      audience: post.audience,
-    });
   });
 
   return await Promise.all(posts.map(async (post) => {

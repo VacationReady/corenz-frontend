@@ -374,7 +374,7 @@ export default function OverviewClient({
                     <span className="text-sm text-amber-600 dark:text-amber-400">
                       {formatNextGrantDate(sickLeaveData.eligibleFrom)
                         ? `Eligible from ${formatNextGrantDate(sickLeaveData.eligibleFrom)}`
-                        : "Eligible from: Not available (start date missing)"}
+                        : "Not yet eligible for sick leave"}
                     </span>
                   </>
                 )}

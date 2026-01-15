@@ -2028,7 +2028,12 @@ export default function AddEmployeeModal({
                               <div className="px-2 py-6 text-center text-sm text-destructive">
                                 Error loading employees: {modalData.employees.error.message}
                               </div>
-                            ) : managerOptions.length === 0 ? (
+                            ) : (
+                              <>
+                                <SelectItem value="">
+                                  <span className="text-muted-foreground">No Manager</span>
+                                </SelectItem>
+                                {managerOptions.length === 0 ? (
                               <div className="px-2 py-4 text-center space-y-3">
                                 <p className="text-sm text-muted-foreground">
                                   {managerSearch.trim() 
@@ -2062,6 +2067,8 @@ export default function AddEmployeeModal({
                                   {getEmployeeDisplayName(emp)}
                                 </SelectItem>
                               ))
+                            )}
+                              </>
                             )}
                           </SelectContent>
                         </Select>

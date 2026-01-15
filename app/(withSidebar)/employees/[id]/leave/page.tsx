@@ -524,9 +524,25 @@ function LeavePageContent() {
   const [currentTitle, setCurrentTitle] = useState("");
   const [refreshToken, setRefreshToken] = useState(0);
 
-  // Filters
-  const [upcomingOnly, setUpcomingOnly] = useState(false);
-  const [typeFilter, setTypeFilter] = useState<"all" | "sick" | "other">("all");
+  // Filters - persist to localStorage for better UX
+  const [upcomingOnly, setUpcomingOnly] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const saved = localStorage.getItem('leaveCalendar_upcomingOnly');
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+  const [typeFilter, setTypeFilter] = useState<"all" | "sick" | "other">(() => {
+    if (typeof window === 'undefined') return "all";
+    try {
+      const saved = localStorage.getItem('leaveCalendar_typeFilter');
+      return (saved && ['all', 'sick', 'other'].includes(saved)) ? saved as "all" | "sick" | "other" : "all";
+    } catch {
+      return "all";
+    }
+  });
   const [showSickHeatmap, setShowSickHeatmap] = useState(true); // Always on
 
   // Data State
@@ -1084,6 +1100,9 @@ function LeavePageContent() {
                     checked={upcomingOnly}
                     onCheckedChange={(checked) => {
                       setUpcomingOnly(checked);
+                      try {
+                        localStorage.setItem('leaveCalendar_upcomingOnly', JSON.stringify(checked));
+                      } catch {}
                       eventsCacheRef.current = null;
                       calendarRef.current?.getApi().refetchEvents();
                     }}
@@ -1100,6 +1119,9 @@ function LeavePageContent() {
                     value={typeFilter}
                     onValueChange={(value: "all" | "sick" | "other") => {
                       setTypeFilter(value);
+                      try {
+                        localStorage.setItem('leaveCalendar_typeFilter', value);
+                      } catch {}
                       eventsCacheRef.current = null;
                       calendarRef.current?.getApi().refetchEvents();
                     }}

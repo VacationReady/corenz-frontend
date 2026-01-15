@@ -46,7 +46,10 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
           {items.map((lr: any) => {
             const start = new Date(lr.startDate);
             const end = new Date(lr.endDate);
-            const isSingleDay = start.toDateString() === end.toDateString();
+            // End date is exclusive, so subtract 1 day to get the actual last day of leave
+            const lastDay = new Date(end);
+            lastDay.setDate(lastDay.getDate() - 1);
+            const isSingleDay = start.toDateString() === lastDay.toDateString();
             
             // Handle both casing to be safe
             const category = lr.EventCategory || lr.eventCategory;
@@ -66,8 +69,8 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {isSingleDay
-                      ? start.toLocaleDateString()
-                      : `${start.toLocaleDateString()} — ${end.toLocaleDateString()}`}
+                      ? start.toLocaleDateString("en-NZ")
+                      : `${start.toLocaleDateString("en-NZ")} — ${lastDay.toLocaleDateString("en-NZ")}`}
                   </p>
                 </div>
               </li>

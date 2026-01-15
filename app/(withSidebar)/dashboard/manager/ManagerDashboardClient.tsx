@@ -532,15 +532,6 @@ export default function ManagerDashboardClient({
                 </div>
               </div>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
-                <div className="relative">
-                  <input
-                    aria-label="Search team"
-                    type="text"
-                    placeholder="Search team"
-                    className="w-full sm:w-64 glass-subtle rounded-2xl border-white/20 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30 transition-premium"
-                  />
-                  <Search className="absolute right-3 top-2.5 w-4 h-4 text-muted-foreground" />
-                </div>
                 {employeeId && (
                   <Link href={`/employees/${employeeId}/overview`}>
                     <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-premium">

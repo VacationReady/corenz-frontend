@@ -326,7 +326,8 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
         if (day.type === 'FULL_DAY') {
           totalHours += day.hoursPerDay ? parseFloat(day.hoursPerDay.toString()) : 8;
         } else if (day.type.includes('HALF_DAY')) {
-          totalHours += day.hoursPerDay ? parseFloat(day.hoursPerDay.toString()) / 2 : 4;
+          // hoursPerDay already contains the actual hours for half day (e.g., 4), don't divide
+          totalHours += day.hoursPerDay ? parseFloat(day.hoursPerDay.toString()) : 4;
         }
       }
     }

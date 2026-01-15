@@ -244,7 +244,7 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
 
       // Process action items from database (workflow-generated + AI approvals)
       if (dbActionItems?.success && Array.isArray(dbActionItems.data)) {
-        dbActionItems.data.forEach((item: any) => {
+        for (const item of dbActionItems.data) {
           // Handle AI bulk update approvals specially
           if (item.type === 'BULK_UPDATE_APPROVAL') {
             const metadata = item.metadata || {};
@@ -335,44 +335,58 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
               }
             });
           } else if (item.type === 'DOCUMENT_SIGNATURE') {
-            // Document signature tasks - open signature modal
+            // Document signature tasks - verify signature fields exist before showing
             const metadata = item.metadata || {};
-            items.push({
-              id: `action-${item.id}`,
-              type: "signature",
-              title: item.title,
-              subtitle: metadata.documentCategory || "Signature required",
-              urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
-              metadata: { ...item, documentId: metadata.documentId, documentName: metadata.documentName },
-              actionLabel: "Sign",
-              onAction: async () => {
-                // Open signature modal with document
-                if (metadata.documentId) {
-                  // Fetch the document URL for preview
-                  try {
-                    const docRes = await tenantFetch(`/api/documents/signed-url/${metadata.documentId}`);
-                    const docData = await docRes.json();
-                    setPreviewDoc({ 
-                      id: metadata.documentId, 
-                      name: metadata.documentName || item.title, 
-                      url: docData?.url || undefined,
-                      requiresSignature: true, 
-                      requiresAck: false 
-                    });
-                  } catch {
-                    // Fallback without URL if fetch fails
-                    setPreviewDoc({ 
-                      id: metadata.documentId, 
-                      name: metadata.documentName || item.title, 
-                      requiresSignature: true, 
-                      requiresAck: false 
-                    });
-                  }
-                } else {
-                  toast.error('Document data not available');
+            if (metadata.documentId) {
+              try {
+                // Check if signature fields have been placed on the document
+                const fieldsRes = await tenantFetch(`/api/documents/signature-fields/${metadata.documentId}`, { cache: "no-store" });
+                const fieldsData = await fieldsRes.json();
+                const hasFields = Array.isArray(fieldsData) && fieldsData.length > 0;
+                
+                // Only show action item if admin has finished setting up signature fields
+                if (hasFields) {
+                  items.push({
+                    id: `action-${item.id}`,
+                    type: "signature",
+                    title: item.title,
+                    subtitle: metadata.documentCategory || "Signature required",
+                    urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
+                    metadata: { ...item, documentId: metadata.documentId, documentName: metadata.documentName },
+                    actionLabel: "Sign",
+                    onAction: async () => {
+                      // Open signature modal with document
+                      if (metadata.documentId) {
+                        // Fetch the document URL for preview
+                        try {
+                          const docRes = await tenantFetch(`/api/documents/signed-url/${metadata.documentId}`);
+                          const docData = await docRes.json();
+                          setPreviewDoc({ 
+                            id: metadata.documentId, 
+                            name: metadata.documentName || item.title, 
+                            url: docData?.url || undefined,
+                            requiresSignature: true, 
+                            requiresAck: false 
+                          });
+                        } catch {
+                          // Fallback without URL if fetch fails
+                          setPreviewDoc({ 
+                            id: metadata.documentId, 
+                            name: metadata.documentName || item.title, 
+                            requiresSignature: true, 
+                            requiresAck: false 
+                          });
+                        }
+                      } else {
+                        toast.error('Document data not available');
+                      }
+                    }
+                  });
                 }
+              } catch {
+                // Skip this action item if we can't verify fields
               }
-            });
+            }
           } else if (item.type === 'DOCUMENT_ACKNOWLEDGEMENT') {
             // Document acknowledgement tasks - open acknowledgement modal
             const metadata = item.metadata || {};
@@ -460,7 +474,7 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
               }
             });
           }
-        });
+        }
       }
 
       // Process onboarding tasks

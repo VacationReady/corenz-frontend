@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  Linking,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyTeam, getAllEmployees, Employee } from '../api/team';
@@ -68,6 +70,44 @@ export default function TeamScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const handleEmail = async (email: string) => {
+    const url = `mailto:${email}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert('Error', 'Unable to open email app');
+    }
+  };
+
+  const handleCall = async (phone: string) => {
+    const url = `tel:${phone}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert('Error', 'Unable to make phone call');
+    }
+  };
+
+  const handleMessage = async (phone: string) => {
+    const url = `sms:${phone}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert('Error', 'Unable to open messaging app');
+    }
+  };
+
+  const getAvatarUrl = (profileImage?: string) => {
+    if (!profileImage) return null;
+    if (profileImage.startsWith('http')) return profileImage;
+    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
+    if (!baseUrl) return null;
+    return `${baseUrl}${profileImage.startsWith('/') ? '' : '/'}${profileImage}`;
   };
 
   if (loading) {
@@ -165,8 +205,8 @@ export default function TeamScreen() {
             <Card key={employee.id}>
               <View style={styles.employeeCard}>
                 <View style={styles.employeeLeft}>
-                  {employee.profileImage ? (
-                    <Image source={{ uri: employee.profileImage }} style={styles.avatar} />
+                  {getAvatarUrl(employee.profileImage) ? (
+                    <Image source={{ uri: getAvatarUrl(employee.profileImage)! }} style={styles.avatar} />
                   ) : (
                     <View style={styles.avatarPlaceholder}>
                       <Text style={styles.avatarText}>
@@ -201,21 +241,32 @@ export default function TeamScreen() {
               {/* Contact Actions */}
               <View style={styles.contactActions}>
                 {employee.email && (
-                  <TouchableOpacity style={styles.contactButton}>
+                  <TouchableOpacity 
+                    style={styles.contactButton}
+                    onPress={() => handleEmail(employee.email!)}
+                  >
                     <Ionicons name="mail-outline" size={20} color="#3b82f6" />
                     <Text style={styles.contactButtonText}>Email</Text>
                   </TouchableOpacity>
                 )}
                 {employee.phone && (
-                  <TouchableOpacity style={styles.contactButton}>
+                  <TouchableOpacity 
+                    style={styles.contactButton}
+                    onPress={() => handleCall(employee.phone!)}
+                  >
                     <Ionicons name="call-outline" size={20} color="#3b82f6" />
                     <Text style={styles.contactButtonText}>Call</Text>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity style={styles.contactButton}>
-                  <Ionicons name="chatbubble-outline" size={20} color="#3b82f6" />
-                  <Text style={styles.contactButtonText}>Message</Text>
-                </TouchableOpacity>
+                {employee.phone && (
+                  <TouchableOpacity 
+                    style={styles.contactButton}
+                    onPress={() => handleMessage(employee.phone!)}
+                  >
+                    <Ionicons name="chatbubble-outline" size={20} color="#3b82f6" />
+                    <Text style={styles.contactButtonText}>Message</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </Card>
           ))

@@ -243,11 +243,19 @@ export default function EditOtherEntitlementsModal({
                               min="0"
                               value={entitlement.balance}
                               onChange={(e) => {
-                                const value = parseFloat(e.target.value) || 0;
-                                // Prevent negative balances
-                                const clamped = Math.max(0, value);
-                                const rounded = Math.round(clamped * 4) / 4;
-                                handleUpdateEntitlement(index, 'balance', rounded);
+                                const inputValue = e.target.value;
+                                // Allow empty input for better UX when clearing the field
+                                if (inputValue === '' || inputValue === '-') {
+                                  handleUpdateEntitlement(index, 'balance', 0);
+                                  return;
+                                }
+                                const value = parseFloat(inputValue);
+                                if (!isNaN(value)) {
+                                  // Prevent negative balances
+                                  const clamped = Math.max(0, value);
+                                  const rounded = Math.round(clamped * 4) / 4;
+                                  handleUpdateEntitlement(index, 'balance', rounded);
+                                }
                               }}
                               className="h-9 rounded-lg"
                             />

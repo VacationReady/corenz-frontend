@@ -235,22 +235,33 @@ export default async function OnboardingDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {items?.map((item: any) => {
-                const formatStatus = (status: string) => {
-                  return status
-                    .split('_')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                    .join(' ');
-                };
-                
-                return (
+                {items?.map((item: any) => (
                   <tr key={item.id} className="border-b">
                     <td className="p-3">
-                      {item.employee?.user?.firstName}{" "}
-                      {item.employee?.user?.lastName}
+                      {(() => {
+                        const firstName = item.employee?.user?.firstName?.trim();
+                        const lastName = item.employee?.user?.lastName?.trim();
+                        const email = item.employee?.user?.email;
+                        
+                        if (firstName && lastName) {
+                          return `${firstName} ${lastName}`;
+                        } else if (firstName) {
+                          return firstName;
+                        } else if (lastName) {
+                          return lastName;
+                        } else if (email) {
+                          return email;
+                        }
+                        return "Unknown Employee";
+                      })()}
                     </td>
                     <td className="p-3">{item.template?.name}</td>
-                    <td className="p-3">{formatStatus(item.status)}</td>
+                    <td className="p-3">
+                      {item.status
+                        .split('_')
+                        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                        .join(' ')}
+                    </td>
                     <td className="p-3">
                       {item.startedAt
                         ? new Date(item.startedAt).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })
@@ -265,10 +276,9 @@ export default async function OnboardingDashboardPage() {
                       {item.stepsCompleted}/{item.stepsTotal}
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </Card>

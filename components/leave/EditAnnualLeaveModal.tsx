@@ -133,7 +133,9 @@ export default function EditAnnualLeaveModal({
     }
   };
 
-  const balanceChange = balanceDays ? parseFloat(balanceDays) - currentBalance : 0;
+  const balanceChange = balanceDays && !isNaN(parseFloat(balanceDays)) 
+    ? parseFloat(balanceDays) - currentBalance 
+    : 0;
   const hasChanges = Math.abs(balanceChange) > 0.01;
 
   // Format balance to remove unnecessary trailing zeros (e.g., 15.00 → 15, 15.25 → 15.25)

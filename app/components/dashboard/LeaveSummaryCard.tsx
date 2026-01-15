@@ -34,15 +34,20 @@ export default function LeaveSummaryCard({
   const [modalOpen, setModalOpen] = useState(false);
   const isAdminOrManager = isAdminOrManagerHelper(session);
 
-  const totalAllowance = formatLeaveBalance(entitlements.reduce((acc, e) => acc + e.totalDays, 0));
-  const totalTaken = formatLeaveBalance(entitlements.reduce((acc, e) => acc + e.usedDays, 0));
+  // Filter to show only Annual Leave balance (not sick leave, other entitlements, etc.)
+  const annualLeaveEntitlements = entitlements.filter(e => 
+    e.eventCategory?.name?.toLowerCase().includes('annual')
+  );
+
+  const totalAllowance = formatLeaveBalance(annualLeaveEntitlements.reduce((acc, e) => acc + e.totalDays, 0));
+  const totalTaken = formatLeaveBalance(annualLeaveEntitlements.reduce((acc, e) => acc + e.usedDays, 0));
   const totalRemaining = formatLeaveBalance(subtractWithPrecision(totalAllowance, totalTaken));
 
   return (
     <Card>
       <div className="border-b p-4 flex items-center gap-2">
         <CalendarCheck2 className="w-5 h-5 text-indigo-600" />
-        <h2 className="text-lg font-semibold">Leave Balance</h2>
+        <h2 className="text-lg font-semibold">Annual Leave Balance</h2>
       </div>
       <div className="p-4 flex flex-col text-sm">
         <div className="space-y-2">

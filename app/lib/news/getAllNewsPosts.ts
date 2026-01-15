@@ -198,7 +198,7 @@ export async function getAllNewsPosts(
     // For each dimension: either it's empty OR user matches it
     const allModeFilter = {
       AND: [
-        { OR: [{ audienceMatchMode: "ALL" }, { audienceMatchMode: null }] },
+        { audienceMatchMode: "ALL" },
         // Department: empty OR user matches
         {
           OR: [

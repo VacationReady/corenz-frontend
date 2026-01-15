@@ -265,27 +265,27 @@ async function getHandler(req: NextRequest) {
     // For each dimension: either it's empty OR user matches it
     const allModeFilter = {
       AND: [
-        { OR: [{ audienceMatchMode: "ALL" }, { audienceMatchMode: null }] },
+        { audienceMatchMode: "ALL" },
         // Department: empty OR user matches
         {
           OR: [
             dimensionIsEmpty("departments"),
             ...(departmentName ? [userMatchesDimension("departments", departmentName)] : []),
-          ].filter(Boolean),
+          ],
         },
         // Role: empty OR user matches
         {
           OR: [
             dimensionIsEmpty("roles"),
             ...(jobRoleName ? [userMatchesDimension("roles", jobRoleName)] : []),
-          ].filter(Boolean),
+          ],
         },
         // Location: empty OR user matches
         {
           OR: [
             dimensionIsEmpty("locations"),
             ...(locationName ? [userMatchesDimension("locations", locationName)] : []),
-          ].filter(Boolean),
+          ],
         },
       ],
     };
@@ -325,8 +325,10 @@ async function getHandler(req: NextRequest) {
   };
 
   const whereClause = isAdmin
-    ? { AND: [baseWhereClause, publishedFilter] }
-    : { AND: [baseWhereClause, audienceWhereClause, publishedFilter] };
+    ? baseWhereClause
+    : {
+        AND: [baseWhereClause, publishedFilter, audienceWhereClause],
+      } as any;
 
   // Get total count for pagination
   const totalCount = await prisma.newsPost.count({

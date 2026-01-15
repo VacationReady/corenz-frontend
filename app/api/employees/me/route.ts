@@ -20,14 +20,29 @@ export async function GET(req: NextRequest) {
         User: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             email: true,
+            phone: true,
             role: true,
+            dateOfBirth: true,
             profileImageUrl: true,
-            managerId: true,
+            pronouns: true,
+            addressStreet: true,
+            addressCity: true,
+            addressPostcode: true,
+            addressCountry: true,
+            genderOptionId: true,
+            nationalId: true,
           },
         },
         Department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        JobRole: {
           select: {
             id: true,
             name: true,

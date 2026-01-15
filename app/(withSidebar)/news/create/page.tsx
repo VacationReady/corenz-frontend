@@ -365,9 +365,19 @@ export default function CreateNewsPostPage() {
     const hasFailedAttachments = attachmentItems.some(
       (item) => item.status === "error",
     );
+    const failedCount = attachmentItems.filter((item) => item.status === "error").length;
+    
     if (hasFailedAttachments) {
-      toast.error("Remove or retry failed attachments before submitting.");
-      return;
+      const shouldProceed = window.confirm(
+        `${failedCount} attachment${failedCount > 1 ? 's' : ''} failed to upload. Do you want to proceed without ${failedCount > 1 ? 'them' : 'it'}? Click OK to continue or Cancel to fix the uploads first.`
+      );
+      if (!shouldProceed) {
+        toast.info("Please remove or retry failed attachments, then submit again.");
+        return;
+      }
+      // User chose to proceed - remove failed items from state
+      setAttachmentItems(prev => prev.filter(item => item.status !== "error"));
+      toast.info(`Proceeding without ${failedCount} failed attachment${failedCount > 1 ? 's' : ''}`);
     }
 
     const hasUploadingCover = coverItems.some(
@@ -376,6 +386,22 @@ export default function CreateNewsPostPage() {
     if (hasUploadingCover) {
       toast.error("Please wait for the cover image upload to finish.");
       return;
+    }
+
+    const hasFailedCover = coverItems.some((item) => item.status === "error");
+    if (hasFailedCover) {
+      const shouldProceed = window.confirm(
+        "Cover image upload failed. Do you want to proceed without a cover image?"
+      );
+      if (!shouldProceed) {
+        toast.info("Please retry the cover image upload or remove it, then submit again.");
+        return;
+      }
+      // Clear failed cover
+      setCoverItems([]);
+      setCoverImage("");
+      setCoverStoragePath(null);
+      toast.info("Proceeding without cover image");
     }
 
     const uploadedAttachments = attachmentItems

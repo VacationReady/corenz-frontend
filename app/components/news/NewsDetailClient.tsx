@@ -304,8 +304,17 @@ export default function NewsDetailClient({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const getAuthorName = () =>
-    post.author?.name || post.author?.email?.split("@")[0] || "Unknown Author";
+  const getAuthorName = () => {
+    if (post.author?.name) return post.author.name;
+    if (post.author?.email) {
+      try {
+        return post.author.email.split("@")[0] || "Unknown Author";
+      } catch {
+        return "Unknown Author";
+      }
+    }
+    return "Unknown Author";
+  };
 
   const totalReactions = Object.values(reactions).reduce((a, b) => (a || 0) + (b || 0), 0);
 

@@ -263,9 +263,17 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
     const current = postState.find((post) => post.id === targetPost.id);
     if (!current) return;
 
+    // Prevent rapid-fire clicks by checking if there's already a pending update
+    const pendingKey = `reaction-${targetPost.id}`;
+    if ((window as any)[pendingKey]) {
+      toast.info("Please wait for the previous reaction to complete");
+      return;
+    }
+
     const previousSnapshot: NewsPost = {
       ...current,
       reactions: { ...(current.reactions ?? {}) },
+      userReaction: current.userReaction,
     };
 
     const isRemoving = current.userReaction === reactionId;
@@ -294,6 +302,9 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
       ),
     );
 
+    // Mark as pending
+    (window as any)[pendingKey] = true;
+
     try {
       const response = await tenantFetch(`/api/news/${targetPost.slug}/reaction`, {
         method: isRemoving ? "DELETE" : "POST",
@@ -307,6 +318,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
       const data = await response.json();
 
+      // Always use server data as source of truth
       setPostState((prev) =>
         prev.map((post) =>
           post.id === targetPost.id
@@ -319,10 +331,14 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
         ),
       );
     } catch (error) {
+      // Revert to previous state on error
       setPostState((prev) =>
         prev.map((post) => (post.id === targetPost.id ? previousSnapshot : post)),
       );
       toast.error("Unable to update reaction. Please try again.");
+    } finally {
+      // Clear pending flag
+      delete (window as any)[pendingKey];
     }
   };
 

@@ -211,9 +211,17 @@ async function getHandler(req: NextRequest) {
     ],
   };
 
+  // Ensure drafts are never shown in public feed (publishedAt must be not null AND in the past)
+  const publishedFilter = {
+    publishedAt: {
+      not: null,
+      lte: new Date(), // Only show posts published in the past, not future-scheduled
+    },
+  };
+
   const whereClause = isAdmin
-    ? { AND: [baseWhereClause, { publishedAt: { not: null } }] }
-    : { AND: [baseWhereClause, audienceWhereClause, { publishedAt: { not: null } }] };
+    ? { AND: [baseWhereClause, publishedFilter] }
+    : { AND: [baseWhereClause, audienceWhereClause, publishedFilter] };
 
   // Get total count for pagination
   const totalCount = await prisma.newsPost.count({

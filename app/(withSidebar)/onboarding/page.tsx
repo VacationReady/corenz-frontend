@@ -49,6 +49,25 @@ async function fetchTelemetry() {
   }
 }
 
+// Safe date formatter with fallback
+const formatTelemetryDate = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return "—";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleString("en-NZ", { 
+      day: "numeric", 
+      month: "short", 
+      year: "numeric", 
+      hour: "2-digit", 
+      minute: "2-digit", 
+      timeZone: "Pacific/Auckland" 
+    });
+  } catch {
+    return "—";
+  }
+};
+
 export default async function OnboardingDashboardPage() {
   const [dashboardData, telemetryResponse] = await Promise.all([
     fetchDashboard(),
@@ -100,7 +119,7 @@ export default async function OnboardingDashboardPage() {
               ) : null}
               <Badge variant="outline" className="text-xs">
                 {telemetrySummary?.lastUpdatedAt
-                  ? new Date(telemetrySummary.lastUpdatedAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Auckland" })
+                  ? formatTelemetryDate(telemetrySummary.lastUpdatedAt)
                   : "No telemetry captured"}
               </Badge>
             </div>
@@ -202,9 +221,7 @@ export default async function OnboardingDashboardPage() {
                       </td>
                       <td className="p-3">{event.occurrenceCount}</td>
                       <td className="p-3">
-                        {event.lastSeenAt
-                          ? new Date(event.lastSeenAt).toLocaleString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Auckland" })
-                          : "-"}
+                        {formatTelemetryDate(event.lastSeenAt)}
                       </td>
                     </tr>
                   ))}

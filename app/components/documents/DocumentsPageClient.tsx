@@ -860,7 +860,7 @@ function DocumentsContent() {
         doc.category || "",
         doc.type,
         `${(doc.size / 1024).toFixed(2)} KB`,
-        new Date(doc.createdAt).toLocaleDateString(),
+        new Date(doc.createdAt).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" }),
         (Array.isArray(doc.departments) ? doc.departments : Array.isArray(doc.Department) ? doc.Department : []).map((d) => d.name).join("; "),
         (Array.isArray(doc.jobRoles) ? doc.jobRoles : Array.isArray(doc.JobRole) ? doc.JobRole : []).map((jr) => jr.name).join("; "),
       ]),

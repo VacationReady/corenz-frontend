@@ -208,33 +208,25 @@ export default function PersonalInformationClient({
               <FormField label="Pronouns" htmlFor="pronouns">
                 <div className="relative">
                   <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  {canEdit ? (
-                    <select
-                      id="pronouns"
-                      name="pronouns"
-                      defaultValue={user.pronouns ?? ""}
-                      className={cn(
-                        "flex h-11 w-full rounded-xl border pl-10 pr-3 py-2 text-sm transition-colors",
-                        "bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20 focus:outline-none focus:ring-2"
-                      )}
-                    >
-                      <option value="">Select pronouns</option>
-                      <option value="She/Her">She/Her</option>
-                      <option value="He/Him">He/Him</option>
-                      <option value="They/Them">They/Them</option>
-                      <option value="She/They">She/They</option>
-                      <option value="He/They">He/They</option>
-                      <option value="Any pronouns">Any pronouns</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                  ) : (
-                    <Input
-                      readOnly
-                      defaultValue={user.pronouns ?? ""}
-                      className="h-11 pl-10 rounded-xl bg-muted/30"
-                    />
-                  )}
+                  <Input
+                    id="pronouns"
+                    name="pronouns"
+                    defaultValue={user.pronouns ?? ""}
+                    readOnly={!canEdit}
+                    placeholder={canEdit ? "e.g., She/Her, He/Him, They/Them, or your pronouns" : ""}
+                    className={cn(
+                      "h-11 pl-10 rounded-xl",
+                      canEdit
+                        ? "bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20"
+                        : "bg-muted/30"
+                    )}
+                  />
                 </div>
+                {canEdit && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Common: She/Her, He/Him, They/Them, She/They, He/They, or enter your own
+                  </p>
+                )}
               </FormField>
 
             </FormSection>

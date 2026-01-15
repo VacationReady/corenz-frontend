@@ -65,6 +65,10 @@ async function postHandler(req: NextRequest) {
       title,
       sendEmail: normalizedSendEmail,
       audience: normalizedAudience,
+      audienceType: normalizedAudience.type,
+      audienceDepartments: normalizedAudience.departments,
+      audienceRoles: normalizedAudience.roles,
+      audienceLocations: normalizedAudience.locations,
     });
 
     const slug = await generateUniqueSlug(title, companyId);
@@ -185,8 +189,36 @@ async function getHandler(req: NextRequest) {
   // Build audience filter - user should see post if they match ANY specified dimension
   const audienceWhereClause = {
     OR: [
-      // Show if post targets all users
+      // Show if post targets all users (type is "all" or null/undefined with no specific targeting)
       { audience: { path: ["type"], equals: "all" } },
+      {
+        AND: [
+          {
+            OR: [
+              { audience: { path: ["type"], equals: Prisma.AnyNull } },
+              { audience: { path: ["type"], equals: Prisma.DbNull } },
+            ],
+          },
+          {
+            OR: [
+              { audience: { path: ["departments"], equals: Prisma.AnyNull } },
+              { audience: { path: ["departments"], equals: [] } },
+            ],
+          },
+          {
+            OR: [
+              { audience: { path: ["roles"], equals: Prisma.AnyNull } },
+              { audience: { path: ["roles"], equals: [] } },
+            ],
+          },
+          {
+            OR: [
+              { audience: { path: ["locations"], equals: Prisma.AnyNull } },
+              { audience: { path: ["locations"], equals: [] } },
+            ],
+          },
+        ],
+      },
       // Show if user's department matches (and departments are specified)
       ...(departmentName ? [{
         AND: [

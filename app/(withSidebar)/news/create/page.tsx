@@ -435,7 +435,7 @@ export default function CreateNewsPostPage() {
         toast.success(
           asDraft ? "Draft saved successfully!" : "News post published successfully!",
         );
-        clearDraftStorage(false);
+        clearDraftStorage(true);
         router.push("/news");
       } else {
         const error = await res.text();

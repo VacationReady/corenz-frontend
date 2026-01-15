@@ -112,7 +112,7 @@ export default function MoreScreen({ navigation, onLogout }: MoreScreenProps) {
             <MenuItem
               icon="calendar-outline"
               title="Calendar & Events"
-              onPress={() => navigation?.navigate('Calendar')}
+              onPress={() => navigation?.navigate('CalendarEvents')}
               showBorder={false}
             />
           </Card>
@@ -122,6 +122,11 @@ export default function MoreScreen({ navigation, onLogout }: MoreScreenProps) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal</Text>
           <Card style={styles.menuCard}>
+            <MenuItem
+              icon="airplane-outline"
+              title="My Leave Requests"
+              onPress={() => navigation?.navigate('MyLeave')}
+            />
             <MenuItem
               icon="person-outline"
               title="My Profile"

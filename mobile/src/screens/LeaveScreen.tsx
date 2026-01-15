@@ -289,7 +289,7 @@ export default function LeaveScreen() {
               <Text style={styles.dateText}>{startDate.toLocaleDateString()}</Text>
             </TouchableOpacity>
             {showStartPicker && (
-              <View>
+              <View style={styles.datePickerContainer}>
                 <DateTimePicker
                   value={startDate}
                   mode="date"
@@ -301,6 +301,7 @@ export default function LeaveScreen() {
                     if (date) setStartDate(date);
                   }}
                   minimumDate={new Date()}
+                  textColor="#0f172a"
                 />
                 {Platform.OS === 'ios' && (
                   <TouchableOpacity
@@ -323,7 +324,7 @@ export default function LeaveScreen() {
               <Text style={styles.dateText}>{endDate.toLocaleDateString()}</Text>
             </TouchableOpacity>
             {showEndPicker && (
-              <View>
+              <View style={styles.datePickerContainer}>
                 <DateTimePicker
                   value={endDate}
                   mode="date"
@@ -335,6 +336,7 @@ export default function LeaveScreen() {
                     if (date) setEndDate(date);
                   }}
                   minimumDate={startDate}
+                  textColor="#0f172a"
                 />
                 {Platform.OS === 'ios' && (
                   <TouchableOpacity
@@ -528,6 +530,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 32,
     marginBottom: 16,
+  },
+  datePickerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   datePickerDone: {
     backgroundColor: '#3b82f6',

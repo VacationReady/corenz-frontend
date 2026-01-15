@@ -13,6 +13,7 @@ import ActionItemsScreen from '../screens/ActionItemsScreen';
 import SurveysScreen from '../screens/SurveysScreen';
 import PerformanceScreen from '../screens/PerformanceScreen';
 import CalendarScreen from '../screens/CalendarScreen';
+import CompanyCalendarScreen from '../screens/CompanyCalendarScreen';
 
 const Tab = createBottomTabNavigator();
 const MoreStack = createNativeStackNavigator();
@@ -54,9 +55,14 @@ function MoreStackNavigator({ onLogout }: { onLogout: () => void }) {
         options={{ title: 'Performance Reviews' }}
       />
       <MoreStack.Screen
-        name="Calendar"
+        name="CalendarEvents"
         component={CalendarScreen}
         options={{ title: 'Calendar & Events' }}
+      />
+      <MoreStack.Screen
+        name="MyLeave"
+        component={LeaveScreen}
+        options={{ title: 'My Leave Requests' }}
       />
     </MoreStack.Navigator>
   );
@@ -74,7 +80,7 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
               iconName = focused ? 'home' : 'home-outline';
             } else if (route.name === 'Clock') {
               iconName = focused ? 'time' : 'time-outline';
-            } else if (route.name === 'Leave') {
+            } else if (route.name === 'Calendar') {
               iconName = focused ? 'calendar' : 'calendar-outline';
             } else if (route.name === 'Team') {
               iconName = focused ? 'people' : 'people-outline';
@@ -133,9 +139,9 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
           }}
         />
         <Tab.Screen 
-          name="Leave" 
-          component={LeaveScreen}
-          options={{ title: 'Time Off' }}
+          name="Calendar" 
+          component={CompanyCalendarScreen}
+          options={{ headerShown: false, title: 'Calendar' }}
         />
         <Tab.Screen 
           name="Team" 

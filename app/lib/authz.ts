@@ -100,7 +100,7 @@ export async function canCreateLeaveRequest(
 
   // Manager access: can create leave requests for their direct reports
   if (context.role === "MANAGER") {
-    const targetEmployee = await prisma.employee.findUnique({
+    const targetEmployee = await prisma.employee.findFirst({
       where: { id: targetEmployeeId, companyId: context.companyId },
       select: {
         userId: true,
@@ -120,7 +120,7 @@ export async function canCreateLeaveRequest(
   }
 
   // Regular employees can only create for themselves
-  const targetEmployee = await prisma.employee.findUnique({
+  const targetEmployee = await prisma.employee.findFirst({
     where: { id: targetEmployeeId, companyId: context.companyId },
     select: { userId: true },
   });

@@ -21,6 +21,15 @@ const RATE_LIMIT_MAX = 5;
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validate NEXTAUTH_SECRET is available
+    if (!env.NEXTAUTH_SECRET) {
+      console.error("[mobile-auth] NEXTAUTH_SECRET is not configured");
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 }
+      );
+    }
+
     // Rate limiting by IP address
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || 
                request.headers.get("x-real-ip") || 
@@ -151,8 +160,17 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[mobile-auth] Login error:", error);
+    console.error("[mobile-auth] Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    console.error("[mobile-auth] Error details:", {
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    
     return NextResponse.json(
-      { error: "An error occurred during login" },
+      { 
+        error: "An error occurred during login",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
       { status: 500 }
     );
   }

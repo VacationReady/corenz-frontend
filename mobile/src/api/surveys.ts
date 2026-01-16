@@ -30,13 +30,17 @@ export async function getPendingSurveys(): Promise<Survey[]> {
   });
 
   if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error');
+    console.error(`[getPendingSurveys] HTTP ${response.status}: ${errorText}`);
+    
     if (response.status === 401 || response.status === 403) {
       throw new Error('Unauthorized');
     }
-    throw new Error('Failed to fetch surveys');
+    throw new Error(`Failed to fetch surveys (${response.status}): ${errorText}`);
   }
 
   const data = await response.json();
+  console.log('[getPendingSurveys] Success:', data);
   // Server returns { surveys: [...], pagination: {...} } format
   return Array.isArray(data) ? data : (data.surveys || []);
 }

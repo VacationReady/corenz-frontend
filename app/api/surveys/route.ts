@@ -53,7 +53,8 @@ async function getHandler(request: NextRequest) {
     };
 
     if (status) {
-      where.status = status;
+      // Convert to uppercase to match SurveyStatus enum (DRAFT, ACTIVE, PAUSED)
+      where.status = status.toUpperCase();
     }
 
     // Handle scope parameter for mobile app
@@ -64,22 +65,35 @@ async function getHandler(request: NextRequest) {
         select: { id: true },
       });
 
-      if (employee) {
-        if (scope === 'assigned') {
-          // Get surveys assigned to this employee
-          where.SurveyRecipients = {
-            some: {
-              employeeId: employee.id,
-            },
-          };
-        } else if (scope === 'completed') {
-          // Get surveys the employee has completed
-          where.SurveyResponses = {
-            some: {
-              respondentId: employee.id,
-            },
-          };
-        }
+      console.log('[surveys] Employee lookup:', { userId: session.user.id, employeeId: employee?.id });
+
+      if (!employee) {
+        console.warn('[surveys] No employee found for user, returning empty surveys');
+        return NextResponse.json({
+          surveys: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            pages: 0,
+          },
+        });
+      }
+
+      if (scope === 'assigned') {
+        // Get surveys assigned to this employee
+        where.SurveyRecipients = {
+          some: {
+            employeeId: employee.id,
+          },
+        };
+      } else if (scope === 'completed') {
+        // Get surveys the employee has completed
+        where.SurveyResponses = {
+          some: {
+            respondentId: employee.id,
+          },
+        };
       }
     }
 

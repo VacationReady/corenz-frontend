@@ -131,7 +131,7 @@ export default function HomeScreen() {
               icon="calendar-outline"
               title="Book Leave"
               color="#3b82f6"
-              onPress={() => navigation.navigate('Leave')}
+              onPress={() => navigation.navigate('More', { screen: 'MyLeave' })}
             />
             <QuickActionButton
               icon="document-text-outline"

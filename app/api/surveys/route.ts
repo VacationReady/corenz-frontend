@@ -52,20 +52,30 @@ async function getHandler(request: NextRequest) {
     }
 
     // Handle scope parameter for mobile app
-    if (scope === 'assigned' && session.user.id) {
-      // Get surveys assigned to this user
-      where.SurveyRecipients = {
-        some: {
-          employeeId: session.user.id,
-        },
-      };
-    } else if (scope === 'completed' && session.user.id) {
-      // Get surveys the user has completed
-      where.SurveyResponses = {
-        some: {
-          respondentId: session.user.id,
-        },
-      };
+    if ((scope === 'assigned' || scope === 'completed') && session.user.id) {
+      // Get employee ID from user ID
+      const employee = await prisma.employee.findFirst({
+        where: { userId: session.user.id, companyId: session.user.companyId },
+        select: { id: true },
+      });
+
+      if (employee) {
+        if (scope === 'assigned') {
+          // Get surveys assigned to this employee
+          where.SurveyRecipients = {
+            some: {
+              employeeId: employee.id,
+            },
+          };
+        } else if (scope === 'completed') {
+          // Get surveys the employee has completed
+          where.SurveyResponses = {
+            some: {
+              respondentId: employee.id,
+            },
+          };
+        }
+      }
     }
 
     const [surveys, total] = await Promise.all([

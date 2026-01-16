@@ -247,7 +247,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (employee) {
-      // Get documents assigned to this employee
+      // Get documents assigned to this employee via SignatureEmployees relation
       // Use type assertion since Prisma types for includes can be complex
       const documents: any[] = await (prisma.document as any).findMany({
         where: {
@@ -256,12 +256,9 @@ export async function GET(req: NextRequest) {
             { requiresAck: true },
             { requiresSignature: true },
           ],
-          DocumentAssignment: {
+          SignatureEmployees: {
             some: {
-              OR: [
-                { employeeId: employee.id },
-                { allEmployees: true },
-              ],
+              employeeId: employee.id,
             },
           },
         },
@@ -272,7 +269,7 @@ export async function GET(req: NextRequest) {
           DocumentSignature: {
             where: { employeeId: employee.id },
           },
-          SignatureField: true,
+          SignatureFields: true,
         },
         take: 30,
       });
@@ -310,7 +307,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Check if signature required and not yet signed
-        const signatureFields = doc.SignatureField || [];
+        const signatureFields = doc.SignatureFields || [];
         const signatures = doc.DocumentSignature || [];
         if (doc.requiresSignature && signatures.length === 0 && signatureFields.length > 0) {
           // Check if there's already an action item for this document

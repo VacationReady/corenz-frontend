@@ -266,7 +266,7 @@ export async function GET(req: NextRequest) {
           DocumentAcknowledgement: {
             where: { employeeId: employee.id },
           },
-          DocumentSignature: {
+          SignatureArtifacts: {
             where: { employeeId: employee.id },
           },
           SignatureFields: true,
@@ -308,7 +308,7 @@ export async function GET(req: NextRequest) {
 
         // Check if signature required and not yet signed
         const signatureFields = doc.SignatureFields || [];
-        const signatures = doc.DocumentSignature || [];
+        const signatures = doc.SignatureArtifacts || [];
         if (doc.requiresSignature && signatures.length === 0 && signatureFields.length > 0) {
           // Check if there's already an action item for this document
           const existingActionItem = items.find(

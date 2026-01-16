@@ -32,13 +32,18 @@ const createSurveySchema = z.object({
 async function getHandler(request: NextRequest) {
   try {
     const session = await getMobileSession(request);
+    console.log('[surveys] Session:', { userId: session?.user?.id, companyId: session?.user?.companyId });
+    
     if (!session?.user?.companyId) {
+      console.error('[surveys] Unauthorized: No session or missing companyId');
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const scope = searchParams.get("scope");
+    console.log('[surveys] Query params:', { status, scope });
+    
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const skip = (page - 1) * limit;
@@ -121,9 +126,10 @@ async function getHandler(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching surveys:", error);
+    console.error("[surveys] Error fetching surveys:", error);
+    console.error("[surveys] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: "Failed to fetch surveys" },
+      { error: "Failed to fetch surveys", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

@@ -302,30 +302,17 @@ export default function ActionItemsScreen() {
         {/* Action Buttons */}
         <View style={styles.itemActions}>
           {isApprovalType ? (
-            <>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.declineBtn]}
-                onPress={() => openActionModal(item, 'decline')}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#ef4444" />
-                ) : (
-                  <Ionicons name="close" size={18} color="#ef4444" />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.approveBtn]}
-                onPress={() => handleAction(item, 'approve')}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#10b981" />
-                ) : (
-                  <Ionicons name="checkmark" size={18} color="#10b981" />
-                )}
-              </TouchableOpacity>
-            </>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.primaryBtn]}
+              onPress={() => openActionModal(item, 'view')}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.primaryBtnText}>Review</Text>
+              )}
+            </TouchableOpacity>
           ) : isDocumentType ? (
             <TouchableOpacity
               style={[styles.actionBtn, styles.primaryBtn]}

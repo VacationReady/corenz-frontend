@@ -59,10 +59,7 @@ export async function processDecision({
       data: { status, isActive: false, respondedAt: now },
     });
 
-    const stage = await tx.leaveApprovalStage.findUnique({
-      where: { id: decision.stageId },
-      include: { decisions: true, leaveRequest: true },
-    });
+    const stage = decision.stage;
     if (!stage) throw new Error("Stage not found");
 
     // Decline path: cancel stage and future stages, update LR

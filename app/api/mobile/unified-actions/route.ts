@@ -22,11 +22,13 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getMobileSession(req);
     if (!session?.user?.id || !session.user.companyId) {
+      console.error("[unified-actions] Unauthorized: No session or missing user/companyId");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const companyId = session.user.companyId;
     const userId = session.user.id;
+    console.log(`[unified-actions] Fetching action items for user ${userId} in company ${companyId}`);
     const items: UnifiedActionItem[] = [];
 
     // 1. Fetch action items from database (surveys, timesheets, documents, tasks)

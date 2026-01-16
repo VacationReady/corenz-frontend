@@ -223,7 +223,10 @@ export default function CompanyCalendarScreen() {
       const response = await apiFetch('/api/departments');
       if (response.ok) {
         const data = await response.json();
+        console.log('Departments fetched:', data);
         setDepartments(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch departments, status:', response.status);
       }
     } catch (error) {
       console.error('Failed to load departments:', error);
@@ -502,7 +505,7 @@ const styles = StyleSheet.create({
   filterButton: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   filterBadge: { position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
   filterBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff' },
-  statsContainer: { flexDirection: 'row', paddingHorizontal: 16, marginTop: -20, gap: 10 },
+  statsContainer: { flexDirection: 'row', paddingHorizontal: 16, marginTop: 16, gap: 10 },
   statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
   statGradient: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   statContent: { flex: 1 },

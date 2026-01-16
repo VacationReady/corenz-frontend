@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
+import { getMobileSession } from "@/lib/mobile-session";
 import { auth } from "@/lib/auth-options";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await ensurePrismaConnected();
-    const session = await auth();
+    const session = await getMobileSession(req);
     console.log("[departments] Session check:", {
       hasSession: !!session,
       hasUser: !!session?.user,

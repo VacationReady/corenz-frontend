@@ -64,22 +64,31 @@ export interface ActionItem {
  * This includes surveys, approvals, documents, change requests, etc.
  */
 export async function getUnifiedActionItems(): Promise<{ items: UnifiedActionItem[]; counts: ActionItemCounts }> {
-  const response = await apiFetch('/api/mobile/unified-actions', {
-    method: 'GET',
-  });
+  try {
+    const response = await apiFetch('/api/mobile/unified-actions', {
+      method: 'GET',
+    });
 
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('Unauthorized');
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`[getUnifiedActionItems] HTTP ${response.status}: ${errorText}`);
+      
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Unauthorized');
+      }
+      throw new Error(`Failed to fetch action items (${response.status}): ${errorText}`);
     }
-    throw new Error('Failed to fetch action items');
-  }
 
-  const data = await response.json();
-  return {
-    items: data.data || [],
-    counts: data.counts || { total: 0, surveys: 0, approvals: 0, timesheets: 0, documents: 0, changeRequests: 0, tasks: 0 },
-  };
+    const data = await response.json();
+    console.log('[getUnifiedActionItems] Success:', data.counts);
+    return {
+      items: data.data || [],
+      counts: data.counts || { total: 0, surveys: 0, approvals: 0, timesheets: 0, documents: 0, changeRequests: 0, tasks: 0 },
+    };
+  } catch (error) {
+    console.error('[getUnifiedActionItems] Error:', error);
+    throw error;
+  }
 }
 
 /**

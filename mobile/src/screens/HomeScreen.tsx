@@ -51,6 +51,13 @@ export default function HomeScreen() {
         getPendingSurveys(),
       ]);
 
+      if (actions.status === 'rejected') {
+        console.error('Failed to load action items:', actions.reason);
+      }
+      if (surveys.status === 'rejected') {
+        console.error('Failed to load surveys:', surveys.reason);
+      }
+
       setStats({
         pendingActions: actions.status === 'fulfilled' 
           ? actions.value.counts.total
@@ -147,25 +154,29 @@ export default function HomeScreen() {
           </View>
         </Card>
 
-        {/* Pending Items */}
-        {stats.pendingActions > 0 && (
-          <Card>
-            <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>Pending Actions</Text>
+        {/* Pending Items - Always show to provide access to action items */}
+        <Card>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>Pending Actions</Text>
+            {stats.pendingActions > 0 && (
               <Badge text={`${stats.pendingActions} pending`} variant="warning" size="small" />
-            </View>
-            <Text style={styles.cardDescription}>
-              You have {stats.pendingActions} action item{stats.pendingActions !== 1 ? 's' : ''} waiting for your attention
+            )}
+          </View>
+          <Text style={styles.cardDescription}>
+            {stats.pendingActions > 0 
+              ? `You have ${stats.pendingActions} action item${stats.pendingActions !== 1 ? 's' : ''} waiting for your attention`
+              : 'View and manage your action items, approvals, and tasks'}
+          </Text>
+          <TouchableOpacity
+            style={styles.viewAllButton}
+            onPress={() => navigation.navigate('More', { screen: 'ActionItems' })}
+          >
+            <Text style={styles.viewAllText}>
+              {stats.pendingActions > 0 ? 'View All' : 'View Action Items'}
             </Text>
-            <TouchableOpacity
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate('More', { screen: 'ActionItems' })}
-            >
-              <Text style={styles.viewAllText}>View All</Text>
-              <Ionicons name="chevron-forward" size={16} color="#3b82f6" />
-            </TouchableOpacity>
-          </Card>
-        )}
+            <Ionicons name="chevron-forward" size={16} color="#3b82f6" />
+          </TouchableOpacity>
+        </Card>
 
         {/* Pending Surveys */}
         {stats.pendingSurveys > 0 && (

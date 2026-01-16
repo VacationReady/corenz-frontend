@@ -6,6 +6,7 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -13,10 +14,14 @@ import { getSession } from '../api/auth';
 import { getEmployeeProfile } from '../api/hr-data';
 import { getUnifiedActionItems } from '../api/action-items';
 import { getPendingSurveys } from '../api/surveys';
+import { getLatestNews, NewsPost } from '../api/news';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import LoadingState from '../components/LoadingState';
 import ClockWidget from '../components/ClockWidget';
+import NewsCard from '../components/NewsCard';
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
@@ -28,6 +33,7 @@ export default function HomeScreen() {
     pendingActions: 0,
     pendingSurveys: 0,
   });
+  const [latestNews, setLatestNews] = useState<NewsPost | null>(null);
 
   const loadData = async () => {
     try {
@@ -46,9 +52,10 @@ export default function HomeScreen() {
       }
 
       // Load stats in parallel
-      const [actions, surveys] = await Promise.allSettled([
+      const [actions, surveys, news] = await Promise.allSettled([
         getUnifiedActionItems(),
         getPendingSurveys(),
+        getLatestNews(),
       ]);
 
       if (actions.status === 'rejected') {
@@ -56,6 +63,9 @@ export default function HomeScreen() {
       }
       if (surveys.status === 'rejected') {
         console.error('Failed to load surveys:', surveys.reason);
+      }
+      if (news.status === 'fulfilled' && news.value) {
+        setLatestNews(news.value);
       }
 
       setStats({
@@ -180,27 +190,33 @@ export default function HomeScreen() {
 
         {/* Pending Surveys card removed - surveys are now included in Pending Actions */}
 
-        {/* Employee Info */}
-        {employee && (
-          <Card>
-            <Text style={styles.sectionTitle}>Your Info</Text>
-            <View style={styles.infoRow}>
-              <Ionicons name="briefcase-outline" size={20} color="#64748b" />
-              <Text style={styles.infoText}>{employee.department || 'N/A'}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="mail-outline" size={20} color="#64748b" />
-              <Text style={styles.infoText}>{employee.email || user?.email || 'N/A'}</Text>
-            </View>
-            {employee.manager && (
-              <View style={styles.infoRow}>
-                <Ionicons name="person-outline" size={20} color="#64748b" />
-                <Text style={styles.infoText}>
-                  Reports to {employee.manager.firstName} {employee.manager.lastName}
-                </Text>
+        {/* Latest News */}
+        {latestNews && (
+          <View style={styles.newsSection}>
+            <View style={styles.newsSectionHeader}>
+              <View style={styles.newsTitleRow}>
+                <Ionicons name="newspaper" size={20} color="#3b82f6" />
+                <Text style={styles.sectionTitle}>Latest News</Text>
               </View>
-            )}
-          </Card>
+              <TouchableOpacity
+                style={styles.seeAllButton}
+                onPress={() => navigation.navigate('More', { screen: 'NewsHub' })}
+              >
+                <Text style={styles.seeAllText}>See all</Text>
+                <Ionicons name="chevron-forward" size={14} color="#3b82f6" />
+              </TouchableOpacity>
+            </View>
+            <NewsCard
+              post={latestNews}
+              onPress={() => {
+                const url = `${API_BASE_URL}/news/${latestNews.slug}`;
+                Linking.openURL(url).catch(err => {
+                  console.error('Failed to open news URL:', err);
+                });
+              }}
+              variant="featured"
+            />
+          </View>
         )}
       </View>
     </ScrollView>
@@ -342,5 +358,29 @@ const styles = StyleSheet.create({
     color: '#475569',
     marginLeft: 12,
     flex: 1,
+  },
+  newsSection: {
+    marginBottom: 16,
+  },
+  newsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  newsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: '600',
   },
 });

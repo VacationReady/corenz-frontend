@@ -15,6 +15,7 @@ import SurveysScreen from '../screens/SurveysScreen';
 import PerformanceScreen from '../screens/PerformanceScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import CompanyCalendarScreen from '../screens/CompanyCalendarScreen';
+import NewsHubScreen from '../screens/NewsHubScreen';
 
 import {
   ProfileOverviewScreen,
@@ -77,6 +78,11 @@ function MoreStackNavigator({ onLogout }: { onLogout: () => void }) {
         name="CalendarEvents"
         component={CalendarScreen}
         options={{ title: 'Calendar & Events' }}
+      />
+      <MoreStack.Screen
+        name="NewsHub"
+        component={NewsHubScreen}
+        options={{ title: 'Company News' }}
       />
       <MoreStack.Screen
         name="MyLeave"

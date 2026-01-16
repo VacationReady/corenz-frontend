@@ -100,6 +100,11 @@ export default function MoreScreen({ navigation, onLogout }: MoreScreenProps) {
               onPress={() => navigation?.navigate('ActionItems')}
             />
             <MenuItem
+              icon="newspaper-outline"
+              title="Company News"
+              onPress={() => navigation?.navigate('NewsHub')}
+            />
+            <MenuItem
               icon="document-text-outline"
               title="Surveys"
               onPress={() => navigation?.navigate('Surveys')}

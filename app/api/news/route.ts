@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { hasPermission } from "@/lib/permissions";
 import supabase from "@/lib/supabase-admin";
 import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
@@ -142,7 +143,8 @@ async function getHandler(req: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const skip = (page - 1) * limit;
 
-  const session = await auth();
+  // Support both web and mobile sessions
+  const session = await getMobileSession(req);
   if (!session?.user?.companyId || !session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

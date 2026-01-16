@@ -489,7 +489,7 @@ export default function ActionItemsScreen() {
                         <View style={styles.balanceCard}>
                           <View style={styles.balanceGrid}>
                             <View style={styles.balanceItem}>
-                              <Text style={styles.balanceLabel}>Allowance</Text>
+                              <Text style={styles.balanceLabel}>Balance</Text>
                               <Text style={styles.balanceValue}>{leaveDetails.balance.totalDays}</Text>
                             </View>
                             <View style={styles.balanceItem}>
@@ -1087,6 +1087,7 @@ const styles = StyleSheet.create({
   },
   modalScrollView: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   modalScrollContent: {
     flexGrow: 1,

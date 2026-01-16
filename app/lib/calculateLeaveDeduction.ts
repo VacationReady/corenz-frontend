@@ -2,7 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { DayType, Prisma } from "@prisma/client";
-import { calculateHoursForDay } from "@/lib/working-pattern-utils";
 
 type PrismaClientLike = Prisma.TransactionClient | typeof prisma;
 
@@ -10,10 +9,7 @@ type PrismaClientLike = Prisma.TransactionClient | typeof prisma;
  * Calculates leave deduction based on employee working pattern.
  * @param employeeId - Employee ID (string)
  * @param leaveDate - Date of leave (Date object)
- * @returns For FULL_DAY: 1, HALF_DAY: 0.5, TIMED: actual hours worked, NON_WORKING: 0
- * 
- * Note: For TIMED day types, this returns the actual hours (e.g., 7.5) rather than
- * day fractions. Calling code should normalize if needed by dividing by standard day hours.
+ * @returns For FULL_DAY/TIMED: 1, HALF_DAY: 0.5, NON_WORKING/not found: 0
  */
 export async function calculateLeaveDeduction(
   employeeId: string,
@@ -128,16 +124,10 @@ export async function calculateLeaveDeduction(
       console.log(`[Deduction] HALF_DAY detected. Returning 0.5.`);
       return 0.5;
     case DayType.TIMED:
-      // For TIMED type, return actual hours from the pattern
-      const hours = calculateHoursForDay({
-        type: dayEntry.type,
-        hoursPerDay: dayEntry.hoursPerDay ? parseFloat(dayEntry.hoursPerDay.toString()) : null,
-        startTime: dayEntry.startTime ?? undefined,
-        endTime: dayEntry.endTime ?? undefined,
-        breakMinutes: dayEntry.breakMinutes ?? undefined,
-      }, workingPattern.defaultBreakMinutes ?? 30);
-      console.log(`[Deduction] TIMED detected. Hours: ${hours}. Returning ${hours}.`);
-      return hours;
+      // For TIMED type, count as 1 full working day for leave deduction purposes
+      // The actual hours worked are tracked separately for payroll/timesheet purposes
+      console.log(`[Deduction] TIMED detected. Returning 1 (full working day).`);
+      return 1;
     default:
       console.log(`[Deduction] NON_WORKING or unknown detected. Returning 0.`);
       return 0;

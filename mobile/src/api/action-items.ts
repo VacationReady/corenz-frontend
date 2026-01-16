@@ -157,7 +157,7 @@ export async function updateActionItemStatus(
 export async function approveLeaveRequest(decisionId: string, comment?: string): Promise<any> {
   const actualId = decisionId.startsWith('approval-') ? decisionId.replace('approval-', '') : decisionId;
   
-  const response = await apiFetch(`/api/approvals/${actualId}`, {
+  const response = await apiFetch(`/api/mobile/leave-approval/${actualId}`, {
     method: 'POST',
     body: JSON.stringify({ action: 'approve', comment }),
   });
@@ -176,7 +176,7 @@ export async function approveLeaveRequest(decisionId: string, comment?: string):
 export async function declineLeaveRequest(decisionId: string, comment: string): Promise<any> {
   const actualId = decisionId.startsWith('approval-') ? decisionId.replace('approval-', '') : decisionId;
   
-  const response = await apiFetch(`/api/approvals/${actualId}`, {
+  const response = await apiFetch(`/api/mobile/leave-approval/${actualId}`, {
     method: 'POST',
     body: JSON.stringify({ action: 'decline', comment }),
   });

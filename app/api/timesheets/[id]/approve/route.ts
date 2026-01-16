@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
+import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import {
@@ -32,7 +33,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
+    // Try mobile session first, then web session
+    const mobileSession = await getMobileSession(req);
+    const webSession = !mobileSession?.user ? await auth() : null;
+    const session = mobileSession?.user ? mobileSession : webSession;
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

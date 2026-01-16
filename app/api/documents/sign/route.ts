@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
@@ -17,7 +18,10 @@ type SignRequestBody = {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
+    // Try mobile session first, then web session
+    const mobileSession = await getMobileSession(req);
+    const webSession = !mobileSession?.user ? await auth() : null;
+    const session = mobileSession?.user ? mobileSession : webSession;
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

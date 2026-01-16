@@ -1,12 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { prisma } from "@/lib/prisma";
 import { invalidateDocumentStatusCache } from "@/lib/cache";
 
 // ✅ POST: Acknowledge a document
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
+    // Try mobile session first, then web session
+    const mobileSession = await getMobileSession(req);
+    const webSession = !mobileSession?.user ? await auth() : null;
+    const session = mobileSession?.user ? mobileSession : webSession;
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

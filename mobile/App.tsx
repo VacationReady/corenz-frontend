@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import AppNavigator from './src/navigation/AppNavigator';
 import { getStoredSession, getSession } from './src/api/auth';
@@ -52,14 +53,14 @@ export default function App() {
   }
 
   return (
-    <>
+    <SafeAreaProvider>
       {isAuthenticated ? (
         <AppNavigator onLogout={handleLogout} />
       ) : (
         <AuthNavigator onLoginSuccess={handleLoginSuccess} />
       )}
       <StatusBar style="auto" />
-    </>
+    </SafeAreaProvider>
   );
 }
 

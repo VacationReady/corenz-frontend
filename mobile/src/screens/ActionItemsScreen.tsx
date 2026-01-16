@@ -507,7 +507,7 @@ export default function ActionItemsScreen() {
                             </View>
                             <View style={styles.balanceItem}>
                               <Text style={styles.balanceLabel}>Used</Text>
-                              <Text style={styles.balanceValue}>{leaveDetails.balance.usedDays}</Text>
+                              <Text style={styles.balanceValue}>{leaveDetails.dates.requestedDays}</Text>
                             </View>
                             <View style={styles.balanceItem}>
                               <Text style={styles.balanceLabel}>Current</Text>

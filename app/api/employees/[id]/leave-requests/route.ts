@@ -6,6 +6,7 @@ import { resolveApprovalWorkflow } from "@/lib/resolveApprovalWorkflow";
 import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
 import { notifyApproversForStage } from "@/lib/approvalNotifications";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
+import { calculateLeaveDeductionBatch } from "@/lib/calculateLeaveDeductionBatch";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 import {
   canAccessLeaveRequests,
@@ -381,14 +382,14 @@ export async function POST(
     const startDateObj = parseLocalDate(startDate);
     const endDateObj = parseLocalDate(endDate);
 
-    // Calculate deduction based on working days
-    const totalDays: number[] = [];
+    // Calculate deduction based on working days (batch optimized)
+    const dates: Date[] = [];
     let currentDate = new Date(startDateObj);
     while (currentDate <= endDateObj) {
-      const deduction = await calculateLeaveDeduction(employeeId, currentDate);
-      totalDays.push(deduction);
+      dates.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);
     }
+    const totalDays = await calculateLeaveDeductionBatch(employeeId, dates);
     const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
 
     // Check balance (convert to number for comparison)
@@ -730,16 +731,14 @@ export async function POST(
             endDateObj: endDateObj.toISOString(),
           });
           
-          // Calculate deduction for sick leave BEFORE transaction
-          const totalDays: number[] = [];
+          // Calculate deduction for sick leave BEFORE transaction (batch optimized)
+          const dates: Date[] = [];
           let currentDate = new Date(startDateObj);
-
           while (currentDate <= endDateObj) {
-            const deduction = await calculateLeaveDeduction(employeeId, currentDate);
-            totalDays.push(deduction);
+            dates.push(new Date(currentDate));
             currentDate.setDate(currentDate.getDate() + 1);
           }
-
+          const totalDays = await calculateLeaveDeductionBatch(employeeId, dates);
           const totalDeductionDays = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
 
           // Apply any pending grants BEFORE creating the leave request
@@ -895,18 +894,16 @@ export async function POST(
         }
 
         if (enforceEntitlement) {
-          // Calculate deduction before transaction
+          // Calculate deduction before transaction (batch optimized)
           // startDateObj and endDateObj are already parsed above
-          const totalDays: number[] = [];
+          const dates: Date[] = [];
           let currentDate = new Date(startDateObj);
           // End date is the last day away (inclusive) - UI instructs user not to include return-to-work day
-
           while (currentDate <= endDateObj) {
-            const deduction = await calculateLeaveDeduction(employeeId, currentDate);
-            totalDays.push(deduction);
+            dates.push(new Date(currentDate));
             currentDate.setDate(currentDate.getDate() + 1);
           }
-
+          const totalDays = await calculateLeaveDeductionBatch(employeeId, dates);
           const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
 
           // ── NZ HOLIDAYS ACT 2003: PRE-12-MONTH EMPLOYEE HANDLING ──────────────────

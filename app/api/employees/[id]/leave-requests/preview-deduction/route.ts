@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
-import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
+import { calculateLeaveDeductionBatch } from "@/lib/calculateLeaveDeductionBatch";
 import { formatLeaveBalance } from "@/lib/decimalPrecision";
 
 export async function GET(
@@ -21,15 +21,19 @@ export async function GET(
   const endDate = new Date(endDateParam);
   // End date is the last day away (inclusive) - UI instructs user not to include return-to-work day
 
-  let deduction = 0;
+  // Build array of dates (batch optimized)
+  const dates: Date[] = [];
   for (
     let time = startDate.getTime();
     time <= endDate.getTime();
     time += 24 * 60 * 60 * 1000
   ) {
-    const currentDate = new Date(time);
-    deduction += await calculateLeaveDeduction(employeeId, currentDate);
+    dates.push(new Date(time));
   }
+
+  // Calculate deductions in batch (single DB query instead of N queries)
+  const deductions = await calculateLeaveDeductionBatch(employeeId, dates);
+  const deduction = deductions.reduce((sum, d) => sum + d, 0);
 
   // Format to 2 decimal places to avoid floating point precision issues
   return NextResponse.json({ deduction: formatLeaveBalance(deduction) });

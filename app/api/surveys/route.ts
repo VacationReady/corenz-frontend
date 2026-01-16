@@ -38,6 +38,7 @@ async function getHandler(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
+    const scope = searchParams.get("scope");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const skip = (page - 1) * limit;
@@ -48,6 +49,23 @@ async function getHandler(request: NextRequest) {
 
     if (status) {
       where.status = status;
+    }
+
+    // Handle scope parameter for mobile app
+    if (scope === 'assigned' && session.user.id) {
+      // Get surveys assigned to this user
+      where.SurveyRecipients = {
+        some: {
+          employeeId: session.user.id,
+        },
+      };
+    } else if (scope === 'completed' && session.user.id) {
+      // Get surveys the user has completed
+      where.SurveyResponses = {
+        some: {
+          respondentId: session.user.id,
+        },
+      };
     }
 
     const [surveys, total] = await Promise.all([

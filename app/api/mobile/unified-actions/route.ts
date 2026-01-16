@@ -372,9 +372,11 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Failed to fetch unified action items:", error);
+    console.error("[unified-actions] Failed to fetch unified action items:", error);
+    console.error("[unified-actions] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+    console.error("[unified-actions] Error message:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
-      { error: "Failed to fetch action items" },
+      { error: "Failed to fetch action items", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

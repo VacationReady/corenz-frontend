@@ -24,6 +24,7 @@ const envSchema = z.object({
   // Authentication
   NEXTAUTH_SECRET: z.string().min(1, "NEXTAUTH_SECRET is required for session security"),
   NEXTAUTH_URL: z.string()
+    .optional()
     .transform(val => {
       // Auto-fix: Add https:// if missing protocol
       if (val && !val.startsWith("http://") && !val.startsWith("https://")) {
@@ -31,7 +32,7 @@ const envSchema = z.object({
       }
       return val;
     })
-    .pipe(z.string().url("NEXTAUTH_URL must be a valid URL")),
+    .pipe(z.string().url("NEXTAUTH_URL must be a valid URL").optional()),
 
   // OAuth Providers (optional)
   GOOGLE_CLIENT_ID: z.string().optional(),
@@ -139,15 +140,20 @@ function parseEnv(): Env {
   });
 
   if (!parsed.success) {
-    if (isBuildPhase) {
-      // During build, log warning but don't fail
-      console.warn("⚠️  Environment validation skipped during build phase");
-      console.warn("Some environment variables will be validated at runtime");
-      // Return a minimal env object for build
+    const isDev = process.env.NODE_ENV === "development";
+    
+    if (isBuildPhase || isDev) {
+      // During build or development, log warning but don't fail
+      console.warn("⚠️  Environment validation failed - using defaults for development");
+      if (isDev) {
+        console.warn("⚠️  Some environment variables are missing or invalid:");
+        console.warn(JSON.stringify(parsed.error.format(), null, 2));
+      }
+      // Return a minimal env object for build/dev
       return {
-        NODE_ENV: (process.env.NODE_ENV as any) || "production",
+        NODE_ENV: (process.env.NODE_ENV as any) || "development",
         DATABASE_URL: process.env.DATABASE_URL || "",
-        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || "build-time-secret",
+        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production",
         NEXTAUTH_URL: process.env.NEXTAUTH_URL || "http://localhost:3000",
         FROM_EMAIL: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz",
         RATE_LIMIT_MAX: "120",
@@ -160,7 +166,7 @@ function parseEnv(): Env {
       } as any;
     }
     
-    // At runtime, fail hard on invalid config
+    // At runtime in production, fail hard on invalid config
     console.error("❌ Environment validation failed:");
     console.error(JSON.stringify(parsed.error.format(), null, 2));
     console.error("\n📋 Current environment variable values:");

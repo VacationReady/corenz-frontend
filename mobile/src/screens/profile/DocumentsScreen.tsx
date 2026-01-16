@@ -15,21 +15,42 @@ import { useRoute } from '@react-navigation/native';
 import Card from '../../components/Card';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
-import { getEmployeeDocuments, Document } from '../../api/profile';
+import { getEmployeeDocuments, Document, getMyFullProfile } from '../../api/profile';
 
 interface RouteParams {
-  employeeId: string;
+  employeeId?: string;
 }
 
 export default function DocumentsScreen() {
   const route = useRoute();
-  const { employeeId } = route.params as RouteParams;
+  const params = (route.params || {}) as RouteParams;
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [employeeId, setEmployeeId] = useState<string | null>(params.employeeId || null);
+
+  useEffect(() => {
+    const initializeEmployeeId = async () => {
+      if (!employeeId) {
+        try {
+          const profile = await getMyFullProfile();
+          if (profile?.id) {
+            setEmployeeId(profile.id);
+          }
+        } catch (error) {
+          console.error('Failed to fetch employee profile:', error);
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeEmployeeId();
+  }, [employeeId]);
 
   const loadDocuments = useCallback(async () => {
+    if (!employeeId) return;
+    
     try {
       const data = await getEmployeeDocuments(employeeId);
       setDocuments(data);

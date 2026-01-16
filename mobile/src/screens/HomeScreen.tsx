@@ -143,7 +143,7 @@ export default function HomeScreen() {
               icon="folder-outline"
               title="Documents"
               color="#ef4444"
-              onPress={() => navigation.navigate('More', { screen: 'Documents' })}
+              onPress={() => navigation.navigate('More', { screen: 'Documents', params: { employeeId: employee?.id } })}
             />
             <QuickActionButton
               icon="people-outline"

@@ -310,7 +310,16 @@ export async function getEmployeeDocuments(employeeId: string): Promise<Document
     return [];
   }
   
-  return response.json();
+  const data = await response.json();
+  
+  return data.map((doc: any) => ({
+    id: doc.id,
+    name: doc.name,
+    type: doc.type || doc.mimeType || 'application/octet-stream',
+    uploadedAt: doc.createdAt || doc.uploadedAt,
+    fileUrl: doc.url || doc.fileUrl || null,
+    category: doc.category || null,
+  }));
 }
 
 /**

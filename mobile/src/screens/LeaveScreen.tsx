@@ -17,10 +17,11 @@ import {
   getLeaveBalances,
   getMyLeaveRequests,
   submitLeaveRequest,
-  getLeavePolicies,
+  getEventCategories,
   LeaveBalance,
   LeaveRequest,
 } from '../api/leave';
+import { getMyFullProfile } from '../api/profile';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import Button from '../components/Button';
@@ -30,9 +31,10 @@ import EmptyState from '../components/EmptyState';
 export default function LeaveScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentEmployeeId, setCurrentEmployeeId] = useState<string>('');
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
-  const [policies, setPolicies] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -46,11 +48,16 @@ export default function LeaveScreen() {
 
   const loadData = async () => {
     try {
-      const [balancesData, requestsData, policiesData] = await Promise.allSettled([
+      const [profileData, balancesData, requestsData, categoriesData] = await Promise.allSettled([
+        getMyFullProfile(),
         getLeaveBalances(),
         getMyLeaveRequests(),
-        getLeavePolicies(),
+        getEventCategories(),
       ]);
+
+      if (profileData.status === 'fulfilled' && profileData.value) {
+        setCurrentEmployeeId(profileData.value.id);
+      }
 
       if (balancesData.status === 'fulfilled') {
         const allBalances = balancesData.value;
@@ -64,7 +71,13 @@ export default function LeaveScreen() {
         setBalances(filteredBalances);
       }
       if (requestsData.status === 'fulfilled') setRequests(requestsData.value);
-      if (policiesData.status === 'fulfilled') setPolicies(policiesData.value);
+      if (categoriesData.status === 'fulfilled') {
+        // Filter to only show TIME_OFF categories that are not admin-only
+        const timeOffCategories = categoriesData.value.filter((cat: any) => 
+          cat.categoryType === 'TIME_OFF' && !cat.adminOnly && cat.isActive
+        );
+        setCategories(timeOffCategories);
+      }
     } catch (error) {
       console.error('Failed to load leave data:', error);
     } finally {
@@ -83,6 +96,11 @@ export default function LeaveScreen() {
   };
 
   const handleSubmitRequest = async () => {
+    if (!currentEmployeeId) {
+      Alert.alert('Error', 'Unable to identify your employee profile');
+      return;
+    }
+
     if (!selectedPolicy) {
       Alert.alert('Error', 'Please select a leave type');
       return;
@@ -101,7 +119,8 @@ export default function LeaveScreen() {
     setSubmitting(true);
     try {
       await submitLeaveRequest({
-        policyId: selectedPolicy,
+        employeeId: currentEmployeeId,
+        eventCategoryId: selectedPolicy,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
         reason: reason.trim(),
@@ -110,6 +129,7 @@ export default function LeaveScreen() {
       Alert.alert('Success', 'Your leave request has been submitted for approval');
       setShowRequestModal(false);
       setReason('');
+      setSelectedPolicy('');
       loadData();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to submit leave request');
@@ -258,23 +278,33 @@ export default function LeaveScreen() {
             {/* Leave Type */}
             <Text style={styles.inputLabel}>Leave Type</Text>
             <View style={styles.pickerContainer}>
-              {policies.map((policy) => (
+              {categories.map((category) => (
                 <TouchableOpacity
-                  key={policy.id}
+                  key={category.id}
                   style={[
                     styles.policyOption,
-                    selectedPolicy === policy.id && styles.policyOptionSelected,
+                    selectedPolicy === category.id && styles.policyOptionSelected,
                   ]}
-                  onPress={() => setSelectedPolicy(policy.id)}
+                  onPress={() => setSelectedPolicy(category.id)}
                 >
-                  <Text
-                    style={[
-                      styles.policyOptionText,
-                      selectedPolicy === policy.id && styles.policyOptionTextSelected,
-                    ]}
-                  >
-                    {policy.name}
-                  </Text>
+                  <View style={styles.categoryOptionContent}>
+                    {category.iconKey && (
+                      <Ionicons 
+                        name={category.iconKey as any} 
+                        size={20} 
+                        color={selectedPolicy === category.id ? '#3b82f6' : '#64748b'} 
+                        style={styles.categoryIcon}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        styles.policyOptionText,
+                        selectedPolicy === category.id && styles.policyOptionTextSelected,
+                      ]}
+                    >
+                      {category.name}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -502,6 +532,13 @@ const styles = StyleSheet.create({
   },
   policyOptionTextSelected: {
     color: '#3b82f6',
+  },
+  categoryOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryIcon: {
+    marginRight: 12,
   },
   dateInput: {
     flexDirection: 'row',

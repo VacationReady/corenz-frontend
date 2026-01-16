@@ -73,34 +73,42 @@ export async function getMyLeaveRequests(): Promise<LeaveRequest[]> {
  * Submit a new leave request
  */
 export async function submitLeaveRequest(data: {
-  policyId: string;
+  employeeId: string;
+  eventCategoryId: string;
   startDate: string;
   endDate: string;
   reason: string;
 }): Promise<LeaveRequest> {
-  const response = await apiFetch('/api/leave-request', {
+  const response = await apiFetch(`/api/employees/${data.employeeId}/leave-requests`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      eventCategoryId: data.eventCategoryId,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      reason: data.reason,
+      dayType: 'FULL_DAY',
+    }),
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to submit leave request');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to submit leave request');
   }
 
-  return response.json();
+  const result = await response.json();
+  return result.data || result;
 }
 
 /**
- * Get leave policies
+ * Get event categories (leave types)
  */
-export async function getLeavePolicies() {
-  const response = await apiFetch('/api/leave-policies', {
+export async function getEventCategories() {
+  const response = await apiFetch('/api/event-categories', {
     method: 'GET',
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch leave policies');
+    throw new Error('Failed to fetch event categories');
   }
 
   return response.json();

@@ -100,10 +100,12 @@ export async function POST(request: NextRequest) {
         for (const day of days) {
           const hours = dayHours[day as keyof typeof dayHours];
           if (hours && hours > 0) {
+            // Capitalize day name for consistency (Mon, Tue, etc.)
+            const capitalizedDay = day.charAt(0).toUpperCase() + day.slice(1, 3);
             workingPatternDays.push({
               id: crypto.randomUUID(),
               workingPatternWeekId: weekId,
-              day: day.toUpperCase(),
+              day: capitalizedDay,
               type: hours === 8 ? 'FULL_DAY' : hours === 4 ? 'HALF_DAY_AM' : 'FULL_DAY' as any,
             });
           }

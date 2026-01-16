@@ -1,7 +1,7 @@
 // /app/api/documents/list-employee/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
 import { documentStatusCache } from "@/lib/cache";
@@ -11,9 +11,10 @@ const MAX_LIMIT = 200;
 const SIGNED_URL_TTL_SECONDS = 60 * 5;
 const SIGNED_URL_CACHE_TTL_SECONDS = 60 * 4;
 
+// Supports both web (NextAuth cookies) and mobile (JWT token) authentication
 export async function GET(req: NextRequest) {
   const requestStartMs = Date.now();
-  const session = await auth();
+  const session = await getMobileSession(req);
   if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

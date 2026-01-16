@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { canAccessEmployee, hasPermission, UserWithProfile } from "@/lib/permissions";
 import supabase from "@/lib/supabase-admin";
 import { getSignedProfileUrl } from "@/lib/storage/signProfiles";
 
 // ✅ GET employee profile by Employee.id (not User.id)
+// Supports both web (NextAuth cookies) and mobile (JWT token) authentication
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await context.params;
-    const session = await auth();
+    // Use getMobileSession which supports both web cookies and mobile JWT tokens
+    const session = await getMobileSession(req);
     if (!session?.user?.companyId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -102,13 +104,15 @@ export async function GET(
 }
 
 // ✅ DELETE employee by Employee.id
+// Supports both web (NextAuth cookies) and mobile (JWT token) authentication
 export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await context.params;
-    const session = await auth();
+    // Use getMobileSession which supports both web cookies and mobile JWT tokens
+    const session = await getMobileSession(req);
     if (!session?.user?.companyId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },

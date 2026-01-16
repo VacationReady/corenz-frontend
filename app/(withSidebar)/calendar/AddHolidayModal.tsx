@@ -93,6 +93,8 @@ export default function AddHolidayModal({
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [workingDaysDeduction, setWorkingDaysDeduction] = useState<number | null>(null);
+  const [loadingDeduction, setLoadingDeduction] = useState(false);
 
   const defaultIso = useMemo(() => {
     if (!defaultDate) return "";
@@ -170,7 +172,7 @@ export default function AddHolidayModal({
   const selectedEmp = employees.find((e) => e.id === employeeId);
   const selectedCat = categories.find((c) => c.id === categoryId);
 
-  // Calculate days using UTC to avoid timezone issues
+  // Calculate calendar days using UTC to avoid timezone issues
   const daysDiff = useMemo(() => {
     if (!startDate || !endDate) return 0;
     const start = new Date(startDate);
@@ -181,6 +183,38 @@ export default function AddHolidayModal({
     const diff = Math.round((endUTC - startUTC) / (1000 * 60 * 60 * 24)) + 1;
     return Math.max(0, diff);
   }, [startDate, endDate]);
+
+  // Fetch working days deduction based on employee's working pattern
+  useEffect(() => {
+    if (!employeeId || !startDate || !endDate || daysDiff <= 0) {
+      setWorkingDaysDeduction(null);
+      return;
+    }
+
+    const fetchDeduction = async () => {
+      setLoadingDeduction(true);
+      try {
+        const res = await fetch(
+          `/api/employees/${employeeId}/leave-requests/preview-deduction?startDate=${startDate}&endDate=${endDate}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setWorkingDaysDeduction(data.deduction);
+        } else {
+          setWorkingDaysDeduction(null);
+        }
+      } catch (e) {
+        console.error('Failed to fetch deduction preview:', e);
+        setWorkingDaysDeduction(null);
+      } finally {
+        setLoadingDeduction(false);
+      }
+    };
+
+    // Debounce the API call
+    const timeoutId = setTimeout(fetchDeduction, 300);
+    return () => clearTimeout(timeoutId);
+  }, [employeeId, startDate, endDate, daysDiff]);
 
   const getInitials = (name: string) => {
     return name
@@ -575,17 +609,34 @@ export default function AddHolidayModal({
                       </div>
                     </div>
                     <div className="text-right">
-                      <motion.p
-                        key={daysDiff}
-                        initial={{ scale: 1.2 }}
-                        animate={{ scale: 1 }}
-                        className="text-2xl font-bold text-blue-700 dark:text-blue-300"
-                      >
-                        {daysDiff}
-                      </motion.p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
-                        {daysDiff === 1 ? "day" : "days"}
-                      </p>
+                      {loadingDeduction ? (
+                        <div className="flex items-center gap-2">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-5 h-5 border-2 border-blue-300 border-t-blue-600 rounded-full"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <motion.p
+                            key={workingDaysDeduction ?? daysDiff}
+                            initial={{ scale: 1.2 }}
+                            animate={{ scale: 1 }}
+                            className="text-2xl font-bold text-blue-700 dark:text-blue-300"
+                          >
+                            {workingDaysDeduction ?? daysDiff}
+                          </motion.p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400">
+                            {(workingDaysDeduction ?? daysDiff) === 1 ? "working day" : "working days"}
+                          </p>
+                          {workingDaysDeduction !== null && workingDaysDeduction !== daysDiff && (
+                            <p className="text-[10px] text-blue-500/70 dark:text-blue-400/70 mt-0.5">
+                              ({daysDiff} calendar {daysDiff === 1 ? "day" : "days"})
+                            </p>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -344,9 +344,12 @@ export async function getAuditHistory(
 
 /**
  * Check if user has admin/manager role
+ * Uses mobile-session endpoint which properly handles JWT tokens from mobile apps
  */
 export async function getUserRole(): Promise<{ role: string; isAdmin: boolean; isManager: boolean }> {
-  const response = await apiFetch('/api/auth/session', { method: 'GET' });
+  // Use mobile-session endpoint which properly decodes JWT tokens for mobile apps
+  // The standard /api/auth/session only works with browser cookies
+  const response = await apiFetch('/api/auth/mobile-session', { method: 'GET' });
   
   if (!response.ok) {
     return { role: 'EMPLOYEE', isAdmin: false, isManager: false };

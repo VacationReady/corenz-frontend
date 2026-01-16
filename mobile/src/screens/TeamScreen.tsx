@@ -211,9 +211,10 @@ export default function TeamScreen() {
           filteredEmployees.map((employee) => (
             <TouchableOpacity
               key={employee.id}
-              activeOpacity={userRole.isAdmin || userRole.isManager ? 0.7 : 1}
+              activeOpacity={userRole.isAdmin ? 0.7 : 1}
               onPress={() => {
-                if (userRole.isAdmin || userRole.isManager) {
+                // Only admins (ADMIN/SUPER_ADMIN) can navigate to employee profiles
+                if (userRole.isAdmin) {
                   navigation.navigate('EmployeeProfile', { 
                     employeeId: employee.id, 
                     isOwnProfile: false 
@@ -254,7 +255,7 @@ export default function TeamScreen() {
                       variant={getStatusVariant(employee.status)}
                       size="small"
                     />
-                    {(userRole.isAdmin || userRole.isManager) && (
+                    {userRole.isAdmin && (
                       <Ionicons name="chevron-forward" size={20} color="#94a3b8" style={{ marginTop: 8 }} />
                     )}
                   </View>
@@ -298,7 +299,7 @@ export default function TeamScreen() {
                       <Text style={styles.contactButtonText}>Message</Text>
                     </TouchableOpacity>
                   )}
-                  {(userRole.isAdmin || userRole.isManager) && (
+                  {userRole.isAdmin && (
                     <TouchableOpacity 
                       style={[styles.contactButton, styles.viewProfileButton]}
                       onPress={() => {
@@ -308,8 +309,7 @@ export default function TeamScreen() {
                         });
                       }}
                     >
-                      <Ionicons name="person-outline" size={20} color="#8b5cf6" />
-                      <Text style={[styles.contactButtonText, { color: '#8b5cf6' }]}>Profile</Text>
+                      <Ionicons name="arrow-forward-circle-outline" size={20} color="#8b5cf6" />
                     </TouchableOpacity>
                   )}
                 </View>

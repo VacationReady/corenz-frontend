@@ -387,18 +387,26 @@ export default function WorkingPatternsPage() {
     setDefaultBreakMinutes(pattern.defaultBreakMinutes ?? 30);
     
     const toShortDay = (name: string) => {
-      const map: Record<string, string> = {
-        Monday: "Mon",
-        Tuesday: "Tue",
-        Wednesday: "Wed",
-        Thursday: "Thu",
-        Friday: "Fri",
-        Saturday: "Sat",
-        Sunday: "Sun",
-      };
       if (!name) return name;
-      if (name.length <= 3) return name;
-      return map[name] || name;
+      // Normalize to lowercase for comparison to handle all formats (Mon, Monday, MONDAY)
+      const normalized = name.toLowerCase();
+      const map: Record<string, string> = {
+        monday: "Mon",
+        tuesday: "Tue",
+        wednesday: "Wed",
+        thursday: "Thu",
+        friday: "Fri",
+        saturday: "Sat",
+        sunday: "Sun",
+        mon: "Mon",
+        tue: "Tue",
+        wed: "Wed",
+        thu: "Thu",
+        fri: "Fri",
+        sat: "Sat",
+        sun: "Sun",
+      };
+      return map[normalized] || name;
     };
 
     const loadedWeeks: WeekConfig[] = pattern.weeks?.length > 0 ? pattern.weeks.map((week: any) => {

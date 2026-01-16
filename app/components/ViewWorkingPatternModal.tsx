@@ -37,11 +37,16 @@ const dayOrder = ["Mon", "Monday", "Tue", "Tuesday", "Wed", "Wednesday", "Thu", 
 const shortDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function getShortDay(day: string): string {
+  if (!day) return day;
+  // Normalize to lowercase for comparison to handle all formats (Mon, Monday, MONDAY)
+  const normalized = day.toLowerCase();
   const map: Record<string, string> = {
-    Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed", Thursday: "Thu",
-    Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
+    monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu",
+    friday: "Fri", saturday: "Sat", sunday: "Sun",
+    mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu",
+    fri: "Fri", sat: "Sat", sun: "Sun",
   };
-  return map[day] || day;
+  return map[normalized] || day;
 }
 
 function getDayIndex(day: string): number {

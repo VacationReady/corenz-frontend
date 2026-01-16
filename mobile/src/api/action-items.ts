@@ -324,3 +324,61 @@ export async function getDocumentDetails(documentId: string): Promise<any> {
     signatureFields: Array.isArray(fieldsData) ? fieldsData : [],
   };
 }
+
+export interface LeaveApprovalDetails {
+  id: string;
+  leaveRequestId: string;
+  employee: {
+    id: string;
+    name: string;
+    email: string;
+    profileImageUrl?: string | null;
+    department?: string;
+  };
+  leaveType: {
+    id: string;
+    name: string;
+    color?: string;
+  };
+  dates: {
+    start: string;
+    end: string;
+    requestedDays: number;
+  };
+  balance: {
+    totalDays: number;
+    usedDays: number;
+    remainingDays: number;
+    remainingAfterApproval: number;
+  } | null;
+  departmentColleagues: Array<{
+    id: string;
+    name: string;
+    profileImageUrl?: string | null;
+    startDate: string;
+    endDate: string;
+    leaveType: string;
+    leaveColor?: string;
+  }>;
+  reason?: string;
+  dayType?: string;
+}
+
+/**
+ * Get detailed leave approval information including balance and team conflicts
+ */
+export async function getLeaveApprovalDetails(decisionId: string): Promise<LeaveApprovalDetails> {
+  const actualId = decisionId.startsWith('approval-') ? decisionId.replace('approval-', '') : decisionId;
+  
+  const response = await apiFetch(`/api/mobile/leave-approval/${actualId}`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to fetch leave approval details');
+  }
+
+  const data = await response.json();
+  return data.data;
+}

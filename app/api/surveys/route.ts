@@ -124,14 +124,26 @@ async function getHandler(request: NextRequest) {
     ]);
 
     return NextResponse.json({
-      surveys: surveys.map(survey => ({
-        ...survey,
-        totalRecipients: survey._count.SurveyRecipients,
-        responses: survey._count.SurveyResponses,
-        responseRate: survey._count.SurveyRecipients > 0 
-          ? (survey._count.SurveyResponses / survey._count.SurveyRecipients) * 100 
-          : 0,
-      })),
+      surveys: surveys.map(survey => {
+        const metadata = survey.metadata as any;
+        return {
+          id: survey.id,
+          title: survey.name,
+          description: survey.description,
+          type: survey.Form?.formType || 'SURVEY',
+          status: survey.status.toLowerCase(),
+          formSchema: survey.Form?.schema,
+          startDate: survey.sentDate,
+          endDate: survey.deadline,
+          createdAt: survey.createdAt,
+          anonymizationLevel: metadata?.anonymizationLevel || 'public',
+          totalRecipients: survey._count.SurveyRecipients,
+          responses: survey._count.SurveyResponses,
+          responseRate: survey._count.SurveyRecipients > 0 
+            ? (survey._count.SurveyResponses / survey._count.SurveyRecipients) * 100 
+            : 0,
+        };
+      }),
       pagination: {
         page,
         limit,

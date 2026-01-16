@@ -46,7 +46,7 @@ export async function POST(
     }
 
     // Check if employee exists and is active
-    const employee = await prisma.employee.findUnique({
+    const employee = await prisma.employee.findFirst({
       where: { id: employeeId, companyId: session.user.companyId },
       include: { User: true, EmployeeOffboarding: true },
     });
@@ -80,7 +80,7 @@ export async function POST(
     // If a handover assignee is specified, ensure they exist and map to their user ID
     let handoverAssigneeUserId: string | null = null;
     if (handoverAssignedTo) {
-      const assignee = await prisma.employee.findUnique({
+      const assignee = await prisma.employee.findFirst({
         where: { id: handoverAssignedTo, companyId: session.user.companyId },
         select: { userId: true },
       });

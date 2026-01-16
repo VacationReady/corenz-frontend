@@ -11,12 +11,17 @@ export interface Employee {
   managerId?: string;
   status: 'active' | 'inactive' | 'onLeave';
   profileImage?: string;
+  profileImageUrl?: string;
   phone?: string;
   startDate?: string;
   manager?: {
     firstName: string;
     lastName: string;
   };
+  // API response fields (mapped to jobTitle/department)
+  jobRoleName?: string;
+  departmentName?: string;
+  isActive?: boolean;
 }
 
 /**
@@ -43,7 +48,20 @@ export async function getMyTeam(params?: {
 
   const result = await response.json();
   // API returns { data, pagination } format
-  return Array.isArray(result) ? result : (result.data || []);
+  const employees = Array.isArray(result) ? result : (result.data || []);
+  return mapEmployees(employees);
+}
+
+/**
+ * Map API response to Employee interface
+ */
+function mapEmployees(employees: any[]): Employee[] {
+  return employees.map((emp) => ({
+    ...emp,
+    jobTitle: emp.jobTitle || emp.jobRoleName,
+    department: emp.department || emp.departmentName,
+    status: emp.status || (emp.isActive ? 'active' : 'inactive'),
+  }));
 }
 
 /**
@@ -74,7 +92,8 @@ export async function getAllEmployees(params?: {
 
   const result = await response.json();
   // API returns { data, pagination } format
-  return Array.isArray(result) ? result : (result.data || []);
+  const employees = Array.isArray(result) ? result : (result.data || []);
+  return mapEmployees(employees);
 }
 
 /**

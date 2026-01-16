@@ -178,25 +178,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </Card>
 
-        {/* Pending Surveys */}
-        {stats.pendingSurveys > 0 && (
-          <Card>
-            <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>Pending Surveys</Text>
-              <Badge text={`${stats.pendingSurveys} new`} variant="info" size="small" />
-            </View>
-            <Text style={styles.cardDescription}>
-              Complete {stats.pendingSurveys} survey{stats.pendingSurveys !== 1 ? 's' : ''} to share your feedback
-            </Text>
-            <TouchableOpacity
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate('More', { screen: 'Surveys' })}
-            >
-              <Text style={styles.viewAllText}>Complete Surveys</Text>
-              <Ionicons name="chevron-forward" size={16} color="#3b82f6" />
-            </TouchableOpacity>
-          </Card>
-        )}
+        {/* Pending Surveys card removed - surveys are now included in Pending Actions */}
 
         {/* Employee Info */}
         {employee && (

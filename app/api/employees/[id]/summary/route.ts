@@ -22,7 +22,7 @@ export async function GET(
       );
     }
 
-    const employee = await prisma.employee.findUnique({
+    const employee = await prisma.employee.findFirst({
       where: {
         id,
         companyId: session.user.companyId,

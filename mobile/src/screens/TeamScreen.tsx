@@ -107,12 +107,14 @@ export default function TeamScreen() {
     }
   };
 
-  const getAvatarUrl = (profileImage?: string) => {
-    if (!profileImage) return null;
-    if (profileImage.startsWith('http')) return profileImage;
+  const getAvatarUrl = (employee: Employee) => {
+    // Prefer profileImageUrl (already signed URL from API) over profileImage
+    const url = employee.profileImageUrl || employee.profileImage;
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
     const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
     if (!baseUrl) return null;
-    return `${baseUrl}${profileImage.startsWith('/') ? '' : '/'}${profileImage}`;
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
   if (loading) {
@@ -222,8 +224,8 @@ export default function TeamScreen() {
               <Card>
                 <View style={styles.employeeCard}>
                   <View style={styles.employeeLeft}>
-                    {getAvatarUrl(employee.profileImage) ? (
-                      <Image source={{ uri: getAvatarUrl(employee.profileImage)! }} style={styles.avatar} />
+                    {getAvatarUrl(employee) ? (
+                      <Image source={{ uri: getAvatarUrl(employee)! }} style={styles.avatar} />
                     ) : (
                       <View style={styles.avatarPlaceholder}>
                         <Text style={styles.avatarText}>

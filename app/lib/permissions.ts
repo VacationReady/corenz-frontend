@@ -614,8 +614,11 @@ export async function canAccessEmployee(
     return true;
   }
 
-  const target = await prisma.employee.findUnique({
-    where: { id: targetEmployeeId, companyId: requestor.companyId },
+  const target = await prisma.employee.findFirst({
+    where: { 
+      id: targetEmployeeId, 
+      companyId: requestor.companyId 
+    },
     select: {
       id: true,
       userId: true,
@@ -624,7 +627,15 @@ export async function canAccessEmployee(
     },
   });
 
-  if (!target) return false;
+  if (!target) {
+    console.error("[canAccessEmployee] Employee not found:", {
+      targetEmployeeId,
+      requestorId: requestor.id,
+      requestorRole: requestor.role,
+      companyId: requestor.companyId,
+    });
+    return false;
+  }
 
   // Self-access - always allowed
   if (target.userId === requestor.id) return true;

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
 import { canAccessEmployee, hasPermission, UserWithProfile } from "@/lib/permissions";
 import supabase from "@/lib/supabase-admin";
+import { getSignedProfileUrl } from "@/lib/storage/signProfiles";
 
 // ✅ GET employee profile by Employee.id (not User.id)
 export async function GET(
@@ -19,7 +20,7 @@ export async function GET(
       );
     }
 
-    const employee = await prisma.employee.findUnique({
+    const employee = await prisma.employee.findFirst({
       where: {
         id, // ✅ Use Employee.id for matching
         companyId: session.user.companyId,
@@ -74,7 +75,20 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(employee);
+    // Sign profile image URL if present
+    let signedProfileImageUrl: string | null = null;
+    if (employee.User.profileImageUrl) {
+      signedProfileImageUrl = await getSignedProfileUrl(employee.User.profileImageUrl);
+    }
+
+    // Return employee with signed profile URL
+    return NextResponse.json({
+      ...employee,
+      User: {
+        ...employee.User,
+        profileImageUrl: signedProfileImageUrl,
+      },
+    });
   } catch (error) {
     console.error(
       "Error fetching employee:",
@@ -102,7 +116,7 @@ export async function DELETE(
       );
     }
 
-    const employee = await prisma.employee.findUnique({
+    const employee = await prisma.employee.findFirst({
       where: { id, companyId: session.user.companyId },
       include: { User: true },
     });

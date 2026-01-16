@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
+import { getSignedProfileUrl } from '@/lib/storage/signProfiles';
 
 /**
  * GET /api/employees/me
@@ -55,7 +56,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ employee });
+    // Sign profile image URL if present
+    let signedProfileImageUrl: string | null = null;
+    if (employee.User.profileImageUrl) {
+      signedProfileImageUrl = await getSignedProfileUrl(employee.User.profileImageUrl);
+    }
+
+    return NextResponse.json({
+      employee: {
+        ...employee,
+        User: {
+          ...employee.User,
+          profileImageUrl: signedProfileImageUrl,
+        },
+      },
+    });
   } catch (error) {
     console.error('Get current employee error:', error);
     return NextResponse.json({ error: 'Failed to fetch employee' }, { status: 500 });

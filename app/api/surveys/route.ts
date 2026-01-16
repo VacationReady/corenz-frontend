@@ -206,7 +206,7 @@ async function postHandler(request: NextRequest) {
   }
 }
 
-// Apply feature guard
+// Apply feature guard only to POST (creation) - GET needs to work for mobile
 const surveysGuard = withFeatureGuard(FEATURE_KEYS.SURVEYS);
-export const GET = surveysGuard(getHandler);
+export const GET = getHandler; // Mobile-compatible - uses getMobileSession internally
 export const POST = surveysGuard(postHandler);

@@ -264,6 +264,21 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
         <Tab.Screen 
           name="More" 
           options={{ headerShown: false }}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              const state = navigation.getState();
+              const moreRoute = state.routes.find((r: any) => r.name === 'More');
+              
+              // If we're already on the More tab and not on MoreMain, reset to MoreMain
+              if (moreRoute && state.index === state.routes.indexOf(moreRoute)) {
+                const moreState = moreRoute.state;
+                if (moreState && moreState.index !== 0) {
+                  e.preventDefault();
+                  navigation.navigate('More', { screen: 'MoreMain' });
+                }
+              }
+            },
+          })}
         >
           {() => <MoreStackNavigator onLogout={onLogout} />}
         </Tab.Screen>

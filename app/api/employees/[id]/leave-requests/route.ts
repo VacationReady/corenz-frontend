@@ -1,6 +1,7 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
 import { resolveApprovalWorkflow } from "@/lib/resolveApprovalWorkflow";
 import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
@@ -308,8 +309,11 @@ export async function POST(
     const { id: employeeId } = await context.params;
     await ensurePrismaConnected();
     
-    // 1. ✅ Authentication: Verify session exists
-    const session = await auth();
+    // 1. ✅ Authentication: Verify session exists (support both mobile and web)
+    const mobileSession = await getMobileSession(req);
+    const webSession = !mobileSession?.user ? await auth() : null;
+    const session = mobileSession?.user ? mobileSession : webSession;
+    
     if (!session?.user?.id || !session.user.companyId) {
       console.log("❌ Unauthenticated attempt to submit leave request");
       return NextResponse.json(

@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   getLeaveBalances,
@@ -46,6 +47,25 @@ export default function LeaveScreen() {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
 
+  // Map Lucide icon names to Ionicons
+  const mapIconToIonicons = (iconKey: string): string => {
+    const iconMap: Record<string, string> = {
+      'smile': 'happy-outline',
+      'clock': 'time-outline',
+      'heartPulse': 'heart-outline',
+      'baby': 'person-outline',
+      'graduationCap': 'school-outline',
+      'stethoscope': 'medical-outline',
+      'sun': 'sunny-outline',
+      'umbrella': 'umbrella-outline',
+      'plane': 'airplane-outline',
+      'briefcase': 'briefcase-outline',
+      'home': 'home-outline',
+      'calendar': 'calendar-outline',
+    };
+    return iconMap[iconKey] || 'ellipse-outline';
+  };
+
   const loadData = async () => {
     try {
       const [profileData, balancesData, requestsData, categoriesData] = await Promise.allSettled([
@@ -72,11 +92,19 @@ export default function LeaveScreen() {
       }
       if (requestsData.status === 'fulfilled') setRequests(requestsData.value);
       if (categoriesData.status === 'fulfilled') {
+        console.log('Event categories loaded:', categoriesData.value);
         // Filter to only show TIME_OFF categories that are not admin-only
-        const timeOffCategories = categoriesData.value.filter((cat: any) => 
-          cat.categoryType === 'TIME_OFF' && !cat.adminOnly && cat.isActive
-        );
+        // Be lenient with filtering - show category if it's not explicitly admin-only
+        const timeOffCategories = categoriesData.value.filter((cat: any) => {
+          const isTimeOff = !cat.categoryType || cat.categoryType === 'TIME_OFF';
+          const notAdminOnly = !cat.adminOnly;
+          const isActiveOrUndefined = cat.isActive !== false;
+          return isTimeOff && notAdminOnly && isActiveOrUndefined;
+        });
+        console.log('Filtered categories:', timeOffCategories);
         setCategories(timeOffCategories);
+      } else if (categoriesData.status === 'rejected') {
+        console.error('Failed to load categories:', categoriesData.reason);
       }
     } catch (error) {
       console.error('Failed to load leave data:', error);
@@ -277,37 +305,45 @@ export default function LeaveScreen() {
           <ScrollView style={styles.modalContent}>
             {/* Leave Type */}
             <Text style={styles.inputLabel}>Leave Type</Text>
-            <View style={styles.pickerContainer}>
-              {categories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.policyOption,
-                    selectedPolicy === category.id && styles.policyOptionSelected,
-                  ]}
-                  onPress={() => setSelectedPolicy(category.id)}
+            {categories.length === 0 ? (
+              <View style={styles.emptyCategories}>
+                <Text style={styles.emptyCategoriesText}>
+                  No leave types available. Please contact your administrator.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={selectedPolicy}
+                  onValueChange={(itemValue) => setSelectedPolicy(itemValue)}
+                  style={styles.picker}
                 >
-                  <View style={styles.categoryOptionContent}>
-                    {category.iconKey && (
-                      <Ionicons 
-                        name={category.iconKey as any} 
-                        size={20} 
-                        color={selectedPolicy === category.id ? '#3b82f6' : '#64748b'} 
+                  <Picker.Item label="Select leave type..." value="" />
+                  {categories.map((category) => (
+                    <Picker.Item
+                      key={category.id}
+                      label={category.name}
+                      value={category.id}
+                    />
+                  ))}
+                </Picker>
+                {selectedPolicy && (
+                  <View style={styles.selectedCategoryInfo}>
+                    {categories.find((c) => c.id === selectedPolicy)?.iconKey && (
+                      <Ionicons
+                        name={mapIconToIonicons(categories.find((c) => c.id === selectedPolicy)?.iconKey || '') as any}
+                        size={20}
+                        color="#3b82f6"
                         style={styles.categoryIcon}
                       />
                     )}
-                    <Text
-                      style={[
-                        styles.policyOptionText,
-                        selectedPolicy === category.id && styles.policyOptionTextSelected,
-                      ]}
-                    >
-                      {category.name}
+                    <Text style={styles.selectedCategoryText}>
+                      {categories.find((c) => c.id === selectedPolicy)?.name}
                     </Text>
                   </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+                )}
+              </View>
+            )}
 
             {/* Start Date */}
             <Text style={styles.inputLabel}>Start Date</Text>
@@ -511,34 +547,44 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 16,
   },
-  pickerContainer: {
-    gap: 8,
-  },
-  policyOption: {
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 2,
+  pickerWrapper: {
+    borderWidth: 1,
     borderColor: '#e2e8f0',
+    borderRadius: 8,
     backgroundColor: '#fff',
+    overflow: 'hidden',
   },
-  policyOptionSelected: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#eff6ff',
+  picker: {
+    height: 50,
   },
-  policyOptionText: {
-    fontSize: 16,
-    color: '#475569',
-    fontWeight: '600',
-  },
-  policyOptionTextSelected: {
-    color: '#3b82f6',
-  },
-  categoryOptionContent: {
+  selectedCategoryInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#eff6ff',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  selectedCategoryText: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: '600',
   },
   categoryIcon: {
-    marginRight: 12,
+    marginRight: 8,
+  },
+  emptyCategories: {
+    padding: 16,
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+    marginBottom: 16,
+  },
+  emptyCategoriesText: {
+    fontSize: 14,
+    color: '#92400e',
+    textAlign: 'center',
   },
   dateInput: {
     flexDirection: 'row',

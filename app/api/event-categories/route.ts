@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { z } from "zod";
 
 // Zod schema for EventCategory payload
@@ -22,8 +23,12 @@ const EventCategorySchema = z.object({
   balanceRefreshMonths: z.number().int().nullable().optional(),
 });
 
-export async function GET() {
-  const session = await auth();
+export async function GET(req: NextRequest) {
+  // Try mobile session first, then web session
+  const mobileSession = await getMobileSession(req);
+  const webSession = !mobileSession?.user ? await auth() : null;
+  const session = mobileSession?.user ? mobileSession : webSession;
+  
   if (!session?.user?.companyId) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },

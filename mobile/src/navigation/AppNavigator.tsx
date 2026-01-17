@@ -274,9 +274,11 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
             tabPress: (e) => {
               const state = navigation.getState();
               const moreRoute = state.routes.find((r: any) => r.name === 'More');
+              const currentTabIndex = state.index;
+              const moreTabIndex = state.routes.indexOf(moreRoute);
               
-              // If we're already on the More tab and not on MoreMain, reset to MoreMain
-              if (moreRoute && state.index === state.routes.indexOf(moreRoute)) {
+              // Only reset if we're currently on the More tab AND not on MoreMain
+              if (currentTabIndex === moreTabIndex && moreRoute) {
                 const moreState = moreRoute.state;
                 if (moreState && moreState.index !== 0) {
                   e.preventDefault();

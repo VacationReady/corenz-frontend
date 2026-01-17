@@ -244,7 +244,6 @@ export async function processDecision({
 
     // Only enforce entitlement for Annual Leave by default (unless explicitly configured)
     const isAnnualLeave = lrFull.EventCategory.name.toLowerCase().includes("annual leave");
-    const isSickLeave = lrFull.EventCategory.name.toLowerCase().includes("sick");
     const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
 
     // ── NZ HOLIDAYS ACT 2003: PRE-12-MONTH EMPLOYEE CHECK ──────────────────
@@ -252,10 +251,12 @@ export async function processDecision({
     // Pre-12-month employees have a futureAnnualLeaveEntitlement stored but no LeaveEntitlement record.
     // For these employees, we track leave usage in leaveInAdvanceUsed instead of LeaveEntitlement.usedDays.
     let isPreTwelveMonthEmployee = false;
+    let existingEntitlement = null;
+    let employeeWithFutureEntitlement = null;
     
     if (isAnnualLeave) {
-      // Check if employee has a LeaveEntitlement record for annual leave
-      const existingEntitlement = await tx.leaveEntitlement.findFirst({
+      // Check if employee has a LeaveEntitlement record for annual leave (outside transaction)
+      existingEntitlement = await p.leaveEntitlement.findFirst({
         where: {
           employeeId: lrFull.employeeId,
           eventCategoryId: lrFull.eventCategoryId,
@@ -265,7 +266,7 @@ export async function processDecision({
       // If no LeaveEntitlement exists, check if they have futureAnnualLeaveEntitlement
       // This indicates they are pre-12-month and should use leave in advance tracking
       if (!existingEntitlement) {
-        const employeeWithFutureEntitlement = await tx.employee.findUnique({
+        employeeWithFutureEntitlement = await p.employee.findUnique({
           where: { id: lrFull.employeeId },
           select: { 
             futureAnnualLeaveEntitlement: true,
@@ -288,37 +289,61 @@ export async function processDecision({
       }
     }
 
+    // Calculate all deductions in one batch to reduce transaction time
+    const dates: Date[] = [];
+    let currentDate = new Date(lrFull.startDate);
+    const endDate = new Date(lrFull.endDate);
+    const exclusiveEnd = new Date(endDate);
+    exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+
+    while (currentDate <= exclusiveEnd) {
+      dates.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Batch calculate deductions outside of transaction for performance
+    const deductions = await Promise.all(
+      dates.map(date => calculateLeaveDeduction(lrFull.employeeId, date, p))
+    );
+
+    const totalDeduction = roundToTwoDecimals(deductions.reduce((sum, val) => sum + val, 0));
+
+    // Fetch records outside transaction to minimize transaction duration
+    let entitlementForDeduction = null;
+    let employeeForLeaveAdvance = null;
+    
+    if (!isPreTwelveMonthEmployee && totalDeduction > 0 && enforceEntitlement) {
+      entitlementForDeduction = await p.leaveEntitlement.findFirst({
+        where: {
+          employeeId: lrFull.employeeId,
+          eventCategoryId: lrFull.eventCategoryId,
+        },
+      });
+    }
+    
+    if (isPreTwelveMonthEmployee && isAnnualLeave && totalDeduction > 0) {
+      employeeForLeaveAdvance = await p.employee.findUnique({
+        where: { id: lrFull.employeeId },
+        select: { 
+          leaveInAdvanceUsed: true,
+          futureAnnualLeaveEntitlement: true,
+        },
+      });
+    }
+
     // NZ SICK LEAVE: Handle sick leave via ledger system (Holidays Act 2003)
     if (isSickLeave && lrFull.approvalStatus !== "APPROVED") {
-      const totalDays: number[] = [];
-      let currentDate = new Date(lrFull.startDate);
-      const endDate = new Date(lrFull.endDate);
-      const exclusiveEnd = new Date(endDate);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
-
-      while (currentDate <= exclusiveEnd) {
-        const deduction = await calculateLeaveDeduction(
-          lrFull.employeeId,
-          currentDate,
-          tx,
-        );
-        totalDays.push(deduction);
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      const totalDeductionDays = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
-      
-      if (totalDeductionDays > 0) {
+      if (totalDeduction > 0) {
         // Record usage (grants already applied outside transaction)
         try {
           await recordSickLeaveUsage(
             tx as any,
             lrFull.employeeId,
-            daysToHours(totalDeductionDays),
+            daysToHours(totalDeduction),
             lrFull.id,
             actorUserId
           );
-          console.log(`✅ Sick leave usage recorded via ledger: ${totalDeductionDays} days`);
+          console.log(`✅ Sick leave usage recorded via ledger: ${totalDeduction} days`);
         } catch (sickLeaveError: any) {
           console.error("❌ Failed to record sick leave usage:", sickLeaveError);
           throw new Error(sickLeaveError.message || "Failed to deduct sick leave balance.");
@@ -327,25 +352,6 @@ export async function processDecision({
     }
     // Only perform deduction if the request is not already approved AND entitlement is enforced
     else if (lrFull.approvalStatus !== "APPROVED" && enforceEntitlement) {
-      const totalDays: number[] = [];
-      let currentDate = new Date(lrFull.startDate);
-      const endDate = new Date(lrFull.endDate);
-      // End date is return-to-work (exclusive) for deduction purposes
-      const exclusiveEnd = new Date(endDate);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
-
-      while (currentDate <= exclusiveEnd) {
-        const deduction = await calculateLeaveDeduction(
-          lrFull.employeeId,
-          currentDate,
-          tx,
-        );
-        totalDays.push(deduction);
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      // Round total deduction to 2 decimal places (NZ HRIS requirement)
-      const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
 
       if (totalDeduction > 0) {
         // ── NZ HOLIDAYS ACT 2003: LEAVE IN ADVANCE TRACKING ──────────────────
@@ -355,13 +361,7 @@ export async function processDecision({
         // the 12-month anniversary.
         if (isPreTwelveMonthEmployee && isAnnualLeave) {
           // Pre-12-month employee: increment leaveInAdvanceUsed instead of LeaveEntitlement.usedDays
-          const employee = await tx.employee.findUnique({
-            where: { id: lrFull.employeeId },
-            select: { 
-              leaveInAdvanceUsed: true,
-              futureAnnualLeaveEntitlement: true,
-            },
-          });
+          const employee = employeeForLeaveAdvance;
 
           if (!employee) {
             throw new Error("Employee not found.");
@@ -399,12 +399,7 @@ export async function processDecision({
           });
         } else {
           // Post-12-month employee: use existing LeaveEntitlement deduction logic
-          const entitlement = await tx.leaveEntitlement.findFirst({
-            where: {
-              employeeId: lrFull.employeeId,
-              eventCategoryId: lrFull.eventCategoryId,
-            },
-          });
+          const entitlement = entitlementForDeduction;
 
           if (!entitlement || subtractWithPrecision(entitlement.totalDays, entitlement.usedDays) < totalDeduction) {
             throw new Error("Insufficient leave balance.");
@@ -433,7 +428,7 @@ export async function processDecision({
       eventCategoryName: lr.EventCategory.name,
     });
     return { leaveRequest: lr, activeStage: null } as const;
-  });
+  }, { timeout: 15000 });
 }
 
 

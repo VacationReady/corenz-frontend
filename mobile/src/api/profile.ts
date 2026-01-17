@@ -301,9 +301,14 @@ export async function getLeaveBalances(employeeId: string): Promise<LeaveBalance
  * Get documents for an employee
  */
 export async function getEmployeeDocuments(employeeId: string): Promise<Document[]> {
+  console.log('[getEmployeeDocuments] Fetching documents for employee:', employeeId);
+  
   const response = await apiFetch(`/api/documents/list-employee?employeeId=${employeeId}`, { method: 'GET' });
   
+  console.log('[getEmployeeDocuments] Response status:', response.status);
+  
   if (!response.ok) {
+    console.log('[getEmployeeDocuments] Request failed:', response.status);
     if (response.status === 401 || response.status === 403) {
       throw new Error('Unauthorized');
     }
@@ -311,8 +316,13 @@ export async function getEmployeeDocuments(employeeId: string): Promise<Document
   }
   
   const data = await response.json();
+  console.log('[getEmployeeDocuments] Raw data received:', {
+    isArray: Array.isArray(data),
+    length: Array.isArray(data) ? data.length : 'N/A',
+    firstItem: Array.isArray(data) && data.length > 0 ? data[0] : null,
+  });
   
-  return data.map((doc: any) => ({
+  const mapped = data.map((doc: any) => ({
     id: doc.id,
     name: doc.name,
     type: doc.type || doc.mimeType || 'application/octet-stream',
@@ -320,6 +330,13 @@ export async function getEmployeeDocuments(employeeId: string): Promise<Document
     fileUrl: doc.url || doc.fileUrl || null,
     category: doc.category || null,
   }));
+  
+  console.log('[getEmployeeDocuments] Mapped documents:', {
+    count: mapped.length,
+    firstDoc: mapped[0] || null,
+  });
+  
+  return mapped;
 }
 
 /**

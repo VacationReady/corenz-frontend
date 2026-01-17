@@ -15,13 +15,28 @@ const SIGNED_URL_CACHE_TTL_SECONDS = 60 * 4;
 export async function GET(req: NextRequest) {
   const requestStartMs = Date.now();
   const session = await getMobileSession(req);
+  
+  console.log("[list-employee] Request received:", {
+    hasSession: !!session,
+    userId: session?.user?.id,
+    userRole: session?.user?.role,
+    userCompanyId: session?.user?.companyId,
+  });
+  
   if (!session || !session.user) {
+    console.log("[list-employee] Unauthorized - no session");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { searchParams } = new URL(req.url);
   const employeeId = searchParams.get("employeeId");
   const companyId = session.user.companyId;
+  
+  console.log("[list-employee] Request params:", {
+    employeeId,
+    companyId,
+    url: req.url,
+  });
 
   const rawLimit = searchParams.get("limit");
   const rawOffset = searchParams.get("offset");
@@ -58,6 +73,13 @@ export async function GET(req: NextRequest) {
   });
   const viewerEmployeeId = viewerUser?.Employee?.id;
   const isViewingOwnDocuments = viewerEmployeeId === employeeId;
+  
+  console.log("[list-employee] Viewer check:", {
+    viewerEmployeeId,
+    requestedEmployeeId: employeeId,
+    isViewingOwnDocuments,
+    userRole,
+  });
 
   // Build role-based filter
   // For employee-specific documents:
@@ -91,10 +113,14 @@ export async function GET(req: NextRequest) {
       }
       : {}),
   };
+  
+  console.log("[list-employee] Where clause:", JSON.stringify(whereClause, null, 2));
 
   const totalCount = await prisma.document.count({
     where: whereClause,
   });
+  
+  console.log("[list-employee] Total count:", totalCount);
 
   const documents = await prisma.document.findMany({
     where: whereClause,
@@ -142,6 +168,13 @@ export async function GET(req: NextRequest) {
     }),
   );
   const signDurationMs = Date.now() - signStartMs;
+  
+  console.log("[list-employee] Returning documents:", {
+    count: withUrls.length,
+    totalCount,
+    cacheHits,
+    cacheMisses,
+  });
 
   const response = NextResponse.json(withUrls);
   response.headers.set("X-Total-Count", String(totalCount));

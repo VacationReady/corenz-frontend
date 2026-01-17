@@ -6,7 +6,6 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
-  Linking,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,11 +68,8 @@ export default function NewsHubScreen() {
   }, [loadNews, loadingMore, hasMore, page]);
 
   const handlePostPress = (post: NewsPost) => {
-    // Open the news article in the browser (same behavior as desktop)
-    const url = `${API_BASE_URL}/news/${post.slug}`;
-    Linking.openURL(url).catch(err => {
-      console.error('Failed to open news URL:', err);
-    });
+    // Navigate to the news detail screen within the app
+    navigation.navigate('NewsDetail', { slug: post.slug });
   };
 
   const renderHeader = () => (

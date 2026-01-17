@@ -115,7 +115,8 @@ class RedisCache implements CacheClient {
             this.stats.sets++;
         } catch (error) {
             console.warn(`Redis SET error for key ${key}:`, error);
-            throw error;
+            // Don't throw - cache failures shouldn't break the API
+            // Just log the error and continue
         }
     }
 
@@ -125,7 +126,7 @@ class RedisCache implements CacheClient {
             this.stats.deletes++;
         } catch (error) {
             console.warn(`Redis DELETE error for key ${key}:`, error);
-            throw error;
+            // Don't throw - cache failures shouldn't break the API
         }
     }
 
@@ -143,7 +144,7 @@ class RedisCache implements CacheClient {
             }
         } catch (error) {
             console.warn(`Redis DELETE PATTERN error for pattern ${pattern}:`, error);
-            throw error;
+            // Don't throw - cache failures shouldn't break the API
         }
     }
 
@@ -253,9 +254,12 @@ class MemoryCache implements CacheClient {
  */
 function createCacheClient(): CacheClient {
     const baseUrl =
-        process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+        process.env.KV_REST_API_URL || 
+        process.env.UPSTASH_REDIS_REST_URL ||
+        process.env.REDIS_URL;
     const token =
-        process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+        process.env.KV_REST_API_TOKEN || 
+        process.env.UPSTASH_REDIS_REST_TOKEN;
 
     if (baseUrl && token) {
         console.log("✅ Using Redis cache (Upstash)");

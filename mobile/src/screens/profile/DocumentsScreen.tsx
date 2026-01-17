@@ -34,9 +34,17 @@ export default function DocumentsScreen() {
     const initializeEmployeeId = async () => {
       if (!employeeId) {
         try {
+          console.log('[DocumentsScreen] Fetching employee profile...');
           const profile = await getMyFullProfile();
+          console.log('[DocumentsScreen] Profile received:', {
+            hasProfile: !!profile,
+            employeeId: profile?.id,
+            name: profile?.User?.firstName + ' ' + profile?.User?.lastName,
+          });
           if (profile?.id) {
             setEmployeeId(profile.id);
+          } else {
+            console.log('[DocumentsScreen] No employee ID in profile');
           }
         } catch (error) {
           console.error('Failed to fetch employee profile:', error);
@@ -49,13 +57,22 @@ export default function DocumentsScreen() {
   }, [employeeId]);
 
   const loadDocuments = useCallback(async () => {
-    if (!employeeId) return;
+    if (!employeeId) {
+      console.log('[DocumentsScreen] Cannot load documents - no employeeId');
+      return;
+    }
+    
+    console.log('[DocumentsScreen] Loading documents for employee:', employeeId);
     
     try {
       const data = await getEmployeeDocuments(employeeId);
+      console.log('[DocumentsScreen] Documents loaded:', {
+        count: data.length,
+        documents: data.map(d => ({ id: d.id, name: d.name, hasUrl: !!d.fileUrl })),
+      });
       setDocuments(data);
     } catch (error) {
-      console.error('Failed to load documents:', error);
+      console.error('[DocumentsScreen] Failed to load documents:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

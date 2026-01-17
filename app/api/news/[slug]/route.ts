@@ -8,7 +8,7 @@ import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 interface Params {}
 
-// GET: Fetch a single news post
+// GET: Fetch a single news post with related posts and engagement data
 async function getHandler(req: NextRequest, context: any) {
   const session = await auth();
 
@@ -18,24 +18,130 @@ async function getHandler(req: NextRequest, context: any) {
 
   const rawParams = context?.params;
   const { slug } = rawParams?.then ? await rawParams : rawParams;
+  
   const post = await prisma.newsPost.findFirst({
-    where: { slug: slug, companyId: session.user.companyId },
-    include: { User: true },
+    where: { 
+      slug: slug, 
+      companyId: session.user.companyId,
+    },
+    include: { 
+      User: {
+        select: {
+          id: true,
+          name: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          profileImageUrl: true,
+          role: true,
+        },
+      },
+      reactions: {
+        select: {
+          reaction: true,
+          userId: true,
+        },
+      },
+      bookmarks: {
+        select: {
+          userId: true,
+        },
+      },
+    },
   });
 
   if (!post) {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  const isAuthor = post.authorId === session.user.id;
-  const isAdmin =
-    session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
+  // Fetch related posts
+  const relatedPosts = await prisma.newsPost.findMany({
+    where: {
+      id: { not: post.id },
+      companyId: session.user.companyId,
+      publishedAt: { not: null },
+      OR: [
+        { tags: { hasSome: post.tags } },
+        { authorId: post.authorId },
+      ],
+    },
+    take: 3,
+    include: {
+      User: {
+        select: {
+          name: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          profileImageUrl: true,
+        },
+      },
+    },
+    orderBy: { publishedAt: "desc" },
+  });
 
-  if (!isAuthor && !isAdmin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  // Calculate reaction counts
+  const reactionCounts = (post.reactions as { reaction: string; userId: string }[]).reduce(
+    (acc: Record<string, number>, reaction: { reaction: string; userId: string }) => {
+      acc[reaction.reaction] = (acc[reaction.reaction] ?? 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
-  return NextResponse.json(mapNewsPost(post));
+  // Format author name
+  const formatFullName = (user: { firstName?: string | null; lastName?: string | null; name?: string | null; email: string }) => {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user.firstName) return user.firstName;
+    if (user.lastName) return user.lastName;
+    if (user.name) return user.name;
+    return user.email.split("@")[0];
+  };
+
+  const transformedPost = {
+    ...mapNewsPost(post),
+    author: {
+      id: post.User.id,
+      name: formatFullName(post.User),
+      email: post.User.email,
+      avatar: post.User.profileImageUrl,
+      role: post.User.role,
+    },
+    content: post.content,
+    attachments: post.attachments as string[],
+    audience: post.audience,
+    readTime: Math.ceil(JSON.stringify(post.content).split(" ").length / 200),
+    reactions: reactionCounts,
+    views: post.viewCount,
+    bookmarkCount: post.bookmarks.length,
+    isBookmarked: post.bookmarks.some(
+      (bookmark: { userId: string }) => bookmark.userId === session?.user?.id
+    ),
+    userReaction:
+      post.reactions.find(
+        (reaction: { userId: string }) => reaction.userId === session?.user?.id
+      )?.reaction ?? null,
+  };
+
+  const transformedRelated = relatedPosts.map((p: any) => {
+    const { coverImageUrl, ...rest } = p;
+    return {
+      ...rest,
+      coverImage: coverImageUrl ?? null,
+      author: {
+        name: formatFullName(p.User),
+        email: p.User.email,
+        avatar: p.User.profileImageUrl,
+      },
+    };
+  });
+
+  return NextResponse.json({
+    post: transformedPost,
+    relatedPosts: transformedRelated,
+  });
 }
 
 // PUT: Update a news post

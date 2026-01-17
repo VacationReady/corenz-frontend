@@ -16,6 +16,7 @@ import PerformanceScreen from '../screens/PerformanceScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import CompanyCalendarScreen from '../screens/CompanyCalendarScreen';
 import NewsHubScreen from '../screens/NewsHubScreen';
+import NewsDetailScreen from '../screens/NewsDetailScreen';
 
 import {
   ProfileOverviewScreen,
@@ -83,6 +84,11 @@ function MoreStackNavigator({ onLogout }: { onLogout: () => void }) {
         name="NewsHub"
         component={NewsHubScreen}
         options={{ title: 'Company News' }}
+      />
+      <MoreStack.Screen
+        name="NewsDetail"
+        component={NewsDetailScreen}
+        options={{ title: 'Article' }}
       />
       <MoreStack.Screen
         name="MyLeave"
@@ -272,19 +278,10 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
           options={{ headerShown: false }}
           listeners={({ navigation }) => ({
             tabPress: (e) => {
-              const state = navigation.getState();
-              const moreRoute = state.routes.find((r: any) => r.name === 'More');
-              const currentTabIndex = state.index;
-              const moreTabIndex = state.routes.indexOf(moreRoute);
-              
-              // Only reset if we're currently on the More tab AND not on MoreMain
-              if (currentTabIndex === moreTabIndex && moreRoute) {
-                const moreState = moreRoute.state;
-                if (moreState && moreState.index !== 0) {
-                  e.preventDefault();
-                  navigation.navigate('More', { screen: 'MoreMain' });
-                }
-              }
+              e.preventDefault();
+              // Always navigate to MoreMain when More tab is pressed
+              // This ensures we reset to the main menu regardless of current state
+              navigation.navigate('More', { screen: 'MoreMain' });
             },
           })}
         >

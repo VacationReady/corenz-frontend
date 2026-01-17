@@ -109,7 +109,7 @@ export default function AdminTimesheetHubPage() {
 
   // Statistics
   const totalCount = timesheets.length;
-  const totalHours = timesheets.reduce((sum, t) => sum + t.totalHours, 0);
+  const totalHours = timesheets.reduce((sum, t) => sum + (t.totalHours || 0), 0);
   const avgHours = totalCount > 0 ? totalHours / totalCount : 0;
   const oldestSubmission = timesheets.length > 0 ? timesheets[0].submittedAt : null;
   const totalCost = timesheets.reduce((sum, t) => sum + (t.estimatedCost || 0), 0);
@@ -678,7 +678,7 @@ export default function AdminTimesheetHubPage() {
                           {format(new Date(timesheet.periodStart), "MMM d")} – {format(new Date(timesheet.periodEnd), "MMM d, yyyy")}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span>{timesheet.totalHours.toFixed(2)} hours</span>
+                          <span>{(timesheet.totalHours || 0).toFixed(2)} hours</span>
                           {timesheet.estimatedCost != null && (
                             <span className="flex items-center gap-1 text-emerald-400">
                               <DollarSign className="h-3 w-3" />
@@ -811,7 +811,7 @@ export default function AdminTimesheetHubPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Total Hours</span>
-                      <span className="font-medium text-foreground">{previewSheet.totalHours.toFixed(2)}</span>
+                      <span className="font-medium text-foreground">{(previewSheet.totalHours || 0).toFixed(2)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Status</span>
@@ -859,7 +859,7 @@ export default function AdminTimesheetHubPage() {
                     {previewSheet.hourlyRate && (
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Hourly Rate</span>
-                        <span className="font-medium text-foreground">${previewSheet.hourlyRate.toFixed(2)}/hr</span>
+                        <span className="font-medium text-foreground">${(previewSheet.hourlyRate || 0).toFixed(2)}/hr</span>
                       </div>
                     )}
                     {previewSheet.estimatedCost != null && (
@@ -921,7 +921,7 @@ export default function AdminTimesheetHubPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant={entry.isOvertime ? "destructive" : "secondary"} className="text-xs">
-                                {parseFloat(entry.hours.toString()).toFixed(2)}h
+                                {(entry.hours || 0).toFixed(2)}h
                               </Badge>
                               <Button
                                 variant="ghost"

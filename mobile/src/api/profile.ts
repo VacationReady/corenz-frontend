@@ -60,9 +60,19 @@ export interface EmergencyContact {
 
 export interface LeaveBalance {
   id: string;
-  totalDays: number;
-  usedDays: number;
-  EventCategory: {
+  categoryId: string | null;
+  categoryName: string;
+  categoryIconKey: string | null;
+  remaining: number;
+  used: number;
+  total: number | null;
+  pending: number;
+  carryover: number;
+  carryoverExpiry: string | null;
+  // Legacy fields for backward compatibility
+  totalDays?: number;
+  usedDays?: number;
+  EventCategory?: {
     id: string;
     name: string;
     color: string | null;
@@ -294,7 +304,7 @@ export async function getLeaveBalances(employeeId: string): Promise<LeaveBalance
   }
   
   const data = await response.json();
-  return data.entitlements || [];
+  return data.balances || data.entitlements || [];
 }
 
 /**

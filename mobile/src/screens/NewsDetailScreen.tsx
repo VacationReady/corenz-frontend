@@ -123,11 +123,11 @@ export default function NewsDetailScreen() {
     setShowReactions(false);
 
     try {
-      await apiClient({
-        url: `/api/news/${slug}/reaction`,
-        method: isRemoving ? 'DELETE' : 'POST',
-        data: isRemoving ? undefined : { reaction: reactionId },
-      });
+      if (isRemoving) {
+        await apiClient.delete(`/api/news/${slug}/reaction`);
+      } else {
+        await apiClient.post(`/api/news/${slug}/reaction`, { reaction: reactionId });
+      }
     } catch (error) {
       // Revert on error
       setPost({

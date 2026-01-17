@@ -1,6 +1,6 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import {
   canAccessLeaveRequests,
   createAuthContext,
@@ -26,8 +26,8 @@ export async function GET(
     const { id: employeeId } = await context.params;
     await ensurePrismaConnected();
 
-    // 1. Authentication
-    const session = await auth();
+    // 1. Authentication - support both web and mobile clients
+    const session = await getMobileSession(req);
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json(
         { success: false, error: "Unauthenticated" },

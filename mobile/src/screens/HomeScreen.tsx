@@ -6,7 +6,6 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Linking,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -216,9 +215,9 @@ export default function HomeScreen() {
             <NewsCard
               post={latestNews}
               onPress={() => {
-                const url = `${API_BASE_URL}/news/${latestNews.slug}`;
-                Linking.openURL(url).catch(err => {
-                  console.error('Failed to open news URL:', err);
+                navigation.navigate('More', { 
+                  screen: 'NewsDetail', 
+                  params: { slug: latestNews.slug } 
                 });
               }}
               variant="featured"

@@ -11,6 +11,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -30,6 +31,7 @@ import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
 
 export default function LeaveScreen() {
+  const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentEmployeeId, setCurrentEmployeeId] = useState<string>('');
@@ -175,11 +177,40 @@ export default function LeaveScreen() {
       case 'APPROVED':
         return 'success';
       case 'REJECTED':
+      case 'DECLINED':
         return 'danger';
       case 'PENDING':
         return 'warning';
       default:
         return 'neutral';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return '#10b981';
+      case 'REJECTED':
+      case 'DECLINED':
+        return '#ef4444';
+      case 'PENDING':
+        return '#f59e0b';
+      default:
+        return '#64748b';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+      case 'DECLINED':
+        return 'Declined';
+      case 'PENDING':
+        return 'Pending';
+      default:
+        return status;
     }
   };
 
@@ -255,33 +286,59 @@ export default function LeaveScreen() {
           ) : (
             requests
               .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-              .map((request) => (
-                <Card key={request.id}>
-                  <View style={styles.requestHeader}>
-                    <Text style={styles.requestTitle}>{request.policy?.name || 'Leave'}</Text>
-                    <Badge text={request.status} variant={statusVariant(request.status)} />
-                  </View>
-                  <View style={styles.requestDetails}>
-                    <View style={styles.requestRow}>
-                      <Ionicons name="calendar-outline" size={16} color="#64748b" />
-                      <Text style={styles.requestText}>
-                        {new Date(request.startDate).toLocaleDateString()} -{' '}
-                        {new Date(request.endDate).toLocaleDateString()}
-                      </Text>
-                    </View>
-                    <View style={styles.requestRow}>
-                      <Ionicons name="time-outline" size={16} color="#64748b" />
-                      <Text style={styles.requestText}>{request.days} day(s)</Text>
-                    </View>
-                    {request.reason && (
-                      <View style={styles.requestRow}>
-                        <Ionicons name="document-text-outline" size={16} color="#64748b" />
-                        <Text style={styles.requestText}>{request.reason}</Text>
+              .map((request) => {
+                const totalDays = (request as any).totalDays || request.days || 0;
+                const status = (request as any).approvalStatus || request.status;
+                const categoryName = (request as any).categoryName || request.policy?.name || 'Leave';
+                
+                return (
+                  <TouchableOpacity
+                    key={request.id}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      // Navigate to leave request detail (to be implemented)
+                      Alert.alert(
+                        'Leave Request Details',
+                        `Status: ${getStatusLabel(status)}\nDays: ${totalDays}\nDates: ${new Date(request.startDate).toLocaleDateString()} - ${new Date(request.endDate).toLocaleDateString()}${request.reason ? '\nReason: ' + request.reason : ''}`,
+                        [{ text: 'OK' }]
+                      );
+                    }}
+                  >
+                    <Card>
+                      <View style={styles.requestHeader}>
+                        <Text style={styles.requestTitle}>{categoryName}</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(status)}15` }]}>
+                          <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
+                            {getStatusLabel(status)}
+                          </Text>
+                        </View>
                       </View>
-                    )}
-                  </View>
-                </Card>
-              ))
+                      <View style={styles.requestDetails}>
+                        <View style={styles.requestRow}>
+                          <Ionicons name="calendar-outline" size={16} color="#64748b" />
+                          <Text style={styles.requestText}>
+                            {new Date(request.startDate).toLocaleDateString()} -{' '}
+                            {new Date(request.endDate).toLocaleDateString()}
+                          </Text>
+                        </View>
+                        <View style={styles.requestRow}>
+                          <Ionicons name="time-outline" size={16} color="#64748b" />
+                          <Text style={styles.requestText}>{totalDays} day(s)</Text>
+                        </View>
+                        {request.reason && (
+                          <View style={styles.requestRow}>
+                            <Ionicons name="document-text-outline" size={16} color="#64748b" />
+                            <Text style={styles.requestText} numberOfLines={2}>{request.reason}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.requestFooter}>
+                        <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+                      </View>
+                    </Card>
+                  </TouchableOpacity>
+                );
+              })
           )}
         </View>
       </ScrollView>
@@ -518,6 +575,19 @@ const styles = StyleSheet.create({
     color: '#475569',
     marginLeft: 8,
     flex: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  requestFooter: {
+    alignItems: 'flex-end',
+    marginTop: 8,
   },
   modalContainer: {
     flex: 1,

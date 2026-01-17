@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { prisma } from "@/lib/prisma";
 import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
 import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
@@ -7,7 +8,9 @@ import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
 interface RouteParams {}
 
 async function postHandler(req: NextRequest, context: any) {
-  const session = await auth();
+  const mobileSession = await getMobileSession(req);
+  const webSession = !mobileSession?.user ? await auth() : null;
+  const session = mobileSession?.user ? mobileSession : webSession;
 
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

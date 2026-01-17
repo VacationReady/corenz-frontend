@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { sendNewsEmail } from "@/lib/news/sendNewsEmail";
@@ -10,7 +11,10 @@ interface Params {}
 
 // GET: Fetch a single news post with related posts and engagement data
 async function getHandler(req: NextRequest, context: any) {
-  const session = await auth();
+  // Support both mobile and web sessions
+  const mobileSession = await getMobileSession(req);
+  const webSession = !mobileSession?.user ? await auth() : null;
+  const session = mobileSession?.user ? mobileSession : webSession;
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

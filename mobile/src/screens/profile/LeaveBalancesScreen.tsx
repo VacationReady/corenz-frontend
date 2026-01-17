@@ -87,14 +87,14 @@ export default function LeaveBalancesScreen() {
         <View style={styles.summaryStats}>
           <View style={styles.summaryStat}>
             <Text style={styles.summaryValue}>
-              {balances.reduce((acc, b) => acc + (b.totalDays - b.usedDays), 0).toFixed(1)}
+              {balances.reduce((acc, b) => acc + (b.remaining || 0), 0).toFixed(1)}
             </Text>
             <Text style={styles.summaryLabel}>Days Available</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryStat}>
             <Text style={styles.summaryValue}>
-              {balances.reduce((acc, b) => acc + b.usedDays, 0).toFixed(1)}
+              {balances.reduce((acc, b) => acc + (b.used || 0), 0).toFixed(1)}
             </Text>
             <Text style={styles.summaryLabel}>Days Used</Text>
           </View>
@@ -110,20 +110,23 @@ export default function LeaveBalancesScreen() {
       )}
 
       {balances.map((balance) => {
-        const remaining = balance.totalDays - balance.usedDays;
-        const percentage = balance.totalDays > 0 
-          ? Math.min(100, Math.round((balance.usedDays / balance.totalDays) * 100))
+        const categoryName = balance.categoryName || balance.EventCategory?.name || 'Leave';
+        const remaining = balance.remaining || 0;
+        const used = balance.used || 0;
+        const total = balance.total || (remaining + used);
+        const percentage = total > 0 
+          ? Math.min(100, Math.round((used / total) * 100))
           : 0;
-        const color = getLeaveColor(balance.EventCategory.name, balance.EventCategory.color);
+        const color = getLeaveColor(categoryName, balance.EventCategory?.color || null);
 
         return (
           <Card key={balance.id} style={styles.balanceCard}>
             <View style={styles.balanceHeader}>
               <View style={[styles.balanceIcon, { backgroundColor: `${color}15` }]}>
-                <Ionicons name={getLeaveIcon(balance.EventCategory.name)} size={24} color={color} />
+                <Ionicons name={getLeaveIcon(categoryName)} size={24} color={color} />
               </View>
               <View style={styles.balanceInfo}>
-                <Text style={styles.balanceName}>{balance.EventCategory.name}</Text>
+                <Text style={styles.balanceName}>{categoryName}</Text>
                 <Text style={styles.balanceSubtitle}>{remaining.toFixed(1)} days remaining</Text>
               </View>
               <View style={styles.balanceBadge}>
@@ -136,8 +139,8 @@ export default function LeaveBalancesScreen() {
               <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: color }]} />
             </View>
             <View style={styles.progressLabels}>
-              <Text style={styles.progressLabel}>{balance.usedDays.toFixed(1)} used</Text>
-              <Text style={styles.progressLabel}>{balance.totalDays.toFixed(1)} total</Text>
+              <Text style={styles.progressLabel}>{used.toFixed(1)} used</Text>
+              <Text style={styles.progressLabel}>{total.toFixed(1)} total</Text>
             </View>
           </Card>
         );

@@ -259,7 +259,7 @@ export async function GET(
     // Transform response to include isSick flag based on leaveType
     // leaveType = "SICK" indicates sick leave (first-class field)
     // For backward compatibility, also check EventCategory name for legacy data
-    const transformedLeaves = leaves.map((leave) => {
+    const transformedLeaves = await Promise.all(leaves.map(async (leave) => {
       const isSick = leave.leaveType === "SICK" || 
         (leave.EventCategory?.name?.toLowerCase().includes("sick") ?? false);
       const isOtherEntitlement = leave.leaveType === "OTHER_ENTITLEMENT" || Boolean(leave.otherEntitlementId);
@@ -267,6 +267,37 @@ export async function GET(
       const resolvedSickReason =
         (leave.sickReason ?? null) ||
         ((leave as any).EventSubcategory?.name ?? null);
+      
+      // Calculate total days for the leave request
+      let totalDays = 0;
+      try {
+        const startDate = new Date(leave.startDate);
+        const endDate = new Date(leave.endDate);
+        
+        // Generate array of dates in the range
+        const dates: Date[] = [];
+        const currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+          dates.push(new Date(currentDate));
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        // Calculate deductions for all dates in the range
+        const deductions = await calculateLeaveDeductionBatch(employeeId, dates, prisma);
+        totalDays = deductions.reduce((sum, deduction) => sum + deduction, 0);
+        
+        // Apply day type multiplier if applicable
+        if (leave.dayType === "HALF_DAY_AM" || leave.dayType === "HALF_DAY_PM") {
+          totalDays = totalDays * 0.5;
+        }
+      } catch (error) {
+        console.error("[LEAVE_REQUESTS_GET] Error calculating totalDays:", error);
+        // Fallback to simple day count
+        const start = new Date(leave.startDate);
+        const end = new Date(leave.endDate);
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      }
       
       return {
         ...leave,
@@ -281,8 +312,9 @@ export async function GET(
           : leave.EventCategory?.name,
         sickReason: resolvedSickReason,
         sickReasonId: ((leave as any).EventSubcategory?.id ?? null),
+        totalDays: roundToTwoDecimals(totalDays),
       };
-    });
+    }));
 
     // Apply isSick filter if specified (post-query filter for flexibility)
     let filteredLeaves = transformedLeaves;

@@ -11,6 +11,7 @@ import "server-only";
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { featureToggleService } from "./service";
 import { FeatureKey, isValidFeatureKey } from "./types";
 
@@ -67,8 +68,8 @@ export function withFeatureGuard(featureKey: FeatureKey) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       context?: any
     ): Promise<Response> => {
-      // Get the authenticated session
-      const session = await auth();
+      // Get the authenticated session - support both web and mobile
+      const session = await getMobileSession(req);
 
       // Check authentication first
       if (!session?.user?.id || !session.user.companyId) {

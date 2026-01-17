@@ -4,7 +4,7 @@ import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import type { Prisma } from "@prisma/client";
 import { getMobileSession } from "@/lib/mobile-session";
-import { canAccessEmployee, hasPermission, hasAnyEmployeeProfilePermission, EMPLOYEE_PROFILE_SCREENS, UserWithProfile } from "@/lib/permissions";
+import { canAccessEmployee, hasPermission, hasPermissionViaProfile, hasAnyEmployeeProfilePermission, EMPLOYEE_PROFILE_SCREENS, UserWithProfile } from "@/lib/permissions";
 import { z } from "zod";
 import supabase from "@/lib/supabase-admin";
 import { resend } from "@/lib/resend";
@@ -365,11 +365,11 @@ export async function GET(req: NextRequest) {
     } as UserWithProfile;
 
     // Check if user has "employees" read permission via profile
-    const hasEmployeesPermission = hasPermission(userWithProfile, 'employees', 'read');
+    const hasEmployeesPermission = hasPermissionViaProfile(userWithProfile, 'employees', 'read');
     
     // Check if user has ANY employee-* screen read permission via profile
     const hasAnyEmployeeScreenPermission = EMPLOYEE_PROFILE_SCREENS.some(
-      screen => hasPermission(userWithProfile, screen, 'read')
+      screen => hasPermissionViaProfile(userWithProfile, screen, 'read')
     );
 
     // If user has permission via profile, they get full employee list access (no role-based filtering)

@@ -24,8 +24,14 @@ export default function App() {
       const storedToken = await getStoredSession();
       if (storedToken) {
         // Verify the session is still valid
-        await getSession();
-        setIsAuthenticated(true);
+        const session = await getSession();
+        if (session) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } else {
+        setIsAuthenticated(false);
       }
     } catch (error) {
       console.log('No valid session found');

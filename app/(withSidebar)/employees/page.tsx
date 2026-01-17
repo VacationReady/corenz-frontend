@@ -22,6 +22,7 @@ import EmployeesPageClient from "./EmployeesClient";
 import type { Prisma } from "@prisma/client";
 import { 
   hasPermission, 
+  hasPermissionViaProfile,
   EMPLOYEE_PROFILE_SCREENS, 
   UserWithProfile 
 } from "@/lib/permissions";
@@ -67,13 +68,13 @@ export const dynamic = "force-dynamic";
  */
 function hasEmployeeListPermissionViaProfile(user: UserWithProfile): boolean {
   // Check if user has "employees" read permission via profile
-  if (hasPermission(user, "employees", "read")) {
+  if (hasPermissionViaProfile(user, "employees", "read")) {
     return true;
   }
   
   // Check if user has ANY employee-* screen read permission
   for (const screen of EMPLOYEE_PROFILE_SCREENS) {
-    if (hasPermission(user, screen, "read")) {
+    if (hasPermissionViaProfile(user, screen, "read")) {
       return true;
     }
   }
@@ -124,15 +125,37 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     } else if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
       // Full access for admins
     } else if (userRole === "MANAGER") {
-      // Managers see only their direct and indirect reports
+      // Managers see department colleagues + all direct/indirect reports
+      // This mirrors employee access (see their department) plus manager access (see their reports)
+      const managerEmployee = await prisma.employee.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: session.user.companyId,
+        },
+        select: { departmentId: true },
+      });
+
       const allSubordinateUserIds = await getAllSubordinatesIterative(
         session.user.id,
         session.user.companyId,
       );
-      
-      whereCondition.userId = {
-        in: allSubordinateUserIds.length > 0 ? allSubordinateUserIds : ["no-match"],
-      };
+
+      const orConditions: Prisma.EmployeeWhereInput[] = [];
+
+      // Include self
+      orConditions.push({ userId: session.user.id });
+
+      // Include department colleagues (if manager has a department)
+      if (managerEmployee?.departmentId) {
+        orConditions.push({ departmentId: managerEmployee.departmentId });
+      }
+
+      // Include all direct and indirect reports (regardless of department)
+      if (allSubordinateUserIds.length > 0) {
+        orConditions.push({ userId: { in: allSubordinateUserIds } });
+      }
+
+      whereCondition.OR = orConditions;
     } else if (userRole === "EMPLOYEE") {
       // Employees see only themselves and their department colleagues
       const requestorEmployee = await prisma.employee.findFirst({
@@ -209,13 +232,35 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     } else if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
       // Full access for admins
     } else if (userRole === "MANAGER") {
+      const managerEmployee = await prisma.employee.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: session.user.companyId,
+        },
+        select: { departmentId: true },
+      });
+
       const allSubordinateUserIds = await getAllSubordinatesIterative(
         session.user.id,
         session.user.companyId,
       );
-      baseCountWhere.userId = {
-        in: allSubordinateUserIds.length > 0 ? allSubordinateUserIds : ["no-match"],
-      };
+
+      const orConditions: Prisma.EmployeeWhereInput[] = [];
+
+      // Include self
+      orConditions.push({ userId: session.user.id });
+
+      // Include department colleagues (if manager has a department)
+      if (managerEmployee?.departmentId) {
+        orConditions.push({ departmentId: managerEmployee.departmentId });
+      }
+
+      // Include all direct and indirect reports (regardless of department)
+      if (allSubordinateUserIds.length > 0) {
+        orConditions.push({ userId: { in: allSubordinateUserIds } });
+      }
+
+      baseCountWhere.OR = orConditions;
     } else if (userRole === "EMPLOYEE") {
       const requestorEmployee = await prisma.employee.findFirst({
         where: {

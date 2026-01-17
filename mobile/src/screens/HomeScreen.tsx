@@ -7,6 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Linking,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -123,9 +124,15 @@ export default function HomeScreen() {
           )}
         </View>
         <View style={styles.headerRight}>
-          <View style={styles.notificationButton}>
-            <Ionicons name="notifications-outline" size={24} color="rgba(255, 255, 255, 0.5)" />
-          </View>
+          <TouchableOpacity 
+            style={styles.notificationButton}
+            onPress={() => {
+              Alert.alert('Notifications', 'Notification center coming soon!');
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -284,7 +291,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    opacity: 0.6,
   },
   content: {
     padding: 16,

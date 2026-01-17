@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
-    fontVariant: ['tabular-nums'],
+    letterSpacing: 1,
   },
   actionText: {
     fontSize: 14,

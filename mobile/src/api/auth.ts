@@ -185,11 +185,19 @@ export async function getSession() {
 
     console.log("✅ Session validated successfully");
     return session;
-  } catch (error) {
+  } catch (error: any) {
     clearTimeout(timeoutId);
+    
+    // Handle AbortError (timeout) gracefully - clear the token as it's likely expired
+    if (error?.name === "AbortError") {
+      console.log("📱 Session validation timed out, clearing token");
+      await storage.deleteItem(SESSION_TOKEN_KEY);
+      return null;
+    }
+    
     console.error("Error validating session:", error);
     // Don't clear the token on network errors - the token might still be valid
-    // Only clear on explicit rejection from the server
+    // Only clear on explicit rejection from the server or timeout
     return null;
   }
 }

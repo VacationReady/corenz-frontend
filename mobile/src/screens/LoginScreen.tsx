@@ -46,7 +46,6 @@ export default function LoginScreen({ onLoginSuccess, navigation }: LoginScreenP
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
-      Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }

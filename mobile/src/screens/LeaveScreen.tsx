@@ -347,6 +347,7 @@ export default function LeaveScreen() {
 
             {/* Start Date */}
             <Text style={styles.inputLabel}>Start Date</Text>
+            <Text style={styles.helperText}>Select from today onwards</Text>
             <TouchableOpacity
               style={styles.dateInput}
               onPress={() => setShowStartPicker(true)}
@@ -546,6 +547,12 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     marginBottom: 8,
     marginTop: 16,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 8,
+    marginTop: -4,
   },
   pickerWrapper: {
     borderWidth: 1,

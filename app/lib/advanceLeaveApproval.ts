@@ -29,6 +29,36 @@ export async function processDecision({
   action: "approve" | "decline";
   actorUserId: string;
 }) {
+  // Fetch decision details first to determine if sick leave grants need to be applied
+  const decisionDetails = await p.leaveApprovalDecision.findUnique({
+    where: { id: decisionId },
+    include: {
+      stage: {
+        include: {
+          leaveRequest: {
+            include: {
+              EventCategory: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!decisionDetails) throw new Error("Decision not found");
+  
+  // Check if this is sick leave and needs grants applied
+  const isSickLeave = decisionDetails.stage.leaveRequest.EventCategory.name.toLowerCase().includes("sick");
+  if (isSickLeave && action === "approve" && decisionDetails.stage.leaveRequest.approvalStatus !== "APPROVED") {
+    // Apply any pending grants BEFORE starting the transaction
+    try {
+      await applySickLeaveGrants(p as any, decisionDetails.stage.leaveRequest.employeeId, new Date(), actorUserId);
+    } catch (grantError: any) {
+      console.error("❌ Failed to apply sick leave grants:", grantError);
+      // Continue - grants may already be applied or employee may not be eligible yet
+    }
+  }
+
   return await p.$transaction(async (tx) => {
     const decision = await tx.leaveApprovalDecision.findUnique({
       where: { id: decisionId },
@@ -277,11 +307,10 @@ export async function processDecision({
       const totalDeductionDays = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
       
       if (totalDeductionDays > 0) {
-        // Apply any pending grants first, then record usage
+        // Record usage (grants already applied outside transaction)
         try {
-          await applySickLeaveGrants(prisma as any, lrFull.employeeId, new Date(), actorUserId);
           await recordSickLeaveUsage(
-            prisma as any,
+            tx as any,
             lrFull.employeeId,
             daysToHours(totalDeductionDays),
             lrFull.id,

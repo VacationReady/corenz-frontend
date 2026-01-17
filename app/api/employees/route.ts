@@ -374,7 +374,7 @@ export async function GET(req: NextRequest) {
 
     // If user has permission via profile, they get full employee list access (no role-based filtering)
     // This allows specialized roles like Payroll Admin to see all employees for their domain
-    const hasPermissionViaProfile = hasEmployeesPermission || hasAnyEmployeeScreenPermission;
+    const hasCustomPermissionProfile = hasEmployeesPermission || hasAnyEmployeeScreenPermission;
 
     // Allow admins to explicitly scope to their managed hierarchy
     if (
@@ -395,7 +395,7 @@ export async function GET(req: NextRequest) {
     // Access control: ADMIN can list all; MANAGER limited to department + reports
     // ✅ Users with permission via profile also get full access
     // This allows specialized roles (Payroll Admin, HR Specialist) to see all employees for their domain
-    if (hasPermissionViaProfile) {
+    if (hasCustomPermissionProfile) {
       // User has permission via profile - grant full employee list access
       // No additional filtering needed (individual screen access will be checked on profile pages)
       console.log("[employees] User has permission via profile, granting full access", {
@@ -609,7 +609,7 @@ export async function GET(req: NextRequest) {
       
       if (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") {
         canAccess = true;
-      } else if (hasPermissionViaProfile) {
+      } else if (hasCustomPermissionProfile) {
         canAccess = true;
       } else if (session.user.role === "MANAGER") {
         // For managers, check if this specific employee is:

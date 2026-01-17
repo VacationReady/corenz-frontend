@@ -50,9 +50,11 @@ export async function processDecision({
   // Check if this is sick leave and needs grants applied
   const isSickLeave = decisionDetails.stage.leaveRequest.EventCategory.name.toLowerCase().includes("sick");
   if (isSickLeave && action === "approve" && decisionDetails.stage.leaveRequest.approvalStatus !== "APPROVED") {
-    // Apply any pending grants BEFORE starting the transaction
+    // Apply any pending grants in a separate transaction BEFORE starting the main transaction
     try {
-      await applySickLeaveGrants(p as any, decisionDetails.stage.leaveRequest.employeeId, new Date(), actorUserId);
+      await p.$transaction(async (grantTx) => {
+        await applySickLeaveGrants(grantTx as any, decisionDetails.stage.leaveRequest.employeeId, new Date(), actorUserId);
+      });
     } catch (grantError: any) {
       console.error("❌ Failed to apply sick leave grants:", grantError);
       // Continue - grants may already be applied or employee may not be eligible yet

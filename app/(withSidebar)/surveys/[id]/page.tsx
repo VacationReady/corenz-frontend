@@ -127,7 +127,7 @@ export default function SurveyDetailPage() {
       if (!surveyId) return;
 
       try {
-        const response = await fetch(`/api/surveys/${surveyId}?includeFullDetails=true`);
+        const response = await fetch(`/api/surveys/${surveyId}`);
 
         if (response.ok) {
           const data = await response.json();

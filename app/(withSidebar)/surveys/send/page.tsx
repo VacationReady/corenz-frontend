@@ -114,10 +114,10 @@ const anonymizationOptions = [
     label: "Public",
     description: "Responses visible with names",
     icon: Eye,
-    gradient: "from-emerald-500 to-teal-500",
-    bgLight: "from-emerald-50 to-teal-50",
-    border: "border-emerald-200",
-    text: "text-emerald-700",
+    gradient: "from-blue-500 to-indigo-500",
+    bgLight: "from-blue-50 to-indigo-50",
+    border: "border-blue-200",
+    text: "text-blue-700",
   },
   {
     value: "department",
@@ -157,8 +157,8 @@ const targetingOptions = [
     icon: Users, 
     label: "Everyone", 
     description: "All active employees",
-    gradient: "from-emerald-500 to-teal-600",
-    bgLight: "bg-gradient-to-br from-emerald-50 to-teal-50",
+    gradient: "from-blue-500 to-indigo-600",
+    bgLight: "bg-gradient-to-br from-blue-50 to-indigo-50",
   },
   { 
     type: "departments" as const, 
@@ -173,24 +173,24 @@ const targetingOptions = [
     icon: Briefcase, 
     label: "Job Roles", 
     description: "By position",
-    gradient: "from-violet-500 to-purple-600",
-    bgLight: "bg-gradient-to-br from-violet-50 to-purple-50",
+    gradient: "from-blue-500 to-indigo-600",
+    bgLight: "bg-gradient-to-br from-blue-50 to-indigo-50",
   },
   { 
     type: "locations" as const, 
     icon: Globe, 
     label: "Locations", 
     description: "By office or region",
-    gradient: "from-amber-500 to-orange-600",
-    bgLight: "bg-gradient-to-br from-amber-50 to-orange-50",
+    gradient: "from-blue-500 to-indigo-600",
+    bgLight: "bg-gradient-to-br from-blue-50 to-indigo-50",
   },
   { 
     type: "individuals" as const, 
     icon: User, 
     label: "Individuals", 
     description: "Hand-pick recipients",
-    gradient: "from-pink-500 to-rose-600",
-    bgLight: "bg-gradient-to-br from-pink-50 to-rose-50",
+    gradient: "from-blue-500 to-indigo-600",
+    bgLight: "bg-gradient-to-br from-blue-50 to-indigo-50",
   },
 ];
 
@@ -569,7 +569,7 @@ function SendSurveyPageContent() {
                               initial={{ width: 0 }}
                               animate={{ width: step > s.id ? "100%" : "0%" }}
                               transition={{ duration: 0.5, ease: "easeInOut" }}
-                              className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"
+                              className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full"
                             />
                           </div>
                         </div>
@@ -823,10 +823,10 @@ function SendSurveyPageContent() {
               <div className="space-y-6">
                 {/* Audience Header Card */}
                 <Card className="overflow-hidden border-0 shadow-xl shadow-slate-200/50 bg-white/90 backdrop-blur-sm">
-                  <CardHeader className="bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 border-b border-slate-100 pb-4">
+                  <CardHeader className="bg-gradient-to-br from-slate-50 via-white to-blue-50/30 border-b border-slate-100 pb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30">
                           <Users className="w-5 h-5" />
                         </div>
                         <div>
@@ -919,7 +919,7 @@ function SendSurveyPageContent() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -20 }}
-                          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-6 text-white"
+                          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-6 text-white"
                         >
                           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.15),_transparent_50%)]" />
                           <div className="absolute bottom-0 right-0 opacity-10">
@@ -932,15 +932,15 @@ function SendSurveyPageContent() {
                             <div className="flex-1">
                               <h3 className="text-xl font-bold flex items-center gap-2">
                                 Everyone's Invited
-                                <Sparkles className="w-5 h-5 text-emerald-200" />
+                                <Sparkles className="w-5 h-5 text-blue-200" />
                               </h3>
-                              <p className="text-emerald-100 mt-1">
+                              <p className="text-blue-100 mt-1">
                                 Survey will be sent to all <span className="font-semibold">{employees.length}</span> active employees in your organisation
                               </p>
                             </div>
                             <div className="hidden lg:flex flex-col items-center">
                               <div className="text-4xl font-bold">{employees.length}</div>
-                              <div className="text-sm text-emerald-200">people</div>
+                              <div className="text-sm text-blue-200">people</div>
                             </div>
                           </div>
                         </motion.div>
@@ -1017,7 +1017,7 @@ function SendSurveyPageContent() {
                         >
                           <div className="flex items-center justify-between">
                             <Label className="text-sm font-semibold text-slate-700">Select Job Roles</Label>
-                            <Badge variant="secondary" className="bg-violet-100 text-violet-700">
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                               {selectedRoles.length} selected
                             </Badge>
                           </div>
@@ -1043,13 +1043,13 @@ function SendSurveyPageContent() {
                                   className={cn(
                                     "flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all",
                                     isSelected
-                                      ? "bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-300 shadow-lg shadow-violet-100"
-                                      : "bg-white border border-slate-200 hover:border-violet-200 hover:shadow-md"
+                                      ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 shadow-lg shadow-blue-100"
+                                      : "bg-white border border-slate-200 hover:border-blue-200 hover:shadow-md"
                                   )}
                                 >
                                   <div className={cn(
                                     "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                                    isSelected ? "bg-gradient-to-br from-violet-500 to-purple-600" : "bg-slate-100"
+                                    isSelected ? "bg-gradient-to-br from-blue-500 to-indigo-600" : "bg-slate-100"
                                   )}>
                                     {isSelected ? (
                                       <Check className="w-5 h-5 text-white" />
@@ -1104,13 +1104,13 @@ function SendSurveyPageContent() {
                                   className={cn(
                                     "flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all",
                                     isSelected
-                                      ? "bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 shadow-lg shadow-amber-100"
-                                      : "bg-white border border-slate-200 hover:border-amber-200 hover:shadow-md"
+                                      ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 shadow-lg shadow-blue-100"
+                                      : "bg-white border border-slate-200 hover:border-blue-200 hover:shadow-md"
                                   )}
                                 >
                                   <div className={cn(
                                     "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                                    isSelected ? "bg-gradient-to-br from-amber-500 to-orange-600" : "bg-slate-100"
+                                    isSelected ? "bg-gradient-to-br from-blue-500 to-indigo-600" : "bg-slate-100"
                                   )}>
                                     {isSelected ? (
                                       <Check className="w-5 h-5 text-white" />
@@ -1148,7 +1148,7 @@ function SendSurveyPageContent() {
                                   Clear all
                                 </button>
                               )}
-                              <Badge variant="secondary" className="bg-pink-100 text-pink-700">
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                                 {selectedEmployees.length} selected
                               </Badge>
                             </div>
@@ -1182,13 +1182,13 @@ function SendSurveyPageContent() {
                                   }}
                                   className={cn(
                                     "flex items-center gap-4 p-4 cursor-pointer transition-all border-b border-slate-100 last:border-0",
-                                    isSelected ? "bg-pink-50" : "hover:bg-slate-50"
+                                    isSelected ? "bg-blue-50" : "hover:bg-slate-50"
                                   )}
                                 >
                                   <div className={cn(
                                     "w-10 h-10 rounded-full flex items-center justify-center transition-all font-medium text-sm",
                                     isSelected 
-                                      ? "bg-gradient-to-br from-pink-500 to-rose-600 text-white" 
+                                      ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white" 
                                       : "bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600"
                                   )}>
                                     {isSelected ? (
@@ -1240,12 +1240,12 @@ function SendSurveyPageContent() {
                         onClick={() => setShowExcludePanel(!showExcludePanel)}
                         className="flex items-center gap-3 text-sm text-slate-600 hover:text-slate-900 transition-colors group"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                          <UserX className="w-4 h-4 text-orange-600" />
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                          <UserX className="w-4 h-4 text-blue-600" />
                         </div>
                         <span className="font-medium">Exclude specific employees</span>
                         {excludedEmployees.length > 0 && (
-                          <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                             {excludedEmployees.length} excluded
                           </Badge>
                         )}
@@ -1269,10 +1269,10 @@ function SendSurveyPageContent() {
                                 placeholder="Search employees to exclude..."
                                 value={excludedSearchTerm}
                                 onChange={(e) => setExcludedSearchTerm(e.target.value)}
-                                className="pl-11 h-11 bg-orange-50/50 border-orange-200 focus:bg-white"
+                                className="pl-11 h-11 bg-blue-50/50 border-blue-200 focus:bg-white"
                               />
                             </div>
-                            <div className="max-h-48 overflow-y-auto rounded-xl border border-orange-200 bg-orange-50/30">
+                            <div className="max-h-48 overflow-y-auto rounded-xl border border-blue-200 bg-blue-50/30">
                               {filteredExcludedEmployees.map((emp) => {
                                 const isExcluded = excludedEmployees.includes(emp.id);
                                 return (
@@ -1286,8 +1286,8 @@ function SendSurveyPageContent() {
                                       }
                                     }}
                                     className={cn(
-                                      "flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-orange-100 last:border-0",
-                                      isExcluded ? "bg-orange-100/70" : "hover:bg-orange-100/40"
+                                      "flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-blue-100 last:border-0",
+                                      isExcluded ? "bg-blue-100/70" : "hover:bg-blue-100/40"
                                     )}
                                   >
                                     <Checkbox checked={isExcluded} className="pointer-events-none" />
@@ -1313,19 +1313,19 @@ function SendSurveyPageContent() {
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4"
+                        className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4"
                       >
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
                             <AlertCircle className="w-5 h-5 text-white" />
                           </div>
                           <div>
-                            <h4 className="font-semibold text-amber-900">Minimum Recipients Required</h4>
-                            <p className="text-sm text-amber-700 mt-1">
+                            <h4 className="font-semibold text-blue-900">Minimum Recipients Required</h4>
+                            <p className="text-sm text-blue-700 mt-1">
                               Anonymous surveys require at least <span className="font-bold">{MINIMUM_ANONYMOUS_RECIPIENTS} recipients</span> to ensure privacy. 
                               You currently have <span className="font-bold">{targetCount}</span> selected.
                             </p>
-                            <p className="text-xs text-amber-600 mt-2">
+                            <p className="text-xs text-blue-600 mt-2">
                               This prevents individual responses from being identified in small groups.
                             </p>
                           </div>
@@ -1360,9 +1360,9 @@ function SendSurveyPageContent() {
               <div className="space-y-6">
                 {/* Review Header */}
                 <Card className="overflow-hidden border-0 shadow-xl shadow-slate-200/50 bg-white/90 backdrop-blur-sm">
-                  <CardHeader className="bg-gradient-to-br from-slate-50 via-white to-green-50/30 border-b border-slate-100">
+                  <CardHeader className="bg-gradient-to-br from-slate-50 via-white to-blue-50/30 border-b border-slate-100">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30">
+                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30">
                         <CheckCircle className="w-5 h-5" />
                       </div>
                       <div>
@@ -1452,7 +1452,7 @@ function SendSurveyPageContent() {
                             <span className="text-slate-600 ml-2">recipients</span>
                           </div>
                           {excludedEmployees.length > 0 && (
-                            <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                               {excludedEmployees.length} excluded
                             </Badge>
                           )}
@@ -1494,14 +1494,14 @@ function SendSurveyPageContent() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100/50 p-5 border border-amber-200"
+                        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100/50 p-5 border border-blue-200"
                       >
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
                             <Calendar className="w-5 h-5 text-white" />
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Deadline</p>
+                            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider">Deadline</p>
                           </div>
                         </div>
                         {deadline ? (
@@ -1513,7 +1513,7 @@ function SendSurveyPageContent() {
                                 day: 'numeric',
                               })}
                             </h4>
-                            <p className="text-sm text-amber-700 mt-1">
+                            <p className="text-sm text-blue-700 mt-1">
                               at {new Date(deadline).toLocaleTimeString('en-US', {
                                 hour: '2-digit',
                                 minute: '2-digit',
@@ -1523,7 +1523,7 @@ function SendSurveyPageContent() {
                         ) : (
                           <div>
                             <h4 className="font-bold text-lg text-slate-900">No deadline</h4>
-                            <p className="text-sm text-amber-700 mt-1">Survey remains open indefinitely</p>
+                            <p className="text-sm text-blue-700 mt-1">Survey remains open indefinitely</p>
                           </div>
                         )}
                       </motion.div>
@@ -1534,7 +1534,7 @@ function SendSurveyPageContent() {
                       initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.5 }}
-                      className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 p-6 text-white"
+                      className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 p-6 text-white"
                     >
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.15),_transparent_50%)]" />
                       <div className="absolute -bottom-10 -right-10 opacity-10">
@@ -1548,13 +1548,13 @@ function SendSurveyPageContent() {
                         <div className="flex-1">
                           <h4 className="font-bold text-xl flex items-center gap-2">
                             Ready for Launch!
-                            <Sparkles className="w-5 h-5 text-emerald-200 animate-pulse" />
+                            <Sparkles className="w-5 h-5 text-blue-200 animate-pulse" />
                           </h4>
-                          <p className="text-emerald-100 mt-1">
+                          <p className="text-blue-100 mt-1">
                             Recipients will see this survey as an action item in their dashboard
                           </p>
                         </div>
-                        <div className="hidden md:flex items-center gap-2 text-emerald-200">
+                        <div className="hidden md:flex items-center gap-2 text-blue-200">
                           <MousePointerClick className="w-5 h-5" />
                           <span className="text-sm font-medium">Click to send</span>
                         </div>
@@ -1608,7 +1608,7 @@ function SendSurveyPageContent() {
             <Button
               onClick={handleSendSurvey}
               disabled={loading}
-              className="h-12 px-8 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30"
+              className="h-12 px-8 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30"
             >
               {loading ? (
                 <>

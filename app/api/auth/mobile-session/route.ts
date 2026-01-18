@@ -111,6 +111,14 @@ export async function GET(req: NextRequest) {
       department: employee?.Department?.name,
     };
 
+    console.log('[mobile-session] Session validated:', {
+      userId: user.id,
+      email: user.email,
+      name: sessionUser.name,
+      role: user.role,
+      employeeId: employee?.id,
+    });
+
     // Calculate expiration from token
     const expires = decoded.exp
       ? new Date((decoded.exp as number) * 1000).toISOString()

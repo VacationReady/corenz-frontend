@@ -58,6 +58,7 @@ export async function getMyShifts(
   const params = new URLSearchParams({
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
+    mobile: 'true',
   });
 
   const response = await apiClient.get(`/api/shifts?${params}`);

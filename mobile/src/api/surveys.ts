@@ -66,7 +66,7 @@ export async function getCompletedSurveys(): Promise<Survey[]> {
 export async function submitSurveyResponse(surveyId: string, responses: any): Promise<SurveyResponse> {
   const response = await apiFetch(`/api/surveys/${surveyId}/responses`, {
     method: 'POST',
-    body: JSON.stringify({ responses }),
+    body: JSON.stringify({ responseData: responses }),
   });
 
   if (!response.ok) {

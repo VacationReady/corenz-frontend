@@ -50,6 +50,22 @@ export function ShiftsTile({ onPress }: ShiftsTileProps) {
         shiftService.getUpcomingShifts(7),
       ]);
 
+      console.log('[ShiftsTile] Loaded shifts:', {
+        today: today ? {
+          id: today.id,
+          employeeId: today.employeeId,
+          startTime: today.startTime,
+          endTime: today.endTime,
+        } : null,
+        tomorrow: tomorrow ? {
+          id: tomorrow.id,
+          employeeId: tomorrow.employeeId,
+          startTime: tomorrow.startTime,
+          endTime: tomorrow.endTime,
+        } : null,
+        upcomingCount: upcoming.length,
+      });
+
       setTodayShift(today);
       setTomorrowShift(tomorrow);
       setUpcomingCount(upcoming.length);
@@ -71,7 +87,7 @@ export function ShiftsTile({ onPress }: ShiftsTileProps) {
     if (onPress) {
       onPress();
     } else {
-      navigation.navigate('Shifts');
+      navigation.navigate('More', { screen: 'Shifts', params: { screen: 'ShiftsMain' } });
     }
   };
 

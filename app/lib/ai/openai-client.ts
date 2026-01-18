@@ -6,10 +6,13 @@
 import OpenAI from "openai";
 import { env, features } from "@/lib/env.server";
 
-// Initialize OpenAI client
-export const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client only if API key is available
+// This prevents build errors when OPENAI_API_KEY is not set
+export const openai = env.OPENAI_API_KEY 
+  ? new OpenAI({
+      apiKey: env.OPENAI_API_KEY,
+    })
+  : null;
 
 // Default model configuration
 export const AI_CONFIG = {

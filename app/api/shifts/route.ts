@@ -270,6 +270,7 @@ async function getHandler(req: NextRequest) {
     const isPublished = searchParams.get('isPublished');
     const pageParam = searchParams.get('page');
     const pageSizeParam = searchParams.get('pageSize');
+    const isMobileRequest = searchParams.get('mobile') === 'true';
 
     const page = Math.max(1, Number.parseInt(pageParam || '1', 10));
     const pageSize = Math.min(
@@ -287,6 +288,8 @@ async function getHandler(req: NextRequest) {
         User: {
           select: {
             role: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },
@@ -298,19 +301,39 @@ async function getHandler(req: NextRequest) {
 
     const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
 
+    console.log('[Shifts API] Request from:', {
+      userId: session.user.id,
+      employeeId: requestingEmployee.id,
+      name: `${requestingEmployee.User.firstName} ${requestingEmployee.User.lastName}`,
+      role: requestingEmployee.User.role,
+      isAdminOrManager,
+      requestedEmployeeId: employeeId,
+      isMobileRequest,
+    });
+
     // Build where clause
     const where: any = {
       companyId: requestingEmployee.companyId,
     };
 
+    // Mobile requests: ALWAYS filter to logged-in user's shifts, regardless of role
+    // This ensures mobile users only see their own shifts in the app
+    if (isMobileRequest && !employeeId) {
+      where.employeeId = requestingEmployee.id;
+      console.log('[Shifts API] Mobile request - filtering to own shifts only:', requestingEmployee.id);
+    }
     // Regular employees can see their own shifts (regardless of publish status)
     // isPublished controls visibility to OTHER employees for open/broadcast shifts
-    if (!isAdminOrManager) {
+    else if (!isAdminOrManager) {
       where.employeeId = requestingEmployee.id;
+      console.log('[Shifts API] Non-admin user - filtering to own shifts only:', requestingEmployee.id);
       // Note: Removed isPublished filter - employees should see their assigned shifts
     } else {
       if (employeeId) {
         where.employeeId = employeeId;
+        console.log('[Shifts API] Admin/Manager filtering by specific employee:', employeeId);
+      } else {
+        console.log('[Shifts API] Admin/Manager viewing all shifts (no employee filter)');
       }
       if (departmentId) {
         where.departmentId = departmentId;

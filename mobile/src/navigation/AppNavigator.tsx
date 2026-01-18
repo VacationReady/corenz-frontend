@@ -37,6 +37,7 @@ const Tab = createBottomTabNavigator();
 const MoreStack = createNativeStackNavigator();
 const TeamStack = createNativeStackNavigator();
 const ShiftsStack = createNativeStackNavigator();
+const CalendarStack = createNativeStackNavigator();
 
 const profileScreenOptions = {
   headerStyle: { backgroundColor: '#fff' },
@@ -85,6 +86,11 @@ function MoreStackNavigator({ onLogout }: { onLogout: () => void }) {
         name="CalendarEvents"
         component={CalendarScreen}
         options={{ title: 'Calendar & Events' }}
+      />
+      <MoreStack.Screen
+        name="Shifts"
+        component={ShiftsStackNavigator}
+        options={{ headerShown: false }}
       />
       <MoreStack.Screen
         name="NewsHub"
@@ -183,6 +189,25 @@ function ShiftsStackNavigator() {
   );
 }
 
+function CalendarStackNavigator() {
+  return (
+    <CalendarStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#fff' },
+        headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#0f172a' },
+        headerTintColor: '#3b82f6',
+        headerShadowVisible: false,
+      }}
+    >
+      <CalendarStack.Screen
+        name="CalendarMain"
+        component={CompanyCalendarScreen}
+        options={{ headerShown: false }}
+      />
+    </CalendarStack.Navigator>
+  );
+}
+
 function TeamStackNavigator() {
   return (
     <TeamStack.Navigator
@@ -252,7 +277,7 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
               iconName = focused ? 'home' : 'home-outline';
             } else if (route.name === 'Clock') {
               iconName = focused ? 'time' : 'time-outline';
-            } else if (route.name === 'Shifts') {
+            } else if (route.name === 'Calendar') {
               iconName = focused ? 'calendar' : 'calendar-outline';
             } else if (route.name === 'Team') {
               iconName = focused ? 'people' : 'people-outline';
@@ -311,8 +336,8 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
           }}
         />
         <Tab.Screen 
-          name="Shifts" 
-          component={ShiftsStackNavigator}
+          name="Calendar" 
+          component={CalendarStackNavigator}
           options={{ headerShown: false }}
         />
         <Tab.Screen 

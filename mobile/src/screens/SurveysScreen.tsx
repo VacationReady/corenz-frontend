@@ -251,43 +251,106 @@ export default function SurveysScreen() {
                     {question.required && <Text style={styles.requiredMark}> *</Text>}
                   </Text>
 
-                  {question.type === 'text' || question.type === 'shortText' ? (
+                  {question.type === 'text' || question.type === 'shortText' || question.type === 'textarea' || question.type === 'email' || question.type === 'phone' || question.type === 'number' ? (
                     <TextInput
                       style={styles.textInput}
                       value={responses[question.id] || ''}
                       onChangeText={(text) =>
                         setResponses((prev) => ({ ...prev, [question.id]: text }))
                       }
-                      placeholder="Your answer"
-                      multiline={question.type === 'text'}
-                      numberOfLines={question.type === 'text' ? 4 : 1}
+                      placeholder={question.placeholder || "Your answer"}
+                      multiline={question.type === 'textarea' || question.type === 'text'}
+                      numberOfLines={question.type === 'textarea' ? 6 : question.type === 'text' ? 4 : 1}
+                      keyboardType={
+                        question.type === 'email' ? 'email-address' :
+                        question.type === 'phone' ? 'phone-pad' :
+                        question.type === 'number' ? 'numeric' :
+                        'default'
+                      }
+                      autoCapitalize={question.type === 'email' ? 'none' : 'sentences'}
                     />
-                  ) : question.type === 'radio' || question.type === 'select' ? (
+                  ) : question.type === 'radio' || question.type === 'select' || question.type === 'chips' ? (
                     <View style={styles.optionsContainer}>
-                      {question.options?.map((option: any) => (
-                        <TouchableOpacity
-                          key={option.value || option}
-                          style={[
-                            styles.radioOption,
-                            responses[question.id] === (option.value || option) &&
-                              styles.radioOptionSelected,
-                          ]}
-                          onPress={() =>
-                            setResponses((prev) => ({
-                              ...prev,
-                              [question.id]: option.value || option,
-                            }))
-                          }
-                        >
-                          <View style={styles.radioCircle}>
-                            {responses[question.id] === (option.value || option) && (
-                              <View style={styles.radioCircleSelected} />
-                            )}
-                          </View>
-                          <Text style={styles.radioLabel}>{option.label || option}</Text>
-                        </TouchableOpacity>
-                      ))}
+                      {(question.options || question.optionItems || []).map((option: any) => {
+                        const optionValue = option.value || option;
+                        const optionLabel = option.label || option;
+                        return (
+                          <TouchableOpacity
+                            key={optionValue}
+                            style={[
+                              styles.radioOption,
+                              responses[question.id] === optionValue &&
+                                styles.radioOptionSelected,
+                            ]}
+                            onPress={() =>
+                              setResponses((prev) => ({
+                                ...prev,
+                                [question.id]: optionValue,
+                              }))
+                            }
+                          >
+                            <View style={styles.radioCircle}>
+                              {responses[question.id] === optionValue && (
+                                <View style={styles.radioCircleSelected} />
+                              )}
+                            </View>
+                            <Text style={styles.radioLabel}>{optionLabel}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
+                  ) : question.type === 'checkbox' || question.type === 'multiselect' ? (
+                    <View style={styles.optionsContainer}>
+                      {(question.options || question.optionItems || []).map((option: any) => {
+                        const optionValue = option.value || option;
+                        const optionLabel = option.label || option;
+                        const isSelected = Array.isArray(responses[question.id]) 
+                          ? responses[question.id].includes(optionValue)
+                          : false;
+                        return (
+                          <TouchableOpacity
+                            key={optionValue}
+                            style={[
+                              styles.radioOption,
+                              isSelected && styles.radioOptionSelected,
+                            ]}
+                            onPress={() =>
+                              setResponses((prev) => {
+                                const currentValues = Array.isArray(prev[question.id]) ? prev[question.id] : [];
+                                const newValues = isSelected
+                                  ? currentValues.filter((v: any) => v !== optionValue)
+                                  : [...currentValues, optionValue];
+                                return { ...prev, [question.id]: newValues };
+                              })
+                            }
+                          >
+                            <View style={[styles.radioCircle, styles.checkboxCircle]}>
+                              {isSelected && (
+                                <Ionicons name="checkmark" size={14} color="#3b82f6" />
+                              )}
+                            </View>
+                            <Text style={styles.radioLabel}>{optionLabel}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  ) : question.type === 'switch' ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.switchContainer,
+                        responses[question.id] && styles.switchContainerActive,
+                      ]}
+                      onPress={() =>
+                        setResponses((prev) => ({
+                          ...prev,
+                          [question.id]: !prev[question.id],
+                        }))
+                      }
+                    >
+                      <Text style={styles.switchLabel}>
+                        {responses[question.id] ? 'Yes' : 'No'}
+                      </Text>
+                    </TouchableOpacity>
                   ) : question.type === 'rating' ? (
                     <View style={styles.ratingContainer}>
                       {[1, 2, 3, 4, 5].map((rating) => (
@@ -305,7 +368,20 @@ export default function SurveysScreen() {
                         </TouchableOpacity>
                       ))}
                     </View>
-                  ) : null}
+                  ) : question.type === 'date' ? (
+                    <TextInput
+                      style={styles.textInput}
+                      value={responses[question.id] || ''}
+                      onChangeText={(text) =>
+                        setResponses((prev) => ({ ...prev, [question.id]: text }))
+                      }
+                      placeholder="YYYY-MM-DD"
+                    />
+                  ) : (
+                    <Text style={styles.unsupportedFieldType}>
+                      Unsupported field type: {question.type}
+                    </Text>
+                  )}
                 </View>
               ))}
 
@@ -464,6 +540,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     fontSize: 16,
     textAlignVertical: 'top',
+    minHeight: 44,
+  },
+  unsupportedFieldType: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    color: '#991b1b',
+    fontSize: 14,
   },
   optionsContainer: {
     gap: 12,
@@ -499,6 +585,28 @@ const styles = StyleSheet.create({
   },
   radioLabel: {
     fontSize: 16,
+    color: '#0f172a',
+  },
+  checkboxCircle: {
+    borderRadius: 4,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+  },
+  switchContainerActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#eff6ff',
+  },
+  switchLabel: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#0f172a',
   },
   ratingContainer: {

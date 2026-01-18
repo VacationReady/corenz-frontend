@@ -121,6 +121,11 @@ export default function MoreScreen({ navigation, onLogout }: MoreScreenProps) {
               icon="calendar-outline"
               title="Calendar & Events"
               onPress={() => navigation?.navigate('CalendarEvents')}
+            />
+            <MenuItem
+              icon="calendar-number-outline"
+              title="My Shifts"
+              onPress={() => navigation?.navigate('Shifts')}
               showBorder={false}
             />
           </Card>

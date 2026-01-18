@@ -73,7 +73,6 @@ interface ShiftFormData {
   startTime: string;
   endTime: string;
   breakDuration: number | '';
-  role: string;
   notes: string;
   requiresConfirmation: boolean;
 }
@@ -378,7 +377,6 @@ export default function CreateShiftModal({
     startTime: preselectedDate ? format(preselectedDate, "yyyy-MM-dd'T'09:00") : '',
     endTime: preselectedDate ? format(preselectedDate, "yyyy-MM-dd'T'17:00") : '',
     breakDuration: 30,
-    role: '',
     notes: '',
     requiresConfirmation: false,
   });
@@ -628,7 +626,7 @@ export default function CreateShiftModal({
             startTime: new Date(formData.startTime).toISOString(),
             endTime: new Date(formData.endTime).toISOString(),
             breakDuration: formData.breakDuration === '' ? 0 : formData.breakDuration,
-            role: formData.selectedRole || formData.role || null,
+            role: formData.selectedRole || null,
             notes: formData.notes || null,
             requiresConfirmation: formData.requiresConfirmation,
           }),
@@ -662,7 +660,6 @@ export default function CreateShiftModal({
       startTime: '',
       endTime: '',
       breakDuration: 30,
-      role: '',
       notes: '',
       requiresConfirmation: false,
     });
@@ -677,6 +674,7 @@ export default function CreateShiftModal({
   };
 
   // Filter employees by rota group and role if selected
+  // If no team selected, show all employees to allow ad-hoc shift creation
   const availableEmployees = formData.rotaGroupId && formData.selectedRole
     ? groupMembers
         .filter(member => member.assignedRoles.includes(formData.selectedRole))
@@ -1108,20 +1106,6 @@ export default function CreateShiftModal({
               </div>
             );
           })()}
-
-          {/* Role */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Role/Position
-            </label>
-            <input
-              type="text"
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              placeholder="e.g., Server, Cashier, Manager"
-              className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-150"
-            />
-          </div>
 
           {/* Notes */}
           <div>

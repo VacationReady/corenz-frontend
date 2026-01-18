@@ -71,7 +71,7 @@ export function ShiftsTile({ onPress }: ShiftsTileProps) {
     if (onPress) {
       onPress();
     } else {
-      navigation.navigate('More', { screen: 'Shifts' });
+      navigation.navigate('Shifts');
     }
   };
 

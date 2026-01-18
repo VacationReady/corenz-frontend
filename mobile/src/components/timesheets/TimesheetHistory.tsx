@@ -70,7 +70,7 @@ export function TimesheetHistory({
             {format(periodStart, 'MMM d')} - {format(periodEnd, 'MMM d, yyyy')}
           </Text>
           <Text style={styles.itemHours}>
-            {item.totalHours?.toFixed(1) || '0.0'} hours
+            {typeof item.totalHours === 'number' ? item.totalHours.toFixed(1) : '0.0'} hours
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#d1d5db" />

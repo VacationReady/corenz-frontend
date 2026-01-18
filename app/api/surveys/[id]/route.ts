@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { anonymizeEmployeeData, getAnonymizationLevel } from "@/lib/survey-anonymization";
@@ -20,7 +21,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
+    // Support both web and mobile authentication
+    const session = await getMobileSession(request);
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -114,9 +116,43 @@ export async function GET(
       ? "public" as const
       : getAnonymizationLevel(survey.metadata);
 
+    // Normalize form schema to include questions array for mobile compatibility
+    const formSchema = survey.Form?.schema as any;
+    let normalizedSchema = formSchema;
+    if (formSchema) {
+      const questions: any[] = [];
+      const sections = formSchema.sections || formSchema.pages || [formSchema];
+      
+      sections.forEach((section: any) => {
+        const fields = section.fields || section.elements || [];
+        fields.forEach((field: any) => {
+          if (field.id) {
+            questions.push({
+              id: field.id,
+              label: field.label || field.text || field.title,
+              text: field.label || field.text || field.title,
+              type: field.type,
+              required: field.required || false,
+              options: field.choices || field.options || field.values,
+              max: field.max || field.rateMax,
+            });
+          }
+        });
+      });
+      
+      normalizedSchema = {
+        ...formSchema,
+        questions,
+      };
+    }
+
     // Prepare survey data with computed fields
     const surveyData = {
       ...survey,
+      Form: survey.Form ? {
+        ...survey.Form,
+        schema: normalizedSchema,
+      } : survey.Form,
       totalRecipients: survey._count.SurveyRecipients,
       responses: survey._count.SurveyResponses,
       responseRate: survey._count.SurveyRecipients > 0 

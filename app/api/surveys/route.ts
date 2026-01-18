@@ -81,17 +81,18 @@ async function getHandler(request: NextRequest) {
       }
 
       if (scope === 'assigned') {
-        // Get surveys assigned to this employee
+        // Get surveys assigned to this employee that they haven't responded to yet
         where.SurveyRecipients = {
           some: {
             employeeId: employee.id,
+            status: { in: ['PENDING', 'REMINDED'] },
           },
         };
       } else if (scope === 'completed') {
         // Get surveys the employee has completed
         where.SurveyResponses = {
           some: {
-            respondentId: employee.id,
+            employeeId: employee.id,
           },
         };
       }
@@ -126,6 +127,37 @@ async function getHandler(request: NextRequest) {
     return NextResponse.json({
       surveys: surveys.map(survey => {
         const metadata = survey.metadata as any;
+        const formSchema = survey.Form?.schema as any;
+        
+        // Normalize form schema to include questions array for mobile compatibility
+        let normalizedSchema = formSchema;
+        if (formSchema) {
+          const questions: any[] = [];
+          const sections = formSchema.sections || formSchema.pages || [formSchema];
+          
+          sections.forEach((section: any) => {
+            const fields = section.fields || section.elements || [];
+            fields.forEach((field: any) => {
+              if (field.id) {
+                questions.push({
+                  id: field.id,
+                  label: field.label || field.text || field.title,
+                  text: field.label || field.text || field.title,
+                  type: field.type,
+                  required: field.required || false,
+                  options: field.choices || field.options || field.values,
+                  max: field.max || field.rateMax,
+                });
+              }
+            });
+          });
+          
+          normalizedSchema = {
+            ...formSchema,
+            questions,
+          };
+        }
+        
         return {
           id: survey.id,
           name: survey.name,
@@ -133,7 +165,7 @@ async function getHandler(request: NextRequest) {
           description: survey.description,
           type: survey.Form?.formType || 'SURVEY',
           status: survey.status.toLowerCase(),
-          formSchema: survey.Form?.schema,
+          formSchema: normalizedSchema,
           startDate: survey.sentDate,
           sentDate: survey.sentDate,
           endDate: survey.deadline,

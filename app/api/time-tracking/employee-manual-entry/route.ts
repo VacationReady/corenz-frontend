@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
-import { getMobileSession } from '@/app/lib/mobile-session';
+import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { isManualEntryAllowed } from '@/types/time-tracking-settings';

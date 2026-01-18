@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
-import { getMobileSession } from '@/app/lib/mobile-session';
+import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(
@@ -88,7 +88,6 @@ export async function GET(
         approvalStatus: timesheet.approvalStatus,
         submittedAt: timesheet.submittedAt,
         approvedAt: timesheet.approvedAt,
-        notes: timesheet.notes,
         employee: timesheet.Employee,
       },
       entries: timesheet.TimesheetEntries,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMobileSession } from '@/app/lib/mobile-session';
+import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { startOfWeek, endOfWeek, startOfDay, endOfDay, isToday, isTomorrow } from 'date-fns';
 
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
         Template: {
           select: {
             name: true,
-            color: true,
+            role: true,
           },
         },
         Location: {

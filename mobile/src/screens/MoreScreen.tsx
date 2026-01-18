@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { getSession } from '../api/auth';
 import { getEmployeeProfile } from '../api/hr-data';
+import { getUserRole } from '../api/profile';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { signOut } from '../api/auth';
@@ -22,9 +23,11 @@ interface MoreScreenProps {
 export default function MoreScreen({ navigation, onLogout }: MoreScreenProps) {
   const [user, setUser] = useState<any>(null);
   const [employee, setEmployee] = useState<any>(null);
+  const [userRole, setUserRole] = useState({ role: 'EMPLOYEE', isAdmin: false, isManager: false });
 
   useEffect(() => {
     loadUserData();
+    getUserRole().then(setUserRole).catch(console.error);
   }, []);
 
   const loadUserData = async () => {
@@ -123,10 +126,30 @@ export default function MoreScreen({ navigation, onLogout }: MoreScreenProps) {
           </Card>
         </View>
 
+        {/* Admin Section - Only visible to admins/managers */}
+        {(userRole.isAdmin || userRole.isManager) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Admin</Text>
+            <Card style={styles.menuCard}>
+              <MenuItem
+                icon="checkmark-done-outline"
+                title="Reconciliation"
+                onPress={() => navigation?.navigate('Reconciliation')}
+                showBorder={false}
+              />
+            </Card>
+          </View>
+        )}
+
         {/* Personal Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal</Text>
           <Card style={styles.menuCard}>
+            <MenuItem
+              icon="time-outline"
+              title="My Timesheets"
+              onPress={() => navigation?.navigate('Timesheets')}
+            />
             <MenuItem
               icon="airplane-outline"
               title="My Leave Requests"

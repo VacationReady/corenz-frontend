@@ -3,27 +3,17 @@ import { decode } from "next-auth/jwt";
 import { auth } from "@/lib/auth-options";
 import { env } from "@/lib/env.server";
 import { getAllSessionCookieNames } from "@/lib/auth-cookies";
-
-interface MobileSession {
-  user: {
-    id: string;
-    email: string;
-    name?: string;
-    role: string;
-    companyId: string;
-    homeCompanyId?: string;
-  };
-}
+import { Session } from "next-auth";
 
 /**
  * Get session from either NextAuth (browser) or mobile JWT token.
  * This helper supports both web and mobile clients.
  */
-export async function getMobileSession(req: NextRequest): Promise<MobileSession | null> {
+export async function getMobileSession(req: NextRequest): Promise<Session | null> {
   // First, try standard NextAuth session (for browser requests)
   const session = await auth();
   if (session?.user?.id) {
-    return session as MobileSession;
+    return session;
   }
 
   // If no session, try to get JWT from Cookie header (mobile app sends this)
@@ -49,10 +39,14 @@ export async function getMobileSession(req: NextRequest): Promise<MobileSession 
                 id: decoded.id as string,
                 email: decoded.email as string,
                 name: decoded.name as string | undefined,
-                role: decoded.role as string,
+                role: decoded.role as any,
                 companyId: decoded.companyId as string,
-                homeCompanyId: decoded.homeCompanyId as string | undefined,
+                homeCompanyId: decoded.homeCompanyId as string,
+                canManageTenants: false,
               },
+              expires: decoded.exp 
+                ? new Date((decoded.exp as number) * 1000).toISOString()
+                : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             };
           }
         } catch (error) {
@@ -79,10 +73,14 @@ export async function getMobileSession(req: NextRequest): Promise<MobileSession 
             id: decoded.id as string,
             email: decoded.email as string,
             name: decoded.name as string | undefined,
-            role: decoded.role as string,
+            role: decoded.role as any,
             companyId: decoded.companyId as string,
-            homeCompanyId: decoded.homeCompanyId as string | undefined,
+            homeCompanyId: decoded.homeCompanyId as string,
+            canManageTenants: false,
           },
+          expires: decoded.exp 
+            ? new Date((decoded.exp as number) * 1000).toISOString()
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         };
       }
     } catch (error) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
+import { getMobileSession } from '@/app/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { isManualEntryAllowed } from '@/types/time-tracking-settings';
@@ -14,7 +15,11 @@ const employeeManualEntrySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
+    // Support both web and mobile sessions
+    let session = await auth();
+    if (!session?.user?.id) {
+      session = await getMobileSession(req);
+    }
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

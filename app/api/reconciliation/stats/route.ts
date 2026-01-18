@@ -7,13 +7,18 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
+import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { getReconciliationStats } from '@/lib/time-tracking/shift-matcher';
 import { parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
+    // Support both web and mobile sessions
+    let session = await auth();
+    if (!session?.user?.id) {
+      session = await getMobileSession(req);
+    }
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

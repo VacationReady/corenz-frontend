@@ -19,6 +19,9 @@ import NewsHubScreen from '../screens/NewsHubScreen';
 import NewsDetailScreen from '../screens/NewsDetailScreen';
 import ShiftsScreen from '../screens/ShiftsScreen';
 import ShiftSwapsScreen from '../screens/ShiftSwapsScreen';
+import TimesheetScreen from '../screens/TimesheetScreen';
+import TimesheetDetailScreen from '../screens/TimesheetDetailScreen';
+import { ReconciliationScreen } from '../screens/admin/ReconciliationScreen';
 
 import {
   ProfileOverviewScreen,
@@ -134,6 +137,23 @@ function MoreStackNavigator({ onLogout }: { onLogout: () => void }) {
         name="Documents"
         component={DocumentsScreen}
         options={{ title: 'Documents', ...profileScreenOptions }}
+      />
+      {/* Timesheet Screens */}
+      <MoreStack.Screen
+        name="Timesheets"
+        component={TimesheetScreen}
+        options={{ title: 'My Timesheets' }}
+      />
+      <MoreStack.Screen
+        name="TimesheetDetail"
+        component={TimesheetDetailScreen}
+        options={{ title: 'Timesheet Details', headerBackTitle: 'Back' }}
+      />
+      {/* Admin Screens */}
+      <MoreStack.Screen
+        name="Reconciliation"
+        component={ReconciliationScreen}
+        options={{ title: 'Reconciliation', headerBackTitle: 'Back' }}
       />
     </MoreStack.Navigator>
   );

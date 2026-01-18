@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
+import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -251,7 +252,11 @@ async function generateVirtualShiftsFromPattern(
 
 async function getHandler(req: NextRequest) {
   try {
-    const session = await auth();
+    // Support both web and mobile sessions
+    let session = await auth();
+    if (!session?.user?.id) {
+      session = await getMobileSession(req);
+    }
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -524,7 +529,11 @@ async function getHandler(req: NextRequest) {
 
 async function postHandler(req: NextRequest) {
   try {
-    const session = await auth();
+    // Support both web and mobile sessions
+    let session = await auth();
+    if (!session?.user?.id) {
+      session = await getMobileSession(req);
+    }
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

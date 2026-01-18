@@ -1,70 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
+  ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { apiClient } from '../api/client';
-
-interface TimesheetEntry {
-  id: string;
-  date: string;
-  hours: number;
-  status: string;
-}
-
-interface TimesheetSummary {
-  totalHours: number;
-  regularHours: number;
-  overtimeHours: number;
-  status: string;
-}
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import {
+  WeeklySummary,
+  EntryCard,
+  AddNoteModal,
+  TimesheetHistory,
+  SubmitButton,
+} from '../components/timesheets';
+import { timesheetService } from '../services/TimesheetService';
+import { Timesheet, TimesheetEntry } from '../api/timesheets';
 
 export default function TimesheetScreen() {
-  const [summary, setSummary] = useState<TimesheetSummary | null>(null);
-  const [entries, setEntries] = useState<TimesheetEntry[]>([]);
+  const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [currentTimesheet, setCurrentTimesheet] = useState<Timesheet | null>(null);
+  const [entries, setEntries] = useState<TimesheetEntry[]>([]);
+  const [previousTimesheets, setPreviousTimesheets] = useState<Timesheet[]>([]);
+  
+  const [noteModalVisible, setNoteModalVisible] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<TimesheetEntry | null>(null);
 
-  useEffect(() => {
-    loadTimesheet();
-  }, []);
-
-  const loadTimesheet = async () => {
+  const loadData = useCallback(async (isRefresh = false) => {
     try {
-      // TODO: Implement timesheet API endpoint for mobile
-      // const response = await apiClient.get('/time-tracking/my-timesheet');
-      // setSummary(response.data.summary);
-      // setEntries(response.data.entries);
-      
-      // Mock data for now
-      setSummary({
-        totalHours: 40.5,
-        regularHours: 40,
-        overtimeHours: 0.5,
-        status: 'PENDING',
-      });
-      setEntries([]);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const current = await timesheetService.getCurrentWeekTimesheet();
+      setCurrentTimesheet(current);
+
+      if (current) {
+        const { entries: timesheetEntries } = await timesheetService.getTimesheetWithEntries(current.id);
+        setEntries(timesheetEntries);
+      } else {
+        setEntries([]);
+      }
+
+      const allTimesheets = await timesheetService.getMyTimesheets();
+      const previous = allTimesheets.filter(t => t.id !== current?.id).slice(0, 5);
+      setPreviousTimesheets(previous);
     } catch (error) {
-      console.error('Error loading timesheet:', error);
+      console.error('[TimesheetScreen] Error loading data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadTimesheet();
-  };
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
-  const handleSubmitTimesheet = () => {
+  const handleSubmit = async () => {
+    if (!currentTimesheet) return;
+
     Alert.alert(
       'Submit Timesheet',
       'Are you sure you want to submit this timesheet for approval?',
@@ -73,12 +77,16 @@ export default function TimesheetScreen() {
         {
           text: 'Submit',
           onPress: async () => {
+            setSubmitting(true);
             try {
-              // await apiClient.post('/time-tracking/submit-timesheet');
+              await timesheetService.submitTimesheet(currentTimesheet.id);
               Alert.alert('Success', 'Timesheet submitted for approval');
-              loadTimesheet();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to submit timesheet');
+              loadData();
+            } catch (error: any) {
+              const message = error.response?.data?.error || 'Failed to submit timesheet';
+              Alert.alert('Error', message);
+            } finally {
+              setSubmitting(false);
             }
           },
         },
@@ -86,278 +94,168 @@ export default function TimesheetScreen() {
     );
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-        return '#10B981';
-      case 'PENDING':
-        return '#F59E0B';
-      case 'DECLINED':
-        return '#EF4444';
-      default:
-        return '#94A3B8';
-    }
+  const handleEntryPress = (entry: TimesheetEntry) => {
+    setSelectedEntry(entry);
+    setNoteModalVisible(true);
+  };
+
+  const handleAddNote = (entry: TimesheetEntry) => {
+    setSelectedEntry(entry);
+    setNoteModalVisible(true);
+  };
+
+  const handleNoteSuccess = () => {
+    setNoteModalVisible(false);
+    setSelectedEntry(null);
+    loadData();
+  };
+
+  const handleTimesheetPress = (timesheet: Timesheet) => {
+    navigation.navigate('TimesheetDetail', { timesheetId: timesheet.id });
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color="#6366f1" />
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Timesheet</Text>
-        <Text style={styles.headerSubtitle}>Current Week</Text>
-      </View>
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadData(true)}
+            colors={['#6366f1']}
+            tintColor="#6366f1"
+          />
+        }
+      >
+        {/* Current Week Summary */}
+        {currentTimesheet && (
+          <WeeklySummary timesheet={currentTimesheet} />
+        )}
 
-      {/* Summary Card */}
-      {summary && (
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>This Week's Summary</Text>
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: `${getStatusColor(summary.status)}20` },
-              ]}
-            >
-              <Text style={[styles.statusText, { color: getStatusColor(summary.status) }]}>
-                {summary.status}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.hoursGrid}>
-            <View style={styles.hoursItem}>
-              <Text style={styles.hoursLabel}>Total Hours</Text>
-              <Text style={styles.hoursValue}>{summary.totalHours.toFixed(1)}</Text>
-            </View>
-            
-            <View style={styles.hoursItem}>
-              <Text style={styles.hoursLabel}>Regular</Text>
-              <Text style={styles.hoursValue}>{summary.regularHours.toFixed(1)}</Text>
-            </View>
-            
-            <View style={styles.hoursItem}>
-              <Text style={styles.hoursLabel}>Overtime</Text>
-              <Text style={[styles.hoursValue, { color: summary.overtimeHours > 0 ? '#F59E0B' : '#FFFFFF' }]}>
-                {summary.overtimeHours.toFixed(1)}
-              </Text>
-            </View>
-          </View>
-
-          {summary.status === 'PENDING' && (
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmitTimesheet}>
-              <Text style={styles.submitButtonText}>Submit for Approval</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      {/* Entries List */}
-      <View style={styles.entriesSection}>
-        <Text style={styles.sectionTitle}>Time Entries</Text>
-        
-        {entries.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={48} color="#6B7280" />
-            <Text style={styles.emptyTitle}>No Entries Yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Clock in and out during your shifts to see entries here
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.entriesList}>
+        {/* Entries List */}
+        {entries.length > 0 && (
+          <View style={styles.entriesSection}>
             {entries.map((entry) => (
-              <View key={entry.id} style={styles.entryCard}>
-                <View style={styles.entryHeader}>
-                  <Text style={styles.entryDate}>
-                    {new Date(entry.date).toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </Text>
-                  <Text style={styles.entryHours}>{entry.hours.toFixed(1)}h</Text>
-                </View>
-              </View>
+              <EntryCard
+                key={entry.id}
+                entry={entry}
+                onPress={() => handleEntryPress(entry)}
+                onAddNote={() => handleAddNote(entry)}
+              />
             ))}
           </View>
         )}
-      </View>
 
-      {/* History */}
-      <View style={styles.historySection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Previous Timesheets</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewAllText}>View All</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.emptyState}>
-          <Ionicons name="time-outline" size={48} color="#6B7280" />
-          <Text style={styles.emptySubtitle}>No previous timesheets</Text>
-        </View>
-      </View>
-    </ScrollView>
+        {/* No Entries State */}
+        {currentTimesheet && entries.length === 0 && (
+          <View style={styles.emptyEntries}>
+            <Text style={styles.emptyText}>No time entries this week</Text>
+            <Text style={styles.emptyHint}>
+              Clock in to start tracking your time
+            </Text>
+          </View>
+        )}
+
+        {/* No Timesheet State */}
+        {!currentTimesheet && (
+          <View style={styles.noTimesheet}>
+            <Text style={styles.noTimesheetText}>
+              No timesheet for this week yet
+            </Text>
+            <Text style={styles.noTimesheetHint}>
+              A timesheet will be created when you clock in
+            </Text>
+          </View>
+        )}
+
+        {/* Previous Timesheets */}
+        <TimesheetHistory
+          timesheets={previousTimesheets}
+          onTimesheetPress={handleTimesheetPress}
+        />
+      </ScrollView>
+
+      {/* Submit Button */}
+      {currentTimesheet && (
+        <SubmitButton
+          timesheet={currentTimesheet}
+          loading={submitting}
+          onSubmit={handleSubmit}
+        />
+      )}
+
+      {/* Add Note Modal */}
+      <AddNoteModal
+        visible={noteModalVisible}
+        entry={selectedEntry}
+        onClose={() => {
+          setNoteModalVisible(false);
+          setSelectedEntry(null);
+        }}
+        onSuccess={handleNoteSuccess}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#f9fafb',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f9fafb',
   },
-  header: {
-    padding: 20,
-    paddingTop: 60,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#94A3B8',
-  },
-  summaryCard: {
-    margin: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 20,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  hoursGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  hoursItem: {
+  scrollView: {
     flex: 1,
-    alignItems: 'center',
   },
-  hoursLabel: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginBottom: 8,
-  },
-  hoursValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  submitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  scrollContent: {
+    paddingBottom: 24,
   },
   entriesSection: {
-    padding: 20,
+    marginTop: 16,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  emptyState: {
+  emptyEntries: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
+    padding: 32,
+    marginTop: 16,
   },
-  emptyTitle: {
+  emptyText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginTop: 12,
-    marginBottom: 4,
+    fontWeight: '500',
+    color: '#6b7280',
   },
-  emptySubtitle: {
+  emptyHint: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#9ca3af',
+    marginTop: 4,
+  },
+  noTimesheet: {
+    alignItems: 'center',
+    padding: 48,
+    marginTop: 32,
+  },
+  noTimesheetText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  noTimesheetHint: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 4,
     textAlign: 'center',
-  },
-  entriesList: {
-    gap: 8,
-  },
-  entryCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    padding: 12,
-  },
-  entryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  entryDate: {
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  entryHours: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3B82F6',
-  },
-  historySection: {
-    padding: 20,
-    paddingTop: 0,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: '#3B82F6',
-    fontWeight: '600',
   },
 });

@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
+import { getMobileSession } from '@/app/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { withFeatureGuard } from '@/lib/feature-toggles/api-guard';
 import { FEATURE_KEYS } from '@/lib/feature-toggles/types';
 
 async function getHandler(req: NextRequest) {
   try {
-    const session = await auth();
+    // Support both web and mobile sessions
+    let session = await auth();
+    if (!session?.user?.id) {
+      session = await getMobileSession(req);
+    }
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

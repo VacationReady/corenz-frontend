@@ -90,9 +90,8 @@ export function anonymizeEmployeeData(
     case "department":
       // Show department but anonymize individual identity
       return {
-        name: anonymousLabel,
+        name: "Anonymous participant",
         department,
-        position,
         isAnonymized: true,
       };
 

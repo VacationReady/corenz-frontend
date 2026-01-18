@@ -81,8 +81,10 @@ interface IndividualSurveyAnalytics {
   sentimentScore: number;
   topThemes: string[];
   anonymizationLevel?: "public" | "department" | "location" | "full";
+  fieldIdToLabel?: { [key: string]: string };
   questionAnalytics: Array<{
     question: string;
+    fieldId?: string;
     totalResponses: number;
     average: number;
     distribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
@@ -92,6 +94,7 @@ interface IndividualSurveyAnalytics {
     responses: number;
     average: number;
   }>;
+  questionByDepartment?: { [questionId: string]: { [dept: string]: { count: number; values: string[] } } };
   responses: Array<{
     id: string;
     employee: {
@@ -586,56 +589,106 @@ export default function IndividualSurveyAnalyticsPage() {
           </Card>
         </div>
 
-        {/* Question Analytics */}
-        {analytics.questionAnalytics.length > 0 && (
+        {/* Question Analytics by Department */}
+        {analytics.questionByDepartment && Object.keys(analytics.questionByDepartment).length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Question Analysis
+                Question Analysis by {analytics.anonymizationLevel === 'department' ? 'Department' : analytics.anonymizationLevel === 'location' ? 'Location' : 'Group'}
               </CardTitle>
               <CardDescription>
-                Detailed breakdown of responses by question
+                Breakdown of responses for each question by {analytics.anonymizationLevel === 'department' ? 'department' : analytics.anonymizationLevel === 'location' ? 'location' : 'group'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                {analytics.questionAnalytics.map((question, index) => (
-                  <div key={index} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-medium">{question.question}</h4>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{question.totalResponses} responses</Badge>
-                        <Badge variant="secondary">Avg: {question.average}/5.0</Badge>
+              <div className="space-y-8">
+                {Object.entries(analytics.questionByDepartment).map(([fieldId, deptData]) => {
+                  const questionLabel = analytics.fieldIdToLabel?.[fieldId] || fieldId;
+                  
+                  // Count response values by department
+                  const chartData: { [value: string]: any } = {};
+                  const departments = Object.keys(deptData).filter(dept => {
+                    // For anonymous surveys, only show departments with 3+ responses
+                    return !isAnonymousSurvey || deptData[dept].count >= 3;
+                  });
+                  
+                  // Get all unique values across all departments
+                  const allValues = new Set<string>();
+                  departments.forEach(dept => {
+                    deptData[dept].values.forEach(val => allValues.add(val));
+                  });
+                  
+                  // Build chart data structure
+                  allValues.forEach(value => {
+                    chartData[value] = { value };
+                    departments.forEach(dept => {
+                      const count = deptData[dept].values.filter(v => v === value).length;
+                      chartData[value][dept] = count;
+                    });
+                  });
+                  
+                  const chartDataArray = Object.values(chartData);
+                  
+                  // Generate colors for departments
+                  const colors = departments.map((_, index) => `hsl(${index * 60}, 70%, 50%)`);
+                  
+                  return (
+                    <div key={fieldId} className="border rounded-lg p-4">
+                      <div className="mb-4">
+                        <h4 className="font-medium text-lg">{questionLabel}</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Showing responses from {departments.length} {departments.length === 1 ? 'department' : 'departments'}
+                        </p>
+                      </div>
+                      
+                      <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RechartsBarChart data={chartDataArray}>
+                            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                            <XAxis 
+                              dataKey="value" 
+                              className="text-xs"
+                              angle={-45}
+                              textAnchor="end"
+                              height={80}
+                            />
+                            <YAxis className="text-xs" />
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'white', 
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px',
+                                fontSize: '12px'
+                              }} 
+                            />
+                            {departments.map((dept, index) => (
+                              <Bar 
+                                key={dept} 
+                                dataKey={dept} 
+                                fill={colors[index]}
+                                name={dept}
+                              />
+                            ))}
+                          </RechartsBarChart>
+                        </ResponsiveContainer>
+                      </div>
+                      
+                      {/* Legend */}
+                      <div className="flex flex-wrap gap-3 mt-4 justify-center">
+                        {departments.map((dept, index) => (
+                          <div key={dept} className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded" 
+                              style={{ backgroundColor: colors[index] }}
+                            />
+                            <span className="text-sm">{dept}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    
-                    <div className="h-[200px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsBarChart data={[
-                          { rating: "1", count: question.distribution[1] },
-                          { rating: "2", count: question.distribution[2] },
-                          { rating: "3", count: question.distribution[3] },
-                          { rating: "4", count: question.distribution[4] },
-                          { rating: "5", count: question.distribution[5] },
-                        ]}>
-                          <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                          <XAxis dataKey="rating" className="text-xs" />
-                          <YAxis className="text-xs" />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'white', 
-                              border: '1px solid #e5e7eb',
-                              borderRadius: '8px',
-                              fontSize: '12px'
-                            }} 
-                          />
-                          <Bar dataKey="count" fill="#3b82f6" />
-                        </RechartsBarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -770,10 +823,8 @@ export default function IndividualSurveyAnalyticsPage() {
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {response.employee?.department && `${response.employee.department}`}
-                          {response.employee?.department && response.employee?.position && " • "}
-                          {response.employee?.position && `${response.employee.position}`}
                           {response.employee?.location && !response.employee?.department && `${response.employee.location}`}
-                          {!response.employee?.department && !response.employee?.position && !response.employee?.location && response.employee?.isAnonymized && "Identity protected"}
+                          {!response.employee?.department && !response.employee?.location && response.employee?.isAnonymized && "Identity protected"}
                         </div>
                       </div>
                     </div>
@@ -793,26 +844,29 @@ export default function IndividualSurveyAnalyticsPage() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(response.responseData || {}).map(([key, value]) => (
-                      <div key={key} className="bg-muted/50 rounded p-3">
-                        <div className="text-sm font-medium text-muted-foreground mb-1">{key}</div>
-                        <div className="text-sm">
-                          {typeof value === 'number' ? (
-                            <div className="flex items-center gap-2">
-                              <span>{value}/5</span>
-                              <div className="flex-1 bg-muted rounded-full h-2">
-                                <div 
-                                  className="bg-primary h-2 rounded-full" 
-                                  style={{ width: `${(value / 5) * 100}%` }}
-                                />
+                    {Object.entries(response.responseData || {}).map(([key, value]) => {
+                      const label = analytics.fieldIdToLabel?.[key] || key;
+                      return (
+                        <div key={key} className="bg-muted/50 rounded p-3">
+                          <div className="text-sm font-medium text-muted-foreground mb-1">{label}</div>
+                          <div className="text-sm">
+                            {typeof value === 'number' ? (
+                              <div className="flex items-center gap-2">
+                                <span>{value}/5</span>
+                                <div className="flex-1 bg-muted rounded-full h-2">
+                                  <div 
+                                    className="bg-primary h-2 rounded-full" 
+                                    style={{ width: `${(value / 5) * 100}%` }}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          ) : (
-                            <span>{String(value)}</span>
-                          )}
+                            ) : (
+                              <span>{String(value)}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}

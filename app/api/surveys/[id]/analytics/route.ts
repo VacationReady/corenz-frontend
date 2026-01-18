@@ -100,6 +100,24 @@ export async function GET(
     const totalRecipients = survey._count.SurveyRecipients;
     const responseRate = totalRecipients > 0 ? (totalResponses / totalRecipients) * 100 : 0;
 
+    // Parse form schema to get questions and create field ID to label mapping
+    const formSchema = survey.Form.schema as any;
+    const fieldIdToLabel: { [key: string]: string } = {};
+    
+    try {
+      const sections = formSchema.sections || formSchema.pages || [formSchema];
+      sections.forEach((section: any) => {
+        const fields = section.fields || section.elements || [];
+        fields.forEach((field: any) => {
+          if (field.id && field.label) {
+            fieldIdToLabel[field.id] = field.label;
+          }
+        });
+      });
+    } catch (error) {
+      console.error("Error parsing form schema:", error);
+    }
+
     // Calculate detailed analytics from response data
     let averageScore = survey.averageScore;
     let questionAnalytics: any[] = [];
@@ -111,16 +129,6 @@ export async function GET(
     };
 
     if (survey.SurveyResponses.length > 0) {
-      // Parse form schema to get questions
-      let questions: any[] = [];
-      try {
-        const formSchema = survey.Form.schema as any;
-        if (formSchema?.fields) {
-          questions = formSchema.fields;
-        }
-      } catch (error) {
-        console.error("Error parsing form schema:", error);
-      }
 
       // Calculate average score from response data
       const scores: number[] = [];
@@ -137,7 +145,8 @@ export async function GET(
               
               if (!responseAnalytics[key]) {
                 responseAnalytics[key] = {
-                  question: key,
+                  question: fieldIdToLabel[key] || key,
+                  fieldId: key,
                   responses: [],
                   average: 0,
                   distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
@@ -164,6 +173,7 @@ export async function GET(
       // Process question analytics
       questionAnalytics = Object.values(responseAnalytics).map((q: any) => ({
         question: q.question,
+        fieldId: q.fieldId,
         totalResponses: q.responses.length,
         average: q.responses.length > 0 
           ? Math.round((q.responses.reduce((sum: number, val: number) => sum + val, 0) / q.responses.length) * 10) / 10
@@ -225,6 +235,25 @@ export async function GET(
         : 0;
     });
 
+    // Create department-based question breakdowns
+    const questionByDepartment: { [questionId: string]: { [dept: string]: { count: number; values: string[] } } } = {};
+    
+    survey.SurveyResponses.forEach(response => {
+      const dept = response.Employee?.Department?.name || 'Unknown';
+      const data = response.responseData as any;
+      
+      Object.entries(data || {}).forEach(([fieldId, value]) => {
+        if (!questionByDepartment[fieldId]) {
+          questionByDepartment[fieldId] = {};
+        }
+        if (!questionByDepartment[fieldId][dept]) {
+          questionByDepartment[fieldId][dept] = { count: 0, values: [] };
+        }
+        questionByDepartment[fieldId][dept].count++;
+        questionByDepartment[fieldId][dept].values.push(String(value));
+      });
+    });
+
     // Use completion date or latest response date
     const completionDate = survey.status === "COMPLETED" 
       ? (survey.deadline ?? survey.updatedAt)
@@ -271,7 +300,9 @@ export async function GET(
       topThemes: survey.topThemes || [],
       questionAnalytics: safeQuestionAnalytics,
       departmentAnalytics: safeDepartmentAnalytics,
+      questionByDepartment, // Include question-by-department breakdown for visualizations
       anonymizationLevel, // Include level so frontend knows what to expect
+      fieldIdToLabel, // Include mapping for frontend to display proper labels
       responses: survey.SurveyResponses.map((response, index) => ({
         id: response.id,
         employee: anonymizeEmployeeData(response.Employee, anonymizationLevel, index, "Respondent"),

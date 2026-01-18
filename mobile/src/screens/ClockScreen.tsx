@@ -14,6 +14,7 @@ import { apiClient } from '../api/client';
 import { requestLocationPermission, getCurrentLocationWithRetry } from '../services/LocationService';
 import { clockInOffline, clockOutOffline, autoSync } from '../services/OfflineClockService';
 import { isOnline } from '../services/OfflineStorage';
+import { BreakControls, TodayEntries, ManualEntryModal } from '../components/clock';
 
 interface ClockStatus {
   isClockedIn: boolean;
@@ -32,6 +33,7 @@ export default function ClockScreen() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [locationStatus, setLocationStatus] = useState<'checking' | 'available' | 'unavailable'>('checking');
   const [online, setOnline] = useState(true);
+  const [manualEntryVisible, setManualEntryVisible] = useState(false);
 
   useEffect(() => {
     loadStatus();
@@ -290,6 +292,25 @@ export default function ClockScreen() {
         </LinearGradient>
       </TouchableOpacity>
 
+      {/* Break Controls */}
+      <BreakControls
+        isClockedIn={status.isClockedIn}
+        onBreakStart={() => console.log('Break started')}
+        onBreakEnd={() => console.log('Break ended')}
+      />
+
+      {/* Today's Entries */}
+      <TodayEntries />
+
+      {/* Manual Entry Button */}
+      <TouchableOpacity
+        style={styles.manualEntryButton}
+        onPress={() => setManualEntryVisible(true)}
+      >
+        <Ionicons name="create-outline" size={18} color="#818cf8" />
+        <Text style={styles.manualEntryText}>Add Manual Entry</Text>
+      </TouchableOpacity>
+
       {/* Info Text */}
       {!online && (
         <View style={styles.infoBox}>
@@ -299,6 +320,16 @@ export default function ClockScreen() {
           </Text>
         </View>
       )}
+
+      {/* Manual Entry Modal */}
+      <ManualEntryModal
+        visible={manualEntryVisible}
+        onClose={() => setManualEntryVisible(false)}
+        onSuccess={() => {
+          setManualEntryVisible(false);
+          loadStatus();
+        }}
+      />
     </ScrollView>
   );
 }
@@ -417,5 +448,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#F59E0B',
     lineHeight: 20,
+  },
+  manualEntryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  manualEntryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#818cf8',
+    marginLeft: 8,
   },
 });

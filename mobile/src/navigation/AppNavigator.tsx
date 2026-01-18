@@ -17,6 +17,8 @@ import CalendarScreen from '../screens/CalendarScreen';
 import CompanyCalendarScreen from '../screens/CompanyCalendarScreen';
 import NewsHubScreen from '../screens/NewsHubScreen';
 import NewsDetailScreen from '../screens/NewsDetailScreen';
+import ShiftsScreen from '../screens/ShiftsScreen';
+import ShiftSwapsScreen from '../screens/ShiftSwapsScreen';
 
 import {
   ProfileOverviewScreen,
@@ -31,6 +33,7 @@ import {
 const Tab = createBottomTabNavigator();
 const MoreStack = createNativeStackNavigator();
 const TeamStack = createNativeStackNavigator();
+const ShiftsStack = createNativeStackNavigator();
 
 const profileScreenOptions = {
   headerStyle: { backgroundColor: '#fff' },
@@ -136,6 +139,30 @@ function MoreStackNavigator({ onLogout }: { onLogout: () => void }) {
   );
 }
 
+function ShiftsStackNavigator() {
+  return (
+    <ShiftsStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#fff' },
+        headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#0f172a' },
+        headerTintColor: '#3b82f6',
+        headerShadowVisible: false,
+      }}
+    >
+      <ShiftsStack.Screen
+        name="ShiftsMain"
+        component={ShiftsScreen}
+        options={{ title: 'Shifts' }}
+      />
+      <ShiftsStack.Screen
+        name="ShiftSwaps"
+        component={ShiftSwapsScreen}
+        options={{ title: 'Shift Swaps' }}
+      />
+    </ShiftsStack.Navigator>
+  );
+}
+
 function TeamStackNavigator() {
   return (
     <TeamStack.Navigator
@@ -205,7 +232,7 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
               iconName = focused ? 'home' : 'home-outline';
             } else if (route.name === 'Clock') {
               iconName = focused ? 'time' : 'time-outline';
-            } else if (route.name === 'Calendar') {
+            } else if (route.name === 'Shifts') {
               iconName = focused ? 'calendar' : 'calendar-outline';
             } else if (route.name === 'Team') {
               iconName = focused ? 'people' : 'people-outline';
@@ -264,9 +291,9 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
           }}
         />
         <Tab.Screen 
-          name="Calendar" 
-          component={CompanyCalendarScreen}
-          options={{ headerShown: false, title: 'Calendar' }}
+          name="Shifts" 
+          component={ShiftsStackNavigator}
+          options={{ headerShown: false }}
         />
         <Tab.Screen 
           name="Team" 

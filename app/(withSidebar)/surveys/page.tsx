@@ -521,7 +521,7 @@ export default function SurveysDashboard() {
                         {getStatusBadge(survey.status)}
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Template: {survey.Form.name}
+                        Template: {survey.Form?.name || 'N/A'}
                       </p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         {survey.sentDate && <span>Sent: {new Date(survey.sentDate).toLocaleDateString()}</span>}

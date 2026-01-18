@@ -43,7 +43,7 @@ export default function TimesheetTable({
 }: TimesheetTableProps) {
   const totalHours = entries.reduce((sum, entry) => {
     const hours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
-    return sum + hours;
+    return sum + (hours || 0);
   }, 0);
 
   if (isLoading) {
@@ -111,7 +111,7 @@ export default function TimesheetTable({
               const date = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
               const startTime = typeof entry.startTime === 'string' ? new Date(entry.startTime) : entry.startTime;
               const endTime = typeof entry.endTime === 'string' ? new Date(entry.endTime) : entry.endTime;
-              const hours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
+              const hours = typeof entry.hours === 'string' ? parseFloat(entry.hours) || 0 : (entry.hours || 0);
 
               return (
                 <tr
@@ -164,13 +164,13 @@ export default function TimesheetTable({
                             <TooltipContent side="top" className="text-xs max-w-xs">
                               <div className="space-y-1">
                                 <p className="font-semibold">{entry.locationName}</p>
-                                {entry.clockInLocation && (
+                                {entry.clockInLocation && entry.clockInLocation.lat != null && entry.clockInLocation.lng != null && (
                                   <p className="text-slate-500 flex items-center gap-1">
                                     <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
                                     In: {entry.clockInLocation.lat.toFixed(5)}, {entry.clockInLocation.lng.toFixed(5)}
                                   </p>
                                 )}
-                                {entry.clockOutLocation && (
+                                {entry.clockOutLocation && entry.clockOutLocation.lat != null && entry.clockOutLocation.lng != null && (
                                   <p className="text-slate-500 flex items-center gap-1">
                                     <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
                                     Out: {entry.clockOutLocation.lat.toFixed(5)}, {entry.clockOutLocation.lng.toFixed(5)}
@@ -191,13 +191,13 @@ export default function TimesheetTable({
                             </TooltipTrigger>
                             <TooltipContent side="top" className="text-xs max-w-xs">
                               <div className="space-y-1">
-                                {entry.clockInLocation && (
+                                {entry.clockInLocation && entry.clockInLocation.lat != null && entry.clockInLocation.lng != null && (
                                   <p className="font-medium text-blue-600 flex items-center gap-1">
                                     <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
                                     In: {entry.clockInLocation.lat.toFixed(5)}, {entry.clockInLocation.lng.toFixed(5)}
                                   </p>
                                 )}
-                                {entry.clockOutLocation && (
+                                {entry.clockOutLocation && entry.clockOutLocation.lat != null && entry.clockOutLocation.lng != null && (
                                   <p className="font-medium text-purple-600 flex items-center gap-1">
                                     <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
                                     Out: {entry.clockOutLocation.lat.toFixed(5)}, {entry.clockOutLocation.lng.toFixed(5)}
@@ -275,7 +275,7 @@ export default function TimesheetTable({
           const date = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
           const startTime = typeof entry.startTime === 'string' ? new Date(entry.startTime) : entry.startTime;
           const endTime = typeof entry.endTime === 'string' ? new Date(entry.endTime) : entry.endTime;
-          const hours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
+          const hours = typeof entry.hours === 'string' ? parseFloat(entry.hours) || 0 : (entry.hours || 0);
 
           return (
             <div key={entry.id} className="p-4 bg-white/70">

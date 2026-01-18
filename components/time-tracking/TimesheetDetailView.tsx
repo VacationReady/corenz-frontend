@@ -89,14 +89,14 @@ export default function TimesheetDetailView({
   };
 
   const totalHours = typeof timesheet.totalHours === 'string' 
-    ? parseFloat(timesheet.totalHours) 
-    : timesheet.totalHours;
+    ? parseFloat(timesheet.totalHours) || 0
+    : (timesheet.totalHours ?? 0);
   const regularHours = typeof timesheet.regularHours === 'string' 
-    ? parseFloat(timesheet.regularHours) 
-    : timesheet.regularHours;
+    ? parseFloat(timesheet.regularHours) || 0
+    : (timesheet.regularHours ?? 0);
   const overtimeHours = typeof timesheet.overtimeHours === 'string' 
-    ? parseFloat(timesheet.overtimeHours) 
-    : timesheet.overtimeHours;
+    ? parseFloat(timesheet.overtimeHours) || 0
+    : (timesheet.overtimeHours ?? 0);
 
   // Get approver info
   const approvers: Record<string, any> = {};
@@ -264,12 +264,12 @@ export default function TimesheetDetailView({
                     const entryDate = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
                     const entryStart = typeof entry.startTime === 'string' ? new Date(entry.startTime) : entry.startTime;
                     const entryEnd = typeof entry.endTime === 'string' ? new Date(entry.endTime) : entry.endTime;
-                    const totalHours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
+                    const totalHours = typeof entry.hours === 'string' ? parseFloat(entry.hours) || 0 : (entry.hours || 0);
                     const regularHours = entry.regularHours 
-                      ? (typeof entry.regularHours === 'string' ? parseFloat(entry.regularHours) : entry.regularHours)
+                      ? (typeof entry.regularHours === 'string' ? parseFloat(entry.regularHours) || 0 : (entry.regularHours || 0))
                       : totalHours;
                     const overtimeHours = entry.overtimeHours
-                      ? (typeof entry.overtimeHours === 'string' ? parseFloat(entry.overtimeHours) : entry.overtimeHours)
+                      ? (typeof entry.overtimeHours === 'string' ? parseFloat(entry.overtimeHours) || 0 : (entry.overtimeHours || 0))
                       : 0;
                     const multiplier = entry.overtimeMultiplier || 1.5;
 
@@ -329,12 +329,12 @@ export default function TimesheetDetailView({
                 const entryDate = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
                 const entryStart = typeof entry.startTime === 'string' ? new Date(entry.startTime) : entry.startTime;
                 const entryEnd = typeof entry.endTime === 'string' ? new Date(entry.endTime) : entry.endTime;
-                const totalHours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
+                const totalHours = typeof entry.hours === 'string' ? parseFloat(entry.hours) || 0 : (entry.hours || 0);
                 const regularHours = entry.regularHours 
-                  ? (typeof entry.regularHours === 'string' ? parseFloat(entry.regularHours) : entry.regularHours)
+                  ? (typeof entry.regularHours === 'string' ? parseFloat(entry.regularHours) || 0 : (entry.regularHours || 0))
                   : totalHours;
                 const overtimeHours = entry.overtimeHours
-                  ? (typeof entry.overtimeHours === 'string' ? parseFloat(entry.overtimeHours) : entry.overtimeHours)
+                  ? (typeof entry.overtimeHours === 'string' ? parseFloat(entry.overtimeHours) || 0 : (entry.overtimeHours || 0))
                   : 0;
                 const multiplier = entry.overtimeMultiplier || 1.5;
 

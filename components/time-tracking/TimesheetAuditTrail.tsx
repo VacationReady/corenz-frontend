@@ -85,7 +85,7 @@ export default function TimesheetAuditTrail({
         case "breakMinutes":
           return `${value} min`;
         case "hours":
-          return `${parseFloat(value).toFixed(2)}h`;
+          return `${(parseFloat(value) || 0).toFixed(2)}h`;
         default:
           return value;
       }

@@ -455,17 +455,45 @@ export default function CreateShiftModal({
       // Build URL with optional filter for shift-based workers
       const params = new URLSearchParams({
         status: 'active',
-        limit: 'all',
+        limit: '100', // Fetch 100 per page (API max)
       });
       if (shiftBasedOnly) {
         params.set('workingPatternType', 'SHIFT_BASED');
       }
       
-      const response = await fetch(`/api/employees?${params}`);
-      const data = await response.json();
-      // API returns { data: [...], pagination: {...} } with flat employee objects
+      // Fetch all pages using cursor-based pagination
+      let allEmployees: any[] = [];
+      let cursor: string | null = null;
+      let hasMore = true;
+      
+      while (hasMore) {
+        if (cursor) {
+          params.set('cursor', cursor);
+        }
+        
+        const response = await fetch(`/api/employees?${params}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          console.error('Error fetching employees:', data);
+          break;
+        }
+        
+        const pageEmployees = data.data || [];
+        allEmployees = [...allEmployees, ...pageEmployees];
+        
+        // Check if there are more pages
+        hasMore = data.pagination?.hasMore || false;
+        cursor = data.pagination?.cursor || null;
+        
+        // Safety check to prevent infinite loops
+        if (!cursor || !hasMore) {
+          break;
+        }
+      }
+      
       // Transform to expected nested format for the component
-      const employeeList = (data.data || data.employees || []).map((emp: any) => ({
+      const employeeList = allEmployees.map((emp: any) => ({
         id: emp.id,
         User: {
           name: emp.firstName && emp.lastName 

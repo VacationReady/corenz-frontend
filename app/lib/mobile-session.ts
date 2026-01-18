@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { decode } from "next-auth/jwt";
 import { auth } from "@/lib/auth-options";
-import { env } from "@/lib/env.server";
 import { getAllSessionCookieNames } from "@/lib/auth-cookies";
 import { Session } from "next-auth";
 
@@ -29,8 +28,8 @@ export async function getMobileSession(req: NextRequest): Promise<Session | null
         try {
           const decoded = await decode({
             token,
-            secret: env.NEXTAUTH_SECRET,
-            salt: env.NEXTAUTH_SECRET,
+            secret: process.env.NEXTAUTH_SECRET!,
+            salt: process.env.NEXTAUTH_SECRET!,
           });
 
           if (decoded && decoded.id && decoded.companyId) {
@@ -63,8 +62,8 @@ export async function getMobileSession(req: NextRequest): Promise<Session | null
     try {
       const decoded = await decode({
         token,
-        secret: env.NEXTAUTH_SECRET,
-        salt: env.NEXTAUTH_SECRET,
+        secret: process.env.NEXTAUTH_SECRET!,
+        salt: process.env.NEXTAUTH_SECRET!,
       });
 
       if (decoded && decoded.id && decoded.companyId) {

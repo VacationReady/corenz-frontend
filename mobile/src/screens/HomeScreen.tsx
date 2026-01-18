@@ -18,8 +18,8 @@ import { getLatestNews, NewsPost } from '../api/news';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import LoadingState from '../components/LoadingState';
-import ClockWidget from '../components/ClockWidget';
 import NewsCard from '../components/NewsCard';
+import { DashboardTiles } from '../components/dashboard';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 
@@ -136,8 +136,8 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.content}>
-        {/* Clock In/Out Widget */}
-        <ClockWidget />
+        {/* Dashboard Tiles - Shifts & Clock */}
+        <DashboardTiles />
 
         {/* Quick Actions */}
         <Card>

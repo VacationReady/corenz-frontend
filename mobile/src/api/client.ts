@@ -149,4 +149,22 @@ export const apiClient = {
       status: response.status,
     };
   },
+
+  async patch(path: string, data?: any, config?: RequestInit) {
+    const response = await apiFetch(path, {
+      ...config,
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `Request failed with status ${response.status}`);
+    }
+    
+    return {
+      data: await response.json(),
+      status: response.status,
+    };
+  },
 };

@@ -142,10 +142,6 @@ export async function createTemplate(
   });
 
   const filteredSteps = mapSteps(normalizedSteps);
-  console.log('[createTemplate] Input steps count:', steps.length);
-  console.log('[createTemplate] Normalized steps count:', normalizedSteps.length);
-  console.log('[createTemplate] Filtered steps count:', filteredSteps.length);
-  console.log('[createTemplate] Step types:', filteredSteps.map((s: any) => s.type));
   const template = await prismaClient.onboardingTemplate.create({
     data: {
       id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -201,10 +197,6 @@ export async function updateTemplate(
   });
 
   const filteredSteps = mapSteps(normalizedSteps);
-  console.log('[updateTemplate] Input steps count:', steps.length);
-  console.log('[updateTemplate] Normalized steps count:', normalizedSteps.length);
-  console.log('[updateTemplate] Filtered steps count:', filteredSteps.length);
-  console.log('[updateTemplate] Step types:', filteredSteps.map((s: any) => s.type));
 
   // First, validate template exists and belongs to tenant with minimal query
   const basicTemplate = await prismaClient.onboardingTemplate.findUnique({

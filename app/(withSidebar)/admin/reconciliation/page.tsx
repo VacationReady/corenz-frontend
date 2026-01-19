@@ -232,24 +232,26 @@ export default function ReconciliationHubPage() {
       // Parse dates
       const processed: DayData = {
         date: new Date(data.date),
-        shifts: data.shifts.map((item: any) => ({
-          ...item,
-          shift: {
-            ...item.shift,
-            startTime: new Date(item.shift.startTime),
-            endTime: new Date(item.shift.endTime),
-          },
-          clockEntry: item.clockEntry ? {
-            ...item.clockEntry,
-            clockInTime: new Date(item.clockEntry.clockInTime),
-            clockOutTime: item.clockEntry.clockOutTime ? new Date(item.clockEntry.clockOutTime) : null,
-          } : null,
-          timesheetEntry: item.timesheetEntry ? {
-            ...item.timesheetEntry,
-            startTime: new Date(item.timesheetEntry.startTime),
-            endTime: new Date(item.timesheetEntry.endTime),
-          } : null,
-        })),
+        shifts: data.shifts
+          .filter((item: any) => item.shift && item.shift.startTime && item.shift.endTime)
+          .map((item: any) => ({
+            ...item,
+            shift: {
+              ...item.shift,
+              startTime: new Date(item.shift.startTime),
+              endTime: new Date(item.shift.endTime),
+            },
+            clockEntry: item.clockEntry ? {
+              ...item.clockEntry,
+              clockInTime: new Date(item.clockEntry.clockInTime),
+              clockOutTime: item.clockEntry.clockOutTime ? new Date(item.clockEntry.clockOutTime) : null,
+            } : null,
+            timesheetEntry: item.timesheetEntry ? {
+              ...item.timesheetEntry,
+              startTime: new Date(item.timesheetEntry.startTime),
+              endTime: new Date(item.timesheetEntry.endTime),
+            } : null,
+          })),
         unmatchedClockEntries: data.unmatchedClockEntries,
         totalShifts: data.totalShifts,
         matchedCount: data.matchedCount,

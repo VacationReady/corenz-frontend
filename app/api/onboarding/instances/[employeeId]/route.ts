@@ -114,10 +114,6 @@ export async function GET(
       );
     }
 
-    console.log('[GET onboarding instance] Template steps count:', instance.OnboardingTemplate.OnboardingStep.length);
-    console.log('[GET onboarding instance] Step types:', instance.OnboardingTemplate.OnboardingStep.map((s: any) => s.type));
-    console.log('[GET onboarding instance] Step instances count:', instance.OnboardingStepInstance.length);
-
     // ✅ Merge template steps with instance step info
     const mergedSteps = await Promise.all(
       instance.OnboardingTemplate.OnboardingStep.map(async (tStep: any) => {

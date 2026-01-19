@@ -173,9 +173,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('[onboarding/start] Template steps count:', template.OnboardingStep.length);
-    console.log('[onboarding/start] Step types:', template.OnboardingStep.map((s: any) => s.type));
-
     // Create assignment + instance + seed steps atomically
     const result = await prisma.$transaction(async (tx) => {
       const assignment = await tx.onboardingAssignment.create({

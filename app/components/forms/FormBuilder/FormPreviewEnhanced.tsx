@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Sparkles, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { evaluate } from "mathjs";
+import { MoodIcon } from "@/components/ui/MoodIconPicker";
 
 export function FormPreviewEnhanced({ fields }: { fields: FormField[] }) {
   const [fieldValues, setFieldValues] = useState<Record<string, number>>({});
@@ -438,6 +439,73 @@ function renderPreviewField(
               <span className="text-sm font-medium group-hover:text-foreground transition-colors">{opt}</span>
             </label>
           ))}
+        </div>
+      );
+
+    case "chips":
+    case "multiselect":
+      const isChipMulti = field.type === "multiselect";
+      const appearance = field.appearance || "chips";
+      
+      return (
+        <div className="space-y-3">
+          {appearance === "buttons" ? (
+            // Card-style layout with icons
+            <div className="grid grid-cols-2 gap-3">
+              {field.optionItems?.map((item, i) => (
+                <label key={i} className="relative cursor-pointer group">
+                  <input
+                    type={isChipMulti ? "checkbox" : "radio"}
+                    name={String(field.id)}
+                    className="sr-only peer"
+                  />
+                  <div className={cn(
+                    "p-4 rounded-xl border-2 transition-all text-center",
+                    "peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary",
+                    "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                  )}>
+                    {item.iconName && (
+                      <div className="mb-2 flex justify-center">
+                        <MoodIcon name={item.iconName} className="h-8 w-8" />
+                      </div>
+                    )}
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </div>
+                </label>
+              ))}
+              {(!field.optionItems || field.optionItems.length === 0) && (
+                <div className="col-span-2 text-center text-sm text-muted-foreground italic py-8">
+                  No options configured
+                </div>
+              )}
+            </div>
+          ) : (
+            // Chip-style layout with icons
+            <div className="flex flex-wrap gap-2">
+              {field.optionItems?.map((item, i) => (
+                <label key={i} className="cursor-pointer group">
+                  <input
+                    type={isChipMulti ? "checkbox" : "radio"}
+                    name={String(field.id)}
+                    className="sr-only peer"
+                  />
+                  <div className={cn(
+                    "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-2 transition-all",
+                    "peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary",
+                    "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                  )}>
+                    {item.iconName && (
+                      <MoodIcon name={item.iconName} className="h-4 w-4" />
+                    )}
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </div>
+                </label>
+              ))}
+              {(!field.optionItems || field.optionItems.length === 0) && (
+                <span className="text-sm text-muted-foreground italic">No options configured</span>
+              )}
+            </div>
+          )}
         </div>
       );
 

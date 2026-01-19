@@ -49,6 +49,10 @@ export async function needsClarification(
   // Build data-driven suggestions context
   const dataDrivenContext = buildDataDrivenContext(contextData, userMessage);
 
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
+  }
+
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,
     temperature: 0.7,
@@ -213,6 +217,10 @@ export async function expandIntent(
 }> {
   const systemContext = await getSystemContext(companyId);
   
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
+  }
+
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,
     temperature: 0.7,
@@ -301,6 +309,10 @@ export async function generateFollowUps(
   result: any,
   conversationHistory: string
 ): Promise<string[]> {
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
+  }
+
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,
     temperature: 0.8,
@@ -378,6 +390,10 @@ export async function detectFrustration(
 
   if (!isFrustrated) {
     return { isFrustrated: false };
+  }
+
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
   }
 
   const completion = await openai.chat.completions.create({

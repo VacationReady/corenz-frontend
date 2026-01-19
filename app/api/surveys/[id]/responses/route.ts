@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth-options";
 import { getMobileSession } from "@/lib/mobile-session";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { randomUUID } from "crypto";
 import { analyzeIndividualResponse } from "@/lib/ai/survey-analyzer";
 import { anonymizeEmployeeData, getAnonymizationLevel } from "@/lib/survey-anonymization";
 
@@ -177,7 +178,7 @@ export async function POST(
     // Create response
     const response = await prisma.surveyResponse.create({
       data: {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         surveyId: id,
         employeeId: employee.id,
         responseData: validatedData.responseData,
@@ -248,10 +249,14 @@ export async function POST(
         }
       });
 
-      if (employeeDetails) {
+      if (employeeDetails && employeeDetails.User) {
+        const firstName = employeeDetails.User.firstName || '';
+        const lastName = employeeDetails.User.lastName || '';
+        const employeeName = `${firstName} ${lastName}`.trim() || 'Unknown';
+        
         const responseData = {
           employeeId: employeeDetails.id,
-          employeeName: `${employeeDetails.User.firstName} ${employeeDetails.User.lastName}`,
+          employeeName,
           department: employeeDetails.Department?.name || 'Unknown',
           position: employeeDetails.JobRole?.name || 'Unknown',
           responseData: validatedData.responseData,

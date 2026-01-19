@@ -70,11 +70,10 @@ export async function GET(req: NextRequest) {
     }
 
     const isAdmin = employee.User.role === 'ADMIN' || employee.User.role === 'SUPER_ADMIN';
-    const isManager = employee.User.role === 'MANAGER';
 
-    if (!isAdmin && !isManager) {
+    if (!isAdmin) {
       return NextResponse.json(
-        { error: 'Only admins and managers can access reconciliation details' },
+        { error: 'Only admins can access reconciliation details' },
         { status: 403 }
       );
     }
@@ -112,10 +111,6 @@ export async function GET(req: NextRequest) {
       },
     };
 
-    // If manager, restrict to their department
-    if (isManager && !isAdmin && employee.departmentId) {
-      whereClause.departmentId = employee.departmentId;
-    }
 
     // Fetch shifts with all related data
     const shifts = await prisma.shift.findMany({

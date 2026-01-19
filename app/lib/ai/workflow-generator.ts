@@ -1186,6 +1186,10 @@ The more specific you are, the better I can help! 🚀`
     };
   }
 
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.6,
@@ -1385,6 +1389,10 @@ export async function refineWorkflow(
   refinementPrompt: string
 ): Promise<WorkflowGenerationResult> {
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.6,
@@ -1434,6 +1442,10 @@ Return the complete updated workflow in the same JSON format.`,
 // Explain what an existing workflow does
 export async function explainWorkflow(workflow: any): Promise<string> {
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.5,

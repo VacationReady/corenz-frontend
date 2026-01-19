@@ -335,6 +335,10 @@ Respond with JSON in this format:
 }`,
     });
 
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     // Step 1: AI generates the query logic
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,

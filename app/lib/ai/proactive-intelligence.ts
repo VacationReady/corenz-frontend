@@ -670,6 +670,10 @@ Generate a 2-3 sentence executive summary that:
 Be direct and actionable.`;
 
     try {
+      if (!openai) {
+        throw new Error("OpenAI client not initialized");
+      }
+
       const completion = await openai.chat.completions.create({
         model: AI_CONFIG.model,
         temperature: 0.5,

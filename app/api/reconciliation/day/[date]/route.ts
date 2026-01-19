@@ -87,11 +87,10 @@ export async function GET(
     }
 
     const isAdmin = employee.User.role === 'ADMIN' || employee.User.role === 'SUPER_ADMIN';
-    const isManager = employee.User.role === 'MANAGER';
 
-    if (!isAdmin && !isManager) {
+    if (!isAdmin) {
       return NextResponse.json(
-        { error: 'Only admins and managers can access reconciliation data' },
+        { error: 'Only admins can access reconciliation data' },
         { status: 403 }
       );
     }
@@ -127,10 +126,7 @@ export async function GET(
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 500); // Cap at 500
 
-    // If manager, restrict to their department
-    const effectiveDepartmentId = isManager && !isAdmin
-      ? employee.departmentId || undefined
-      : departmentId;
+    const effectiveDepartmentId = departmentId;
 
     // Get company timezone (fallback to Pacific/Auckland for NZ-based system)
     // TODO: Add timezone field to Company model for multi-region support

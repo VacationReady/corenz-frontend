@@ -924,6 +924,10 @@ async function provideIntelligentGuidance(
   companyId: string,
   userId: string
 ) {
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
+  }
+
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,
     temperature: 0.7,

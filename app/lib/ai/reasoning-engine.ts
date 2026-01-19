@@ -114,6 +114,10 @@ FINAL SOLUTION: [Clear, actionable solution]
 
 Be thorough and explain your reasoning at each step.`;
 
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.4,
@@ -184,6 +188,10 @@ Provide:
 
 Be transparent and thorough.`;
 
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.3,
@@ -223,6 +231,10 @@ Sub-queries:
 4. Combine results to show final list
 
 Format: Return ONLY the numbered list of sub-queries, nothing else.`;
+
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
 
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
@@ -333,6 +345,10 @@ Analyze:
 
 Be specific and realistic.`;
 
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.5,
@@ -419,6 +435,10 @@ For each alternative, provide:
 Be practical and realistic.`;
 
     try {
+      if (!openai) {
+        throw new Error("OpenAI client not initialized");
+      }
+
       const completion = await openai.chat.completions.create({
         model: AI_CONFIG.model,
         temperature: 0.7,

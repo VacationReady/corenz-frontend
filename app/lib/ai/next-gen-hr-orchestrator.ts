@@ -81,6 +81,10 @@ export async function processNextGenHRRequest(
  * Understands complex, multi-function HR requests
  */
 async function analyzeNextGenIntent(userMessage: string, conversationHistory: any[], companyId: string) {
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
+  }
+
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,
     temperature: 0.3,
@@ -301,6 +305,10 @@ async function handleDynamicFormBuilding(
  * Generate intelligent guidance for vague requests
  */
 async function generateIntelligentGuidance(userMessage: string, analysis: any, companyId: string) {
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
+  }
+
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,
     temperature: 0.7,
@@ -342,6 +350,10 @@ Current analysis: ${JSON.stringify(analysis)}`
  * Build integrated automation workflows
  */
 async function buildIntegratedAutomation(userMessage: string, analysis: any, companyId: string) {
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
+  }
+
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,
     temperature: 0.5,

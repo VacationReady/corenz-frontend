@@ -118,6 +118,10 @@ async function performAIAnalysis(analysisData: string, responseCount: number): P
   const prompt = buildAnalysisPrompt(analysisData, responseCount);
   
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       messages: [

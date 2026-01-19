@@ -180,6 +180,10 @@ Provide:
 
 Be specific and realistic based on HR best practices.`;
 
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.4,
@@ -241,6 +245,10 @@ LIKELIHOOD: [high/medium/low]
 [Repeat for 2-3 root causes]
 
 RECOMMENDATION: [What to do about it]`;
+
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
 
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,

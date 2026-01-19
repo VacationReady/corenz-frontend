@@ -74,6 +74,10 @@ export async function POST(req: Request) {
         const departmentHighlights = analytics.explorer.datasets.department?.slice(0, 5) ?? [];
         const locationHighlights = analytics.explorer.datasets.location?.slice(0, 5) ?? [];
 
+        if (!openai) {
+          throw new Error("OpenAI client not initialized");
+        }
+
         const completion = await openai.chat.completions.create({
           model: AI_CONFIG.model,
           temperature: 0.2,

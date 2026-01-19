@@ -62,6 +62,10 @@ export async function handleConversationalRequest(
  * Analyze user intent and determine what information is missing
  */
 async function analyzeConversationalIntent(userMessage: string, conversationHistory?: any[]) {
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
+  }
+
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,
     temperature: 0.3,
@@ -143,6 +147,9 @@ async function generateIntelligentQuestions(
   analysis: any, 
   companyId: string
 ): Promise<ConversationalResponse> {
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
+  }
 
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,

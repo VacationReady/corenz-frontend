@@ -16,6 +16,10 @@ export async function isUserConfirming(
   context: string
 ): Promise<boolean> {
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.1, // Very low for consistent yes/no
@@ -65,6 +69,10 @@ export async function extractParameters(
   context: string
 ): Promise<any> {
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.2,
@@ -128,6 +136,10 @@ export async function isApprovalRequest(
   
   // Use AI for ambiguous cases
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.1,

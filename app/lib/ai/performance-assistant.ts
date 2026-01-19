@@ -259,6 +259,10 @@ ${upcomingMeetings.length > 0 ? `- Upcoming Meetings: ${upcomingMeetings.length}
 ${activeReviewCycles.length > 0 ? `- Active Review Cycles: ${activeReviewCycles.length} in progress` : ""}
     `.trim();
 
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     // Call OpenAI with performance management context
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",

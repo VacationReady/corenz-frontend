@@ -350,6 +350,8 @@ async function getHandler(req: NextRequest) {
       };
     }
 
+    console.log('[Shifts API] Query where clause:', JSON.stringify(where, null, 2));
+
     const [shifts, totalCount, companySettings] = await prisma.$transaction([
       prisma.shift.findMany({
         where,
@@ -367,15 +369,24 @@ async function getHandler(req: NextRequest) {
       }),
     ]);
 
+    console.log('[Shifts API] Query results:', {
+      shiftsFound: shifts.length,
+      totalCount,
+      shifts: shifts.map(s => ({ id: s.id, employeeId: s.employeeId, startTime: s.startTime, endTime: s.endTime })),
+    });
+
     // Generate virtual shifts from working patterns if filtering by employee and date range
     let virtualShifts: any[] = [];
-    if (employeeId && startDate && endDate) {
+    // Use where.employeeId (which is set for mobile requests) or the explicit employeeId parameter
+    const targetEmployeeId = where.employeeId || employeeId;
+    if (targetEmployeeId && startDate && endDate) {
       virtualShifts = await generateVirtualShiftsFromPattern(
-        employeeId,
+        targetEmployeeId,
         new Date(startDate),
         new Date(endDate),
         requestingEmployee.companyId
       );
+      console.log('[Shifts API] Generated virtual shifts:', virtualShifts.length);
     }
 
     // Combine actual and virtual shifts

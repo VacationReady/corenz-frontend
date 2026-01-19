@@ -62,6 +62,10 @@ Provide helpful, conversational guidance. If the user is asking about:
 
 Be conversational and helpful, not technical.`;
 
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       messages: [
@@ -214,6 +218,10 @@ Common CSV import issues and solutions:
 
 Provide specific, actionable advice for fixing these errors. Be conversational and helpful.`;
 
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       messages: [
@@ -266,6 +274,10 @@ Provide a mapping suggestion for each user field. Consider:
 - Alternative field names
 
 Format as a JSON object where keys are user fields and values are system fields.`;
+
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
 
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,

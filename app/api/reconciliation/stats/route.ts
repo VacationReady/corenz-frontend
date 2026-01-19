@@ -39,11 +39,10 @@ export async function GET(req: NextRequest) {
     }
 
     const isAdmin = employee.User.role === 'ADMIN' || employee.User.role === 'SUPER_ADMIN';
-    const isManager = employee.User.role === 'MANAGER';
 
-    if (!isAdmin && !isManager) {
+    if (!isAdmin) {
       return NextResponse.json(
-        { error: 'Only admins and managers can access reconciliation stats' },
+        { error: 'Only admins can access reconciliation stats' },
         { status: 403 }
       );
     }
@@ -80,10 +79,7 @@ export async function GET(req: NextRequest) {
       endDate = endOfWeek(now, { weekStartsOn: 1 });
     }
 
-    // If manager, restrict to their department
-    const effectiveDepartmentId = isManager && !isAdmin
-      ? employee.departmentId || undefined
-      : departmentId;
+    const effectiveDepartmentId = departmentId;
 
     const stats = await getReconciliationStats(
       employee.companyId,

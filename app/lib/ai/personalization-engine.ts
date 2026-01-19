@@ -206,6 +206,10 @@ ADAPTATION RULES:
 Return ONLY the adapted response, nothing else.`;
 
     try {
+      if (!openai) {
+        throw new Error("OpenAI client not initialized");
+      }
+
       const completion = await openai.chat.completions.create({
         model: AI_CONFIG.model,
         temperature: 0.4,

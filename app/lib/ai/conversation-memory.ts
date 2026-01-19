@@ -329,6 +329,10 @@ Format as JSON with these keys: keyPoints, decisionsMade, actionsTaken, pendingI
 Keep it concise - each point should be 1 sentence max.`;
 
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.3,
@@ -532,6 +536,10 @@ Output: "Email sales team about the meeting"
 RESOLVED QUERY:`;
 
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.2,

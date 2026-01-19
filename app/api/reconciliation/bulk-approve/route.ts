@@ -38,11 +38,10 @@ export async function POST(req: NextRequest) {
     }
 
     const isAdmin = employee.User.role === 'ADMIN' || employee.User.role === 'SUPER_ADMIN';
-    const isManager = employee.User.role === 'MANAGER';
 
-    if (!isAdmin && !isManager) {
+    if (!isAdmin) {
       return NextResponse.json(
-        { error: 'Only admins and managers can bulk approve entries' },
+        { error: 'Only admins can bulk approve entries' },
         { status: 403 }
       );
     }

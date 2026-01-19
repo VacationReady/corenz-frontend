@@ -216,6 +216,10 @@ export class JourneyAssistant {
     `;
 
     try {
+      if (!openai) {
+        throw new Error("OpenAI client not initialized");
+      }
+
       const completion = await openai.chat.completions.create({
         model: "gpt-4",
         messages: [{ role: "user", content: prompt }],
@@ -586,6 +590,10 @@ Would you like to create your first journey or learn more about a specific aspec
     `;
 
     try {
+      if (!openai) {
+        throw new Error("OpenAI client not initialized");
+      }
+
       const completion = await openai.chat.completions.create({
         model: "gpt-4",
         messages: [{ role: "user", content: prompt }],
@@ -996,6 +1004,10 @@ Generate the journey structure now as a valid JSON array:
 `;
 
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [

@@ -101,6 +101,10 @@ export async function buildFormConversationally(
   conversationContext: string
 ): Promise<FormBuildResult> {
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.6,

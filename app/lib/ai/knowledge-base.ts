@@ -494,6 +494,10 @@ BEST PRACTICES AVAILABLE:
 ${BEST_PRACTICES.map(p => `- ${p.title} (${p.category}): ${p.description}`).join('\n')}
     `;
 
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,
       temperature: 0.4,

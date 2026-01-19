@@ -131,8 +131,8 @@ export default function MoreScreen({ navigation, onLogout }: MoreScreenProps) {
           </Card>
         </View>
 
-        {/* Admin Section - Only visible to admins/managers */}
-        {(userRole.isAdmin || userRole.isManager) && (
+        {/* Admin Section - Only visible to admins */}
+        {userRole.isAdmin && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Admin</Text>
             <Card style={styles.menuCard}>

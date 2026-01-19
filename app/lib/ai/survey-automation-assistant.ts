@@ -59,6 +59,10 @@ export async function processSurveyAutomationRequest(
  * Analyze the survey automation request to understand components
  */
 async function analyzeSurveyAutomationRequest(userMessage: string, parameters: any) {
+  if (!openai) {
+    throw new Error("OpenAI client not initialized");
+  }
+
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,
     temperature: 0.3,

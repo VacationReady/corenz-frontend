@@ -70,8 +70,16 @@ export async function submitSurveyResponse(surveyId: string, responses: any): Pr
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to submit survey response');
+    let errorMessage = 'Failed to submit survey response';
+    try {
+      const error = await response.json();
+      errorMessage = error.error || error.message || errorMessage;
+    } catch (parseError) {
+      // If JSON parsing fails (e.g., HTML error page), use status text
+      console.error('[submitSurveyResponse] Failed to parse error response:', parseError);
+      errorMessage = `Server error (${response.status}): ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();

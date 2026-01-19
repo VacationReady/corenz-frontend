@@ -42,6 +42,10 @@ export async function generateCustomField(
   companyId: string
 ): Promise<FieldGenerationResult> {
   try {
+    if (!openai) {
+      throw new Error("OpenAI client not initialized");
+    }
+
     // Step 1: AI determines field properties
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,

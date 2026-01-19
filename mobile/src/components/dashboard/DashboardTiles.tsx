@@ -1,26 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ShiftsTile } from './ShiftsTile';
 import { ClockTile } from './ClockTile';
-import { ManualEntryModal } from '../clock/ManualEntryModal';
 
 export function DashboardTiles() {
-  const [manualEntryVisible, setManualEntryVisible] = useState(false);
-
   return (
     <View style={styles.container}>
       <View style={styles.tilesRow}>
         <ShiftsTile />
-        <ClockTile onManualEntry={() => setManualEntryVisible(true)} />
+        <ClockTile onManualEntry={() => {
+          // Navigate to Clock screen for manual entry
+          // The modal is handled by ClockScreen to avoid duplication
+        }} />
       </View>
-
-      <ManualEntryModal
-        visible={manualEntryVisible}
-        onClose={() => setManualEntryVisible(false)}
-        onSuccess={() => {
-          setManualEntryVisible(false);
-        }}
-      />
     </View>
   );
 }

@@ -906,7 +906,42 @@ export default function ReconciliationHubPage() {
                       )}
                       {/* Edit button for entries with clock but no timesheet yet */}
                       {entry.clockEntry && !entry.timesheetEntry && (
-                        <div className="mt-2 flex justify-end">
+                        <div className="mt-2 flex justify-end gap-2">
+                          {/* Approve button for clock entries */}
+                          {entry.reconciliationStatus !== 'APPROVED' && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch('/api/reconciliation/approve', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ entryId: entry.clockEntry!.id }),
+                                  });
+                                  if (!response.ok) throw new Error('Failed to approve');
+                                  
+                                  toast({
+                                    title: 'Success',
+                                    description: 'Clock entry approved successfully',
+                                  });
+                                  
+                                  await fetchDayData(selectedDate);
+                                  await fetchStats();
+                                } catch (error) {
+                                  toast({
+                                    title: 'Error',
+                                    description: 'Failed to approve entry',
+                                    variant: 'destructive',
+                                  });
+                                }
+                              }}
+                              className="h-9 bg-emerald-500 hover:bg-emerald-600 text-white font-medium min-w-[100px]"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Approve
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"

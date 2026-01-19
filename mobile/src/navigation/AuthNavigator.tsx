@@ -14,13 +14,12 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 export default function AuthNavigator({ onLoginSuccess }: AuthNavigatorProps) {
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          animation: 'fade',
-        }}
-      >
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'fade',
+      }}
+    >
         <Stack.Screen name="Login">
           {(props) => <LoginScreen {...props} onLoginSuccess={onLoginSuccess} />}
         </Stack.Screen>
@@ -31,7 +30,6 @@ export default function AuthNavigator({ onLoginSuccess }: AuthNavigatorProps) {
             headerShown: false,
           }}
         />
-      </Stack.Navigator>
-    </NavigationContainer>
+    </Stack.Navigator>
   );
 }

@@ -17,6 +17,7 @@ export default function LoadingState({ message = 'Loading...' }: LoadingStatePro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,

@@ -36,6 +36,7 @@ import DeleteShiftModal from '@/components/rota/DeleteShiftModal';
 import AutoScheduleWizard, { AutoScheduleResult } from '@/components/rota/AutoScheduleWizard';
 import VirtualizedShiftList from '@/components/rota/VirtualizedShiftList';
 import ViewFullDayModal from '@/components/rota/ViewFullDayModal';
+import UnpublishedShiftsGuard from '@/components/rota/UnpublishedShiftsGuard';
 import {
   usePaginatedShifts,
   ShiftRecord,
@@ -652,6 +653,10 @@ export default function RotaPage() {
 
   return (
     <FeatureGuardedPage featureKey={FEATURE_KEYS.ROTA_SHIFTS}>
+    <UnpublishedShiftsGuard
+      unpublishedCount={summary?.unpublishedCount ?? 0}
+      onPublishAll={handlePublishAll}
+    >
     <div className="w-full min-h-screen bg-content-panel">
       <div className="sticky top-0 z-10">
         <div className="relative overflow-hidden rounded-b-3xl border border-white/30 bg-gradient-to-r from-primary/10 via-sky-100/40 to-transparent shadow-xl backdrop-blur-sm dark:border-slate-800/80 dark:from-primary/30 dark:via-slate-900/80">
@@ -1320,6 +1325,7 @@ export default function RotaPage() {
         />
       )}
     </div>
+    </UnpublishedShiftsGuard>
     </FeatureGuardedPage>
   );
 }

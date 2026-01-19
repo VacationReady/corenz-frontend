@@ -1,70 +1,165 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import AppNavigator from './src/navigation/AppNavigator';
-import { getStoredSession, getSession } from './src/api/auth';
+import { getStoredSession, getSession, signOut } from './src/api/auth';
+import { getOnboardingStatus, OnboardingStatus } from './src/api/onboarding';
+import { OnboardingScreen } from './src/screens/onboarding';
+
+type AppState = 'loading' | 'unauthenticated' | 'onboarding' | 'authenticated';
+
+interface SessionUser {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string;
+  companyId?: string;
+  employeeId?: string;
+}
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [appState, setAppState] = useState<AppState>('loading');
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const [onboardingStatus, setOnboardingStatus] = useState<OnboardingStatus | null>(null);
 
   useEffect(() => {
-    // Debug: Log environment variables on app start
     console.log("🚀 App starting...");
     console.log("🌐 EXPO_PUBLIC_API_BASE_URL:", process.env.EXPO_PUBLIC_API_BASE_URL);
-    console.log("🌐 API_BASE_URL:", process.env.API_BASE_URL);
     checkAuthentication();
   }, []);
 
   const checkAuthentication = async () => {
     try {
-      // Check if we have a stored session token
       const storedToken = await getStoredSession();
-      if (storedToken) {
-        // Verify the session is still valid
-        const session = await getSession();
-        if (session) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-        }
+      if (!storedToken) {
+        setAppState('unauthenticated');
+        return;
+      }
+
+      const session = await getSession();
+      if (!session?.user) {
+        setAppState('unauthenticated');
+        return;
+      }
+
+      setSessionUser(session.user);
+      
+      // Check onboarding status if user has an employeeId
+      if (session.user.employeeId) {
+        await checkOnboardingStatus(session.user.employeeId);
       } else {
-        setIsAuthenticated(false);
+        // No employee record - go directly to app (admin users, etc.)
+        setAppState('authenticated');
       }
     } catch (error) {
-      console.log('No valid session found');
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
+      console.log('Authentication check failed:', error);
+      setAppState('unauthenticated');
     }
   };
 
-  const handleLoginSuccess = () => {
-    setIsAuthenticated(true);
+  const checkOnboardingStatus = async (employeeId: string) => {
+    try {
+      const status = await getOnboardingStatus(employeeId);
+      setOnboardingStatus(status);
+      
+      if (status.hasOnboarding && !status.isComplete) {
+        // User has pending onboarding
+        setAppState('onboarding');
+      } else {
+        // No onboarding or already complete
+        setAppState('authenticated');
+      }
+    } catch (error) {
+      console.log('Onboarding check failed:', error);
+      // On error, allow access to app
+      setAppState('authenticated');
+    }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-  };
+  const handleLoginSuccess = useCallback(async () => {
+    setAppState('loading');
+    
+    try {
+      const session = await getSession();
+      if (!session?.user) {
+        setAppState('unauthenticated');
+        return;
+      }
 
-  if (isLoading) {
+      setSessionUser(session.user);
+      
+      if (session.user.employeeId) {
+        await checkOnboardingStatus(session.user.employeeId);
+      } else {
+        setAppState('authenticated');
+      }
+    } catch (error) {
+      console.log('Post-login check failed:', error);
+      setAppState('authenticated');
+    }
+  }, []);
+
+  const handleOnboardingComplete = useCallback(() => {
+    console.log('✅ Onboarding completed!');
+    setAppState('authenticated');
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.log('Logout error:', error);
+    }
+    setSessionUser(null);
+    setOnboardingStatus(null);
+    setAppState('unauthenticated');
+  }, []);
+
+  // Loading state
+  if (appState === 'loading') {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <StatusBar style="auto" />
-      </View>
+      <SafeAreaProvider>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={styles.loadingText}>Loading...</Text>
+          <StatusBar style="auto" />
+        </View>
+      </SafeAreaProvider>
     );
   }
 
+  // Unauthenticated - show login
+  if (appState === 'unauthenticated') {
+    return (
+      <SafeAreaProvider>
+        <AuthNavigator onLoginSuccess={handleLoginSuccess} />
+        <StatusBar style="auto" />
+      </SafeAreaProvider>
+    );
+  }
+
+  // Onboarding required
+  if (appState === 'onboarding' && sessionUser?.employeeId) {
+    const firstName = sessionUser.name?.split(' ')[0] || 'there';
+    return (
+      <SafeAreaProvider>
+        <OnboardingScreen
+          employeeId={sessionUser.employeeId}
+          employeeName={firstName}
+          onComplete={handleOnboardingComplete}
+          onLogout={handleLogout}
+        />
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    );
+  }
+
+  // Authenticated - show main app
   return (
     <SafeAreaProvider>
-      {isAuthenticated ? (
-        <AppNavigator onLogout={handleLogout} />
-      ) : (
-        <AuthNavigator onLoginSuccess={handleLoginSuccess} />
-      )}
+      <AppNavigator onLogout={handleLogout} />
       <StatusBar style="auto" />
     </SafeAreaProvider>
   );
@@ -73,8 +168,13 @@ export default function App() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#94A3B8',
   },
 });

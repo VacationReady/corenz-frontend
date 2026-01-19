@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth-options';
+import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { processTimesheetEntry, recalculateTimesheetTotals } from '@/lib/time-tracking/timesheet-entry-processor';
@@ -22,7 +22,7 @@ const editClockEntrySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getMobileSession(req);
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

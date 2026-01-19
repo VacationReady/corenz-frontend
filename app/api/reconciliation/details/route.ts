@@ -6,7 +6,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth-options';
 import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { parseISO, isValid, startOfDay, endOfDay, differenceInMinutes } from 'date-fns';
@@ -45,11 +44,7 @@ interface ShiftDetail {
 
 export async function GET(req: NextRequest) {
   try {
-    // Support both web and mobile sessions
-    let session = await auth();
-    if (!session?.user?.id) {
-      session = await getMobileSession(req);
-    }
+    const session = await getMobileSession(req);
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

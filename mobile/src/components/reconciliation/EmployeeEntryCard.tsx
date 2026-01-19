@@ -277,7 +277,7 @@ export function EmployeeEntryCard({
                 </Text>
               </TouchableOpacity>
 
-              {entry.status !== 'APPROVED' && (
+              {entry.status !== 'APPROVED' && entry.clockOutTime && (
                 <TouchableOpacity
                   style={styles.approveButton}
                   onPress={onApprove}

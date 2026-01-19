@@ -764,11 +764,26 @@ export default function ReconciliationHubPage() {
                     <div className="flex-1 min-w-0">
                       <ShiftActualComparison
                         shift={entry.shift}
-                        actual={entry.clockEntry || entry.timesheetEntry ? {
-                          startTime: entry.clockEntry?.clockInTime || entry.timesheetEntry!.startTime,
-                          endTime: entry.clockEntry?.clockOutTime || entry.timesheetEntry!.endTime,
-                          hours: entry.timesheetEntry?.hours,
-                        } : null}
+                        actual={(() => {
+                          // If we have a timesheet entry, use it
+                          if (entry.timesheetEntry) {
+                            return {
+                              startTime: entry.timesheetEntry.startTime,
+                              endTime: entry.timesheetEntry.endTime,
+                              hours: entry.timesheetEntry.hours,
+                            };
+                          }
+                          // If we have a clock entry with both in and out times, use it
+                          if (entry.clockEntry?.clockInTime && entry.clockEntry?.clockOutTime) {
+                            return {
+                              startTime: entry.clockEntry.clockInTime,
+                              endTime: entry.clockEntry.clockOutTime,
+                              hours: undefined,
+                            };
+                          }
+                          // Otherwise, no actual data available
+                          return null;
+                        })()}
                         variance={entry.variance}
                         reconciliationStatus={entry.reconciliationStatus}
                         onAddEntry={

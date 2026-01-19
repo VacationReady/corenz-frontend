@@ -1067,39 +1067,41 @@ export default function FilterableDataTable({
           </div>
         )}
 
-        <div className="space-y-2 border-t border-gray-200 pt-2">
-          <div className="text-xs font-medium text-gray-700">Exact values</div>
-          {availableValues.length === 0 ? (
-            <p className="text-sm text-gray-500">No values available</p>
-          ) : (
-            <div className="max-h-40 space-y-2 overflow-y-auto" role="group" aria-label={`Exact values for ${columnLabelMap[columnKey] ?? columnKey}`}>
-              {availableValues.map((value) => {
-                const isChecked = draftExact.includes(value);
-                return (
-                  <label key={value} className="flex cursor-pointer items-center space-x-2 rounded px-1 py-0.5 hover:bg-gray-50">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(event) => updateDraftColumnFilter(columnKey, value, event.target.checked)}
-                        className="sr-only"
-                      />
-                      <div
-                        className={`flex h-4 w-4 items-center justify-center rounded border-2 transition-colors ${
-                          isChecked ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
-                        }`}
-                        aria-hidden="true"
-                      >
-                        {isChecked && <CheckIcon className="h-3 w-3" />}
+        {detectedType !== "date" && (
+          <div className="space-y-2 border-t border-gray-200 pt-2">
+            <div className="text-xs font-medium text-gray-700">Exact values</div>
+            {availableValues.length === 0 ? (
+              <p className="text-sm text-gray-500">No values available</p>
+            ) : (
+              <div className="max-h-40 space-y-2 overflow-y-auto" role="group" aria-label={`Exact values for ${columnLabelMap[columnKey] ?? columnKey}`}>
+                {availableValues.map((value) => {
+                  const isChecked = draftExact.includes(value);
+                  return (
+                    <label key={value} className="flex cursor-pointer items-center space-x-2 rounded px-1 py-0.5 hover:bg-gray-50">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(event) => updateDraftColumnFilter(columnKey, value, event.target.checked)}
+                          className="sr-only"
+                        />
+                        <div
+                          className={`flex h-4 w-4 items-center justify-center rounded border-2 transition-colors ${
+                            isChecked ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
+                          }`}
+                          aria-hidden="true"
+                        >
+                          {isChecked && <CheckIcon className="h-3 w-3" />}
+                        </div>
                       </div>
-                    </div>
-                    <span className="text-sm text-gray-700">{value}</span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                      <span className="text-sm text-gray-700">{value}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-2 border-t border-gray-200 pt-3">
           <button type="button" className="text-xs text-gray-600 hover:text-gray-900" onClick={() => resetColumnFilterChanges(columnKey)}>
@@ -1286,7 +1288,7 @@ export default function FilterableDataTable({
                                 id={`filter-${column.accessorKey}`}
                                 align="start" 
                                 sideOffset={8}
-                                className="w-80 rounded-xl border border-gray-200 bg-white p-0 shadow-2xl"
+                                className="w-80 max-h-[80vh] overflow-y-auto rounded-xl border border-gray-200 bg-white p-0 shadow-2xl"
                                 onPointerDownOutside={(e) => e.preventDefault()}
                                 onInteractOutside={(e) => e.preventDefault()}
                               >

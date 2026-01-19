@@ -34,7 +34,7 @@ export function ReconciliationScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<ReconciliationEntry | null>(null);
 
-  const loadData = useCallback(async (isRefresh = false) => {
+  const loadData = useCallback(async (isRefresh = false, dateOverride?: Date) => {
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -42,7 +42,8 @@ export function ReconciliationScreen() {
         setLoading(true);
       }
 
-      const dayData = await reconciliationApi.getDayReconciliation(selectedDate);
+      const dateToUse = dateOverride || selectedDate;
+      const dayData = await reconciliationApi.getDayReconciliation(dateToUse);
       setEntries(dayData.entries || []);
       setStats(dayData.stats || null);
       setSelectedEntryIds(new Set());
@@ -66,6 +67,7 @@ export function ReconciliationScreen() {
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
+    loadData(false, date);
   };
 
   const handleSelectEntry = (entryId: string) => {

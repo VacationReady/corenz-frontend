@@ -56,7 +56,7 @@ interface ShiftDetail {
   role: string | null;
   department: string | null;
   startTime: string;
-  endTime: string;
+  endTime: string | null;
   scheduledHours: number;
   actualHours: number | null;
   varianceMinutes: number | null;
@@ -236,7 +236,9 @@ export default function StatsDetailModal({
         `"${d.role || ''}"`,
         `"${d.department || ''}"`,
         format(parseISO(d.startTime), 'yyyy-MM-dd'),
-        `${format(parseISO(d.startTime), 'HH:mm')}-${format(parseISO(d.endTime), 'HH:mm')}`,
+        d.startTime && d.endTime
+          ? `${format(parseISO(d.startTime), 'HH:mm')}-${format(parseISO(d.endTime), 'HH:mm')}`
+          : '-',
         d.clockInTime && d.clockOutTime 
           ? `${format(parseISO(d.clockInTime), 'HH:mm')}-${format(parseISO(d.clockOutTime), 'HH:mm')}`
           : '-',
@@ -404,7 +406,9 @@ export default function StatsDetailModal({
                             <div>
                               <p className="text-xs text-muted-foreground">Scheduled</p>
                               <p className="text-sm font-medium">
-                                {format(parseISO(detail.startTime), 'HH:mm')} - {format(parseISO(detail.endTime), 'HH:mm')}
+                                {detail.startTime && detail.endTime
+                                  ? `${format(parseISO(detail.startTime), 'HH:mm')} - ${format(parseISO(detail.endTime), 'HH:mm')}`
+                                  : '-'}
                               </p>
                             </div>
                           </div>

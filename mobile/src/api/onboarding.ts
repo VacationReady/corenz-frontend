@@ -176,9 +176,6 @@ export async function uploadOnboardingDocument(
     const response = await apiFetch('/api/documents/upload-employee', {
       method: 'POST',
       body: formData,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
     });
     
     if (!response.ok) {

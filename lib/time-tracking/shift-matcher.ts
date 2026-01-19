@@ -401,7 +401,7 @@ export async function getShiftsWithActualsForDay(
     companyId,
     startTime: {
       gte: dayStart,
-      lte: dayEnd,
+      lt: dayEnd,
     },
     isPublished: true,
   };

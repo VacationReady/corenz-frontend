@@ -716,13 +716,7 @@ export default function AdminTimesheetHubPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {statusFilter === "approved" ? (
-                          <Badge variant="default" className="bg-emerald-500">Approved</Badge>
-                        ) : statusFilter === "declined" ? (
-                          <Badge variant="destructive">Declined</Badge>
-                        ) : (
-                          <Badge variant="secondary">{timesheet.status}</Badge>
-                        )}
+                        <Badge variant="secondary">{timesheet.status}</Badge>
                         <Button variant="outline" size="sm" onClick={() => setPreviewSheet(timesheet)}>
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -736,6 +730,7 @@ export default function AdminTimesheetHubPage() {
                             <Edit2 className="h-4 w-4" />
                           </Button>
                         )}
+                        {/* Show approve/decline buttons for any PENDING timesheet regardless of filter */}
                         {timesheet.status === "PENDING" && (
                           <>
                             <Button
@@ -755,7 +750,7 @@ export default function AdminTimesheetHubPage() {
                             <Button
                               variant="default"
                               size="sm"
-                              className="bg-emerald-500 hover:bg-emerald-600 min-w-[36px]"
+                              className="bg-emerald-500 hover:bg-emerald-600 min-w-[80px] font-medium"
                               onClick={() => handleIndividualApprove(timesheet.id)}
                               disabled={approvingIds.has(timesheet.id) || fadingOutIds.has(timesheet.id)}
                               title="Approve timesheet"
@@ -765,7 +760,10 @@ export default function AdminTimesheetHubPage() {
                               ) : fadingOutIds.has(timesheet.id) ? (
                                 <CheckCircle className="h-4 w-4" />
                               ) : (
-                                <Check className="h-4 w-4" />
+                                <>
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Approve
+                                </>
                               )}
                             </Button>
                           </>

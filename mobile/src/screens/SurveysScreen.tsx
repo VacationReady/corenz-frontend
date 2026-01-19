@@ -23,6 +23,39 @@ import Button from '../components/Button';
 import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
 
+// Helper function to map icon names to emojis
+const getEmojiForIcon = (iconName: string): string => {
+  const iconMap: Record<string, string> = {
+    'Laugh': '😄',
+    'Smile': '😊',
+    'Meh': '😐',
+    'Frown': '😔',
+    'Angry': '😠',
+    'ThumbsUp': '👍',
+    'ThumbsDown': '👎',
+    'Heart': '❤️',
+    'HeartCrack': '💔',
+    'CircleCheck': '✅',
+    'CircleX': '❌',
+    'CircleAlert': '⚠️',
+    'CircleMinus': '➖',
+    'TrendingUp': '📈',
+    'Minus': '➖',
+    'TrendingDown': '📉',
+    'Star': '⭐',
+    'Trophy': '🏆',
+    'Award': '🏅',
+    'Medal': '🥇',
+    'Sparkles': '✨',
+    'Flame': '🔥',
+    'Zap': '⚡',
+    'Sun': '☀️',
+    'Cloud': '☁️',
+    'CloudRain': '🌧️',
+  };
+  return iconMap[iconName] || '📝';
+};
+
 export default function SurveysScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -274,13 +307,15 @@ export default function SurveysScreen() {
                       {(question.options || question.optionItems || []).map((option: any) => {
                         const optionValue = option.value || option;
                         const optionLabel = option.label || option;
+                        const hasIcon = option.iconName;
+                        
                         return (
                           <TouchableOpacity
                             key={optionValue}
                             style={[
-                              styles.radioOption,
+                              styles.chipOption,
                               responses[question.id] === optionValue &&
-                                styles.radioOptionSelected,
+                                styles.chipOptionSelected,
                             ]}
                             onPress={() =>
                               setResponses((prev) => ({
@@ -289,12 +324,12 @@ export default function SurveysScreen() {
                               }))
                             }
                           >
-                            <View style={styles.radioCircle}>
-                              {responses[question.id] === optionValue && (
-                                <View style={styles.radioCircleSelected} />
-                              )}
-                            </View>
-                            <Text style={styles.radioLabel}>{optionLabel}</Text>
+                            {hasIcon && (
+                              <View style={styles.chipIconContainer}>
+                                <Text style={styles.chipIcon}>{getEmojiForIcon(option.iconName)}</Text>
+                              </View>
+                            )}
+                            <Text style={styles.chipLabel}>{optionLabel}</Text>
                           </TouchableOpacity>
                         );
                       })}
@@ -304,6 +339,7 @@ export default function SurveysScreen() {
                       {(question.options || question.optionItems || []).map((option: any) => {
                         const optionValue = option.value || option;
                         const optionLabel = option.label || option;
+                        const hasIcon = option.iconName;
                         const isSelected = Array.isArray(responses[question.id]) 
                           ? responses[question.id].includes(optionValue)
                           : false;
@@ -311,8 +347,8 @@ export default function SurveysScreen() {
                           <TouchableOpacity
                             key={optionValue}
                             style={[
-                              styles.radioOption,
-                              isSelected && styles.radioOptionSelected,
+                              styles.chipOption,
+                              isSelected && styles.chipOptionSelected,
                             ]}
                             onPress={() =>
                               setResponses((prev) => {
@@ -324,12 +360,12 @@ export default function SurveysScreen() {
                               })
                             }
                           >
-                            <View style={[styles.radioCircle, styles.checkboxCircle]}>
-                              {isSelected && (
-                                <Ionicons name="checkmark" size={14} color="#3b82f6" />
-                              )}
-                            </View>
-                            <Text style={styles.radioLabel}>{optionLabel}</Text>
+                            {hasIcon && (
+                              <View style={styles.chipIconContainer}>
+                                <Text style={styles.chipIcon}>{getEmojiForIcon(option.iconName)}</Text>
+                              </View>
+                            )}
+                            <Text style={styles.chipLabel}>{optionLabel}</Text>
                           </TouchableOpacity>
                         );
                       })}
@@ -552,7 +588,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   optionsContainer: {
-    gap: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   radioOption: {
     flexDirection: 'row',
@@ -586,6 +624,33 @@ const styles = StyleSheet.create({
   radioLabel: {
     fontSize: 16,
     color: '#0f172a',
+  },
+  // Chip option styles for chips/multiselect fields
+  chipOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#fff',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  chipOptionSelected: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#eff6ff',
+  },
+  chipIconContainer: {
+    marginRight: 8,
+  },
+  chipIcon: {
+    fontSize: 20,
+  },
+  chipLabel: {
+    fontSize: 14,
+    color: '#0f172a',
+    fontWeight: '500',
   },
   checkboxCircle: {
     borderRadius: 4,

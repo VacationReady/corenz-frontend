@@ -6,6 +6,7 @@ import { AlertCircle, Sparkles, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { evaluate } from "mathjs";
 import { MoodIcon } from "@/components/ui/MoodIconPicker";
+import { cn } from "@/lib/utils";
 
 export function FormPreviewEnhanced({ fields }: { fields: FormField[] }) {
   const [fieldValues, setFieldValues] = useState<Record<string, number>>({});

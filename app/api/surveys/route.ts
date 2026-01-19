@@ -146,6 +146,7 @@ async function getHandler(request: NextRequest) {
                   type: field.type,
                   required: field.required || false,
                   options: field.choices || field.options || field.values,
+                  optionItems: field.optionItems, // Include optionItems for smiley face chips
                   max: field.max || field.rateMax,
                 });
               }

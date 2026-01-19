@@ -43,12 +43,15 @@ export function ReconciliationScreen() {
       }
 
       const dayData = await reconciliationApi.getDayReconciliation(selectedDate);
-      setEntries(dayData.entries);
-      setStats(dayData.stats);
+      setEntries(dayData.entries || []);
+      setStats(dayData.stats || null);
       setSelectedEntryIds(new Set());
     } catch (error) {
       console.error('[ReconciliationScreen] Error loading data:', error);
       Alert.alert('Error', 'Failed to load reconciliation data');
+      // Ensure entries is always an array even on error
+      setEntries([]);
+      setStats(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -193,19 +196,23 @@ export function ReconciliationScreen() {
       {entries.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIcon}>
-            <Ionicons name="checkmark-done-outline" size={48} color="#d1d5db" />
+            <Ionicons name="calendar-outline" size={48} color="#d1d5db" />
           </View>
-          <Text style={styles.emptyTitle}>No Entries</Text>
+          <Text style={styles.emptyTitle}>No Shifts Scheduled</Text>
           <Text style={styles.emptySubtitle}>
-            No time entries to reconcile for this day
+            There are no published shifts for this day.{'\n'}
+            Check another date or publish shifts in the roster.
           </Text>
         </View>
       ) : (
         <FlatList
           data={entries}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item.id || `entry-${index}`}
           renderItem={renderEntry}
           contentContainerStyle={styles.listContent}
+          removeClippedSubviews={false}
+          initialNumToRender={10}
+          showsVerticalScrollIndicator={true}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

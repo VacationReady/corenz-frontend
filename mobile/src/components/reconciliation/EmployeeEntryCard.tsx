@@ -7,8 +7,16 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInMinutes } from 'date-fns';
 import { ReconciliationEntry } from '../../api/reconciliation';
+
+// Extended entry type with internal fields
+type ExtendedEntry = ReconciliationEntry & {
+  _hasNotStarted?: boolean;
+  _isInProgress?: boolean;
+  _varianceType?: string;
+  _role?: string;
+};
 
 interface EmployeeEntryCardProps {
   entry: ReconciliationEntry;
@@ -27,28 +35,67 @@ export function EmployeeEntryCard({
   onFlag,
   onApprove,
 }: EmployeeEntryCardProps) {
-  const getStatusColor = () => {
-    switch (entry.status) {
-      case 'APPROVED':
-        return '#22c55e';
-      case 'FLAGGED':
-        return '#ef4444';
-      case 'ADJUSTED':
-        return '#f59e0b';
-      case 'MATCHED':
-        return '#6366f1';
+  const extEntry = entry as ExtendedEntry;
+  
+  // Determine shift state
+  const now = new Date();
+  const shiftStart = entry.shiftStart ? new Date(entry.shiftStart) : null;
+  const shiftEnd = entry.shiftEnd ? new Date(entry.shiftEnd) : null;
+  
+  const hasNotStarted = extEntry._hasNotStarted ?? (shiftStart && shiftStart > now);
+  const isInProgress = extEntry._isInProgress ?? (shiftStart && shiftEnd && shiftStart <= now && shiftEnd > now);
+  const isCompleted = shiftEnd && shiftEnd <= now;
+  const hasClockData = entry.clockInTime || entry.clockOutTime;
+  const hasTimesheetData = entry.timesheetEntryId;
+  const isNoShow = isCompleted && !hasClockData && !hasTimesheetData;
+  
+  const getShiftState = () => {
+    if (hasNotStarted) return 'upcoming';
+    if (isInProgress) return 'in-progress';
+    if (entry.status === 'APPROVED') return 'approved';
+    if (entry.status === 'FLAGGED') return 'flagged';
+    if (isNoShow) return 'no-show';
+    if (hasClockData || hasTimesheetData) return 'needs-review';
+    return 'pending';
+  };
+  
+  const shiftState = getShiftState();
+  
+  const getStatusConfig = () => {
+    switch (shiftState) {
+      case 'upcoming':
+        return { color: '#3b82f6', bg: '#eff6ff', icon: 'time-outline' as const, label: 'Upcoming' };
+      case 'in-progress':
+        return { color: '#8b5cf6', bg: '#f5f3ff', icon: 'play-circle-outline' as const, label: 'In Progress' };
+      case 'approved':
+        return { color: '#22c55e', bg: '#dcfce7', icon: 'checkmark-circle' as const, label: 'Approved' };
+      case 'flagged':
+        return { color: '#ef4444', bg: '#fef2f2', icon: 'flag' as const, label: 'Flagged' };
+      case 'no-show':
+        return { color: '#f59e0b', bg: '#fef3c7', icon: 'alert-circle-outline' as const, label: 'No Show' };
+      case 'needs-review':
+        return { color: '#6366f1', bg: '#eef2ff', icon: 'eye-outline' as const, label: 'Review' };
       default:
-        return '#9ca3af';
+        return { color: '#9ca3af', bg: '#f3f4f6', icon: 'ellipse-outline' as const, label: 'Pending' };
     }
   };
+  
+  const statusConfig = getStatusConfig();
 
   const formatTime = (timeStr: string | null) => {
-    if (!timeStr) return '--:--';
+    if (!timeStr) return '—';
     try {
       return format(parseISO(timeStr), 'h:mm a');
     } catch {
-      return '--:--';
+      return '—';
     }
+  };
+  
+  const formatTimeRange = (start: string | null, end: string | null) => {
+    if (!start) return 'Not scheduled';
+    const startFormatted = formatTime(start);
+    const endFormatted = end ? formatTime(end) : 'ongoing';
+    return `${startFormatted} → ${endFormatted}`;
   };
 
   const getVarianceDisplay = () => {
@@ -63,20 +110,30 @@ export function EmployeeEntryCard({
     return {
       text: hours > 0 ? `${sign}${hours}h ${minutes}m` : `${sign}${minutes}m`,
       color: variance.totalVarianceMinutes > 0 ? '#22c55e' : '#ef4444',
+      isPositive: variance.totalVarianceMinutes > 0,
     };
   };
 
   const varianceDisplay = getVarianceDisplay();
-  const hasFlags = entry.flags && entry.flags.length > 0;
+  
+  // Get initials safely
+  const getInitials = (name: string) => {
+    if (!name || name === 'Unassigned') return '?';
+    return name.split(' ').map(n => n[0]?.toUpperCase() || '').join('').slice(0, 2) || '?';
+  };
 
   return (
     <TouchableOpacity
-      style={[styles.container, isSelected && styles.selectedContainer]}
+      style={[
+        styles.container, 
+        isSelected && styles.selectedContainer,
+        hasNotStarted && styles.upcomingContainer,
+      ]}
       onPress={onSelect}
       activeOpacity={0.7}
     >
-      {/* Status Bar */}
-      <View style={[styles.statusBar, { backgroundColor: getStatusColor() }]} />
+      {/* Status Indicator */}
+      <View style={[styles.statusBar, { backgroundColor: statusConfig.color }]} />
 
       <View style={styles.content}>
         {/* Header Row */}
@@ -89,113 +146,154 @@ export function EmployeeEntryCard({
                 style={styles.avatar}
               />
             ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>
-                  {entry.employeeName.split(' ').map(n => n[0]).join('')}
+              <View style={[styles.avatarPlaceholder, { backgroundColor: statusConfig.bg }]}>
+                <Text style={[styles.avatarText, { color: statusConfig.color }]}>
+                  {getInitials(entry.employeeName)}
                 </Text>
               </View>
             )}
             <View style={styles.nameContainer}>
-              <Text style={styles.employeeName}>{entry.employeeName}</Text>
-              <Text style={styles.employeeEmail}>{entry.employeeEmail}</Text>
+              <Text style={styles.employeeName} numberOfLines={1}>
+                {entry.employeeName || 'Unassigned'}
+              </Text>
+              {extEntry._role && (
+                <Text style={styles.roleText}>{extEntry._role}</Text>
+              )}
             </View>
           </View>
 
-          {/* Selection Checkbox */}
-          <TouchableOpacity onPress={onSelect} style={styles.checkbox}>
-            <Ionicons
-              name={isSelected ? 'checkbox' : 'square-outline'}
-              size={24}
-              color={isSelected ? '#6366f1' : '#d1d5db'}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Times Comparison */}
-        <View style={styles.timesRow}>
-          {/* Scheduled */}
-          <View style={styles.timeColumn}>
-            <Text style={styles.timeLabel}>Scheduled</Text>
-            <Text style={styles.timeValue}>
-              {formatTime(entry.shiftStart)} - {formatTime(entry.shiftEnd)}
-            </Text>
-          </View>
-
-          <Ionicons name="swap-horizontal" size={20} color="#d1d5db" />
-
-          {/* Actual */}
-          <View style={styles.timeColumn}>
-            <Text style={styles.timeLabel}>Actual</Text>
-            <Text style={styles.timeValue}>
-              {formatTime(entry.clockInTime)} - {formatTime(entry.clockOutTime)}
+          {/* Status Badge */}
+          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+            <Ionicons name={statusConfig.icon} size={14} color={statusConfig.color} />
+            <Text style={[styles.statusText, { color: statusConfig.color }]}>
+              {statusConfig.label}
             </Text>
           </View>
         </View>
 
-        {/* Hours & Variance */}
-        <View style={styles.hoursRow}>
-          <View style={styles.hoursItem}>
-            <Text style={styles.hoursLabel}>Hours</Text>
-            <Text style={styles.hoursValue}>{entry.hours.toFixed(1)}h</Text>
+        {/* Shift Times Section */}
+        <View style={styles.timesSection}>
+          {/* Scheduled Time */}
+          <View style={styles.timeBlock}>
+            <View style={styles.timeLabelRow}>
+              <Ionicons name="calendar-outline" size={14} color="#6b7280" />
+              <Text style={styles.timeLabel}>Scheduled</Text>
+            </View>
+            <Text style={styles.timeValue}>
+              {formatTimeRange(entry.shiftStart, entry.shiftEnd)}
+            </Text>
           </View>
-          {varianceDisplay && (
-            <View style={styles.hoursItem}>
-              <Text style={styles.hoursLabel}>Variance</Text>
-              <Text style={[styles.varianceValue, { color: varianceDisplay.color }]}>
-                {varianceDisplay.text}
-              </Text>
+
+          {/* Actual Time - only show if shift has started */}
+          {!hasNotStarted && (
+            <View style={styles.timeBlock}>
+              <View style={styles.timeLabelRow}>
+                <Ionicons name="time-outline" size={14} color="#6b7280" />
+                <Text style={styles.timeLabel}>Actual</Text>
+              </View>
+              {hasClockData ? (
+                <Text style={styles.timeValue}>
+                  {formatTimeRange(entry.clockInTime, entry.clockOutTime)}
+                </Text>
+              ) : (
+                <Text style={styles.noDataText}>
+                  {isInProgress ? 'Not clocked in' : 'No clock data'}
+                </Text>
+              )}
             </View>
           )}
         </View>
 
-        {/* Flags */}
-        {hasFlags && (
-          <View style={styles.flagsContainer}>
-            {entry.flags.map((flag, index) => (
-              <View key={index} style={styles.flagBadge}>
-                <Ionicons name="warning-outline" size={12} color="#ef4444" />
-                <Text style={styles.flagText}>{flag}</Text>
+        {/* Hours & Variance Row - only for completed shifts */}
+        {!hasNotStarted && (
+          <View style={styles.metricsRow}>
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Hours</Text>
+              <Text style={styles.metricValue}>
+                {entry.hours > 0 ? `${entry.hours.toFixed(1)}h` : '—'}
+              </Text>
+            </View>
+            
+            {varianceDisplay && (
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>Variance</Text>
+                <View style={styles.varianceContainer}>
+                  <Ionicons 
+                    name={varianceDisplay.isPositive ? 'arrow-up' : 'arrow-down'} 
+                    size={12} 
+                    color={varianceDisplay.color} 
+                  />
+                  <Text style={[styles.varianceValue, { color: varianceDisplay.color }]}>
+                    {varianceDisplay.text}
+                  </Text>
+                </View>
               </View>
-            ))}
+            )}
+            
+            {isNoShow && (
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>Status</Text>
+                <Text style={[styles.metricValue, { color: '#f59e0b' }]}>No Show</Text>
+              </View>
+            )}
           </View>
         )}
 
         {/* Notes */}
         {entry.notes && (
           <View style={styles.notesContainer}>
-            <Text style={styles.notesText}>{entry.notes}</Text>
+            <Ionicons name="document-text-outline" size={14} color="#6b7280" />
+            <Text style={styles.notesText} numberOfLines={2}>{entry.notes}</Text>
           </View>
         )}
 
-        {/* Actions */}
+        {/* Actions - different based on shift state */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
-            <Ionicons name="create-outline" size={18} color="#6366f1" />
-            <Text style={styles.actionText}>Edit</Text>
-          </TouchableOpacity>
+          {hasNotStarted ? (
+            // Upcoming shift - limited actions
+            <View style={styles.upcomingMessage}>
+              <Ionicons name="information-circle-outline" size={16} color="#3b82f6" />
+              <Text style={styles.upcomingText}>Shift starts at {formatTime(entry.shiftStart)}</Text>
+            </View>
+          ) : (
+            // Completed/In-progress shift - full actions
+            <>
+              <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
+                <Ionicons name="create-outline" size={18} color="#6366f1" />
+                <Text style={styles.actionText}>Edit</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={onFlag}>
-            <Ionicons
-              name={entry.status === 'FLAGGED' ? 'flag' : 'flag-outline'}
-              size={18}
-              color={entry.status === 'FLAGGED' ? '#ef4444' : '#6366f1'}
-            />
-            <Text style={[
-              styles.actionText,
-              entry.status === 'FLAGGED' && { color: '#ef4444' }
-            ]}>
-              {entry.status === 'FLAGGED' ? 'Unflag' : 'Flag'}
-            </Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton} onPress={onFlag}>
+                <Ionicons
+                  name={entry.status === 'FLAGGED' ? 'flag' : 'flag-outline'}
+                  size={18}
+                  color={entry.status === 'FLAGGED' ? '#ef4444' : '#6b7280'}
+                />
+                <Text style={[
+                  styles.actionText,
+                  { color: entry.status === 'FLAGGED' ? '#ef4444' : '#6b7280' }
+                ]}>
+                  {entry.status === 'FLAGGED' ? 'Unflag' : 'Flag'}
+                </Text>
+              </TouchableOpacity>
 
-          {entry.status !== 'APPROVED' && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.approveButton]}
-              onPress={onApprove}
-            >
-              <Ionicons name="checkmark" size={18} color="#ffffff" />
-              <Text style={styles.approveText}>Approve</Text>
-            </TouchableOpacity>
+              {entry.status !== 'APPROVED' && (
+                <TouchableOpacity
+                  style={styles.approveButton}
+                  onPress={onApprove}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="#ffffff" />
+                  <Text style={styles.approveText}>Approve</Text>
+                </TouchableOpacity>
+              )}
+              
+              {entry.status === 'APPROVED' && (
+                <View style={styles.approvedBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color="#22c55e" />
+                  <Text style={styles.approvedText}>Approved</Text>
+                </View>
+              )}
+            </>
           )}
         </View>
       </View>
@@ -208,18 +306,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 16,
     marginHorizontal: 16,
-    marginVertical: 8,
+    marginVertical: 6,
     flexDirection: 'row',
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
   selectedContainer: {
     borderWidth: 2,
     borderColor: '#6366f1',
+  },
+  upcomingContainer: {
+    opacity: 0.85,
   },
   statusBar: {
     width: 4,
@@ -231,8 +332,8 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   employeeInfo: {
     flexDirection: 'row',
@@ -240,22 +341,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   avatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#e5e7eb',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontWeight: '700',
   },
   nameContainer: {
     marginLeft: 12,
@@ -266,90 +365,101 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1f2937',
   },
-  employeeEmail: {
+  roleText: {
     fontSize: 12,
     color: '#6b7280',
     marginTop: 2,
   },
-  checkbox: {
-    padding: 4,
-  },
-  timesRow: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  timesSection: {
     backgroundColor: '#f9fafb',
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
+    gap: 10,
   },
-  timeColumn: {
-    flex: 1,
+  timeBlock: {
+    gap: 4,
+  },
+  timeLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   timeLabel: {
-    fontSize: 10,
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  timeValue: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#1f2937',
-  },
-  hoursRow: {
-    flexDirection: 'row',
-    marginBottom: 12,
-  },
-  hoursItem: {
-    marginRight: 24,
-  },
-  hoursLabel: {
     fontSize: 11,
     color: '#6b7280',
+    fontWeight: '500',
+    textTransform: 'uppercase',
   },
-  hoursValue: {
-    fontSize: 16,
-    fontWeight: '600',
+  timeValue: {
+    fontSize: 14,
+    fontWeight: '500',
     color: '#1f2937',
+    marginLeft: 20,
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginLeft: 20,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    gap: 24,
+  },
+  metricItem: {
+    gap: 2,
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  metricValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1f2937',
+  },
+  varianceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   varianceValue: {
     fontSize: 16,
-    fontWeight: '600',
-  },
-  flagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 12,
-  },
-  flagBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef2f2',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 8,
-    marginBottom: 4,
-  },
-  flagText: {
-    fontSize: 11,
-    color: '#ef4444',
-    marginLeft: 4,
+    fontWeight: '700',
   },
   notesContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     backgroundColor: '#f9fafb',
     borderRadius: 8,
     padding: 10,
     marginBottom: 12,
+    gap: 8,
   },
   notesText: {
+    flex: 1,
     fontSize: 12,
     color: '#6b7280',
-    fontStyle: 'italic',
+    lineHeight: 18,
   },
   actionsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
     paddingTop: 12,
@@ -359,24 +469,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
     paddingVertical: 6,
+    gap: 4,
   },
   actionText: {
     fontSize: 13,
-    color: '#6366f1',
     fontWeight: '500',
-    marginLeft: 4,
+    color: '#6b7280',
   },
   approveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#22c55e',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
     marginLeft: 'auto',
+    gap: 4,
   },
   approveText: {
     fontSize: 13,
     color: '#ffffff',
     fontWeight: '600',
-    marginLeft: 4,
+  },
+  approvedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 'auto',
+    gap: 4,
+  },
+  approvedText: {
+    fontSize: 13,
+    color: '#22c55e',
+    fontWeight: '600',
+  },
+  upcomingMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  upcomingText: {
+    fontSize: 13,
+    color: '#3b82f6',
+    fontWeight: '500',
   },
 });

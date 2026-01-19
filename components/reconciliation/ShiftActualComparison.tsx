@@ -84,6 +84,7 @@ export default function ShiftActualComparison({
 }: ShiftActualComparisonProps) {
   const hasActual = !!actual;
   const employeeName = getEmployeeDisplayName(shift.employee?.User);
+  const shiftHasStarted = new Date() >= new Date(shift.startTime);
   
   const statusConfig = {
     PENDING: { icon: Clock, color: 'amber', label: 'Pending' },
@@ -250,7 +251,9 @@ export default function ShiftActualComparison({
             <div className="flex flex-col items-center justify-center h-24 text-center space-y-2">
               <XCircle className="w-8 h-8 text-rose-400 mb-2" />
               <p className="text-sm font-medium text-rose-600 dark:text-rose-400">No clock entry</p>
-              <p className="text-xs text-muted-foreground">Employee did not clock in</p>
+              <p className="text-xs text-muted-foreground">
+                {shiftHasStarted ? 'Employee did not clock in' : 'Shift has not yet started'}
+              </p>
               {onAddEntry && (
                 <Button
                   size="sm"

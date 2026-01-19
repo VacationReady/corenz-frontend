@@ -2006,9 +2006,9 @@ export default function AddEmployeeModal({
                         <Select
                           open={isManagerSelectOpen}
                           onOpenChange={handleManagerOpenChange}
-                          value={formData.managerId || undefined}
+                          value={formData.managerId || "none"}
                           onValueChange={(value: string) =>
-                            setFormData({ ...formData, managerId: value })
+                            setFormData({ ...formData, managerId: value === "none" ? undefined : value })
                           }
                         >
                           <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
@@ -2032,7 +2032,7 @@ export default function AddEmployeeModal({
                               </div>
                             ) : (
                               <>
-                                <SelectItem value="">
+                                <SelectItem value="none">
                                   <span className="text-muted-foreground">No Manager</span>
                                 </SelectItem>
                                 {managerOptions.length === 0 ? (

@@ -12,64 +12,65 @@ interface StatsOverviewProps {
 }
 
 export function StatsOverview({ stats }: StatsOverviewProps) {
+  // Calculate no-show count (total - matched)
+  const noShowCount = Math.max(0, stats.totalEntries - stats.matchedCount - stats.approvedCount);
+  
   return (
     <View style={styles.container}>
-      <View style={styles.row}>
-        {/* Pending */}
-        <View style={styles.statCard}>
-          <View style={[styles.iconContainer, { backgroundColor: '#fef3c7' }]}>
-            <Ionicons name="time-outline" size={20} color="#f59e0b" />
-          </View>
-          <Text style={styles.statValue}>{stats.pendingCount}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+      {/* Main Stats Header */}
+      <View style={styles.headerRow}>
+        <View style={styles.totalShifts}>
+          <Text style={styles.totalValue}>{stats.totalEntries}</Text>
+          <Text style={styles.totalLabel}>Total Shifts</Text>
+        </View>
+        <View style={styles.hoursDisplay}>
+          <Ionicons name="time" size={16} color="#6366f1" />
+          <Text style={styles.hoursText}>{stats.totalHours.toFixed(1)}h scheduled</Text>
+        </View>
+      </View>
+      
+      {/* Status Breakdown */}
+      <View style={styles.statusRow}>
+        {/* Needs Review */}
+        <View style={styles.statusItem}>
+          <View style={[styles.statusDot, { backgroundColor: '#f59e0b' }]} />
+          <Text style={styles.statusValue}>{stats.pendingCount}</Text>
+          <Text style={styles.statusLabel}>Review</Text>
         </View>
 
         {/* Flagged */}
-        <View style={styles.statCard}>
-          <View style={[styles.iconContainer, { backgroundColor: '#fef2f2' }]}>
-            <Ionicons name="flag-outline" size={20} color="#ef4444" />
+        {stats.flaggedCount > 0 && (
+          <View style={styles.statusItem}>
+            <View style={[styles.statusDot, { backgroundColor: '#ef4444' }]} />
+            <Text style={styles.statusValue}>{stats.flaggedCount}</Text>
+            <Text style={styles.statusLabel}>Flagged</Text>
           </View>
-          <Text style={styles.statValue}>{stats.flaggedCount}</Text>
-          <Text style={styles.statLabel}>Flagged</Text>
-        </View>
+        )}
 
-        {/* Matched */}
-        <View style={styles.statCard}>
-          <View style={[styles.iconContainer, { backgroundColor: '#eef2ff' }]}>
-            <Ionicons name="link-outline" size={20} color="#6366f1" />
-          </View>
-          <Text style={styles.statValue}>{stats.matchedCount}</Text>
-          <Text style={styles.statLabel}>Matched</Text>
+        {/* Matched/Clocked */}
+        <View style={styles.statusItem}>
+          <View style={[styles.statusDot, { backgroundColor: '#6366f1' }]} />
+          <Text style={styles.statusValue}>{stats.matchedCount}</Text>
+          <Text style={styles.statusLabel}>Clocked</Text>
         </View>
 
         {/* Approved */}
-        <View style={styles.statCard}>
-          <View style={[styles.iconContainer, { backgroundColor: '#dcfce7' }]}>
-            <Ionicons name="checkmark-circle-outline" size={20} color="#22c55e" />
-          </View>
-          <Text style={styles.statValue}>{stats.approvedCount}</Text>
-          <Text style={styles.statLabel}>Approved</Text>
+        <View style={styles.statusItem}>
+          <View style={[styles.statusDot, { backgroundColor: '#22c55e' }]} />
+          <Text style={styles.statusValue}>{stats.approvedCount}</Text>
+          <Text style={styles.statusLabel}>Approved</Text>
         </View>
       </View>
 
-      {/* Hours Summary */}
-      <View style={styles.hoursRow}>
-        <View style={styles.hoursItem}>
-          <Text style={styles.hoursLabel}>Total Hours</Text>
-          <Text style={styles.hoursValue}>{stats.totalHours.toFixed(1)}h</Text>
+      {/* Variance indicator if significant */}
+      {stats.varianceHours > 0.5 && (
+        <View style={styles.varianceRow}>
+          <Ionicons name="analytics-outline" size={14} color="#6b7280" />
+          <Text style={styles.varianceText}>
+            {stats.varianceHours.toFixed(1)}h total variance from scheduled
+          </Text>
         </View>
-        {stats.varianceHours !== 0 && (
-          <View style={styles.hoursItem}>
-            <Text style={styles.hoursLabel}>Variance</Text>
-            <Text style={[
-              styles.hoursValue,
-              { color: stats.varianceHours > 0 ? '#22c55e' : '#ef4444' }
-            ]}>
-              {stats.varianceHours > 0 ? '+' : ''}{stats.varianceHours.toFixed(1)}h
-            </Text>
-          </View>
-        )}
-      </View>
+      )}
     </View>
   );
 }
@@ -78,7 +79,8 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#ffffff',
     marginHorizontal: 16,
-    marginTop: 16,
+    marginTop: 12,
+    marginBottom: 8,
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
@@ -87,52 +89,77 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  row: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  statCard: {
-    flex: 1,
     alignItems: 'center',
+    marginBottom: 16,
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
+  totalShifts: {
+    alignItems: 'flex-start',
   },
-  statValue: {
-    fontSize: 20,
+  totalValue: {
+    fontSize: 32,
     fontWeight: '700',
     color: '#1f2937',
   },
-  statLabel: {
-    fontSize: 11,
+  totalLabel: {
+    fontSize: 13,
     color: '#6b7280',
-    marginTop: 2,
+    fontWeight: '500',
   },
-  hoursRow: {
+  hoursDisplay: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 16,
+    alignItems: 'center',
+    backgroundColor: '#eef2ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  hoursText: {
+    fontSize: 13,
+    color: '#6366f1',
+    fontWeight: '600',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
   },
-  hoursItem: {
+  statusItem: {
     alignItems: 'center',
-    marginHorizontal: 24,
+    gap: 4,
   },
-  hoursLabel: {
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1f2937',
+  },
+  statusLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  varianceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    gap: 6,
+  },
+  varianceText: {
     fontSize: 12,
     color: '#6b7280',
-  },
-  hoursValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginTop: 2,
   },
 });

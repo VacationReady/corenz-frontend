@@ -52,11 +52,15 @@ export async function getOnboardingStatus(employeeId: string): Promise<Onboardin
   try {
     const response = await apiFetch(`/api/onboarding/instances/${employeeId}`);
     
+    // 404 means no active onboarding - this is normal for most employees
+    if (response.status === 404) {
+      return { hasOnboarding: false, isComplete: true };
+    }
+    
+    // Other non-OK responses should be handled gracefully
     if (!response.ok) {
-      if (response.status === 404) {
-        return { hasOnboarding: false, isComplete: true };
-      }
-      throw new Error('Failed to fetch onboarding status');
+      console.warn('[onboarding] Non-404 error fetching status:', response.status);
+      return { hasOnboarding: false, isComplete: true };
     }
     
     const instance: OnboardingInstance = await response.json();
@@ -77,7 +81,8 @@ export async function getOnboardingStatus(employeeId: string): Promise<Onboardin
       },
     };
   } catch (error) {
-    console.error('[onboarding] Error fetching status:', error);
+    // Network errors or other exceptions - fail gracefully
+    console.warn('[onboarding] Exception fetching status:', error);
     return { hasOnboarding: false, isComplete: true };
   }
 }

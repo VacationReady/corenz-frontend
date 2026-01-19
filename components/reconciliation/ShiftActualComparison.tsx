@@ -36,6 +36,7 @@ interface ShiftActualComparisonProps {
     startTime: Date;
     endTime: Date | null;
     hours?: number;
+    isActive?: boolean; // Flag for active clock-ins (clocked in but not out)
   } | null;
   variance: {
     minutes: number;
@@ -190,14 +191,16 @@ export default function ShiftActualComparison({
           <div className="flex items-center gap-2 mb-3">
             <div className={cn(
               'p-1.5 rounded-lg',
-              hasActual ? 'bg-emerald-500/10' : 'bg-rose-500/10'
+              hasActual ? (actual?.isActive ? 'bg-emerald-500/20' : 'bg-emerald-500/10') : 'bg-rose-500/10'
             )}>
               <Clock className={cn(
                 'w-4 h-4',
-                hasActual ? 'text-emerald-500' : 'text-rose-500'
+                hasActual ? (actual?.isActive ? 'text-emerald-600 animate-pulse' : 'text-emerald-500') : 'text-rose-500'
               )} />
             </div>
-            <span className="text-sm font-medium text-muted-foreground">Actual</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Actual {actual?.isActive && <span className="text-emerald-600 font-medium">(Active)</span>}
+            </span>
           </div>
           
           {hasActual ? (
@@ -216,9 +219,10 @@ export default function ShiftActualComparison({
                   'text-2xl font-bold',
                   actual.endTime && Math.abs(variance.endVarianceMinutes) > 5 
                     ? 'text-amber-600 dark:text-amber-400' 
+                    : actual.isActive ? 'text-emerald-500 animate-pulse' 
                     : 'text-foreground'
                 )}>
-                  {actual.endTime ? format(actual.endTime, 'HH:mm') : '—'}
+                  {actual.endTime ? format(actual.endTime, 'HH:mm') : actual.isActive ? 'Active' : '—'}
                 </span>
               </div>
               

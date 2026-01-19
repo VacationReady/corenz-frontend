@@ -549,20 +549,8 @@ export async function getShiftsWithActualsForDay(
     let variance = { minutes: 0, type: 'NO_SHOW' as VarianceType, startVarianceMinutes: 0, endVarianceMinutes: 0 };
     let reconciliationStatus: ReconciliationStatus = 'PENDING';
 
-    if (clockEntry && clockEntry.clockOutTime) {
-      const v = calculateVariance(
-        shift.startTime,
-        shift.endTime,
-        clockEntry.clockInTime,
-        clockEntry.clockOutTime
-      );
-      variance = {
-        minutes: v.minutes,
-        type: v.type,
-        startVarianceMinutes: v.startVariance,
-        endVarianceMinutes: v.endVariance,
-      };
-    } else if (timesheetEntry) {
+    if (timesheetEntry) {
+      // Prioritize timesheet entries for variance calculation
       const v = calculateVariance(
         shift.startTime,
         shift.endTime,
@@ -580,6 +568,45 @@ export async function getShiftsWithActualsForDay(
       // Also check if parent timesheet is approved (for entries that were approved before this fix)
       if (reconciliationStatus === 'PENDING' && (timesheetEntry as any).Timesheet?.approvalStatus === 'APPROVED') {
         reconciliationStatus = 'APPROVED';
+      }
+    } else if (clockEntry) {
+      // Handle clock entries (both complete and clock-in-only)
+      if (clockEntry.clockOutTime) {
+        // Complete clock entry (both in and out)
+        const v = calculateVariance(
+          shift.startTime,
+          shift.endTime,
+          clockEntry.clockInTime,
+          clockEntry.clockOutTime
+        );
+        variance = {
+          minutes: v.minutes,
+          type: v.type,
+          startVarianceMinutes: v.startVariance,
+          endVarianceMinutes: v.endVariance,
+        };
+      } else {
+        // Clock-in-only entry (active clock-in)
+        const now = new Date();
+        const startVariance = differenceInMinutes(clockEntry.clockInTime, shift.startTime);
+        
+        // Classify based on start time variance for active entries
+        let varianceType: VarianceType = 'ON_TIME';
+        if (Math.abs(startVariance) <= 5) {
+          varianceType = 'ON_TIME';
+        } else if (startVariance < -5) {
+          varianceType = 'EARLY_START';
+        } else if (startVariance > 5) {
+          varianceType = 'LATE_START';
+        }
+        
+        variance = {
+          minutes: 0, // Can't calculate total variance until clock out
+          type: varianceType,
+          startVarianceMinutes: startVariance,
+          endVarianceMinutes: 0,
+        };
+        reconciliationStatus = 'PENDING'; // Active entries are always pending
       }
     } else if (!clockEntry && !timesheetEntry) {
       // Check if shift is in the past

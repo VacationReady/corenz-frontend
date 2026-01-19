@@ -775,12 +775,13 @@ export default function ReconciliationHubPage() {
                               hours: entry.timesheetEntry.hours,
                             };
                           }
-                          // If we have a clock entry with both in and out times, use it
-                          if (entry.clockEntry?.clockInTime && entry.clockEntry?.clockOutTime) {
+                          // If we have a clock entry (complete or clock-in-only), use it
+                          if (entry.clockEntry?.clockInTime) {
                             return {
                               startTime: entry.clockEntry.clockInTime,
-                              endTime: entry.clockEntry.clockOutTime,
+                              endTime: entry.clockEntry.clockOutTime || null, // null for active clock-ins
                               hours: undefined,
+                              isActive: !entry.clockEntry.clockOutTime, // Flag for active clock-ins
                             };
                           }
                           // Otherwise, no actual data available

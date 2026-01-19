@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
 import { mapDbStepTypeToUi } from "@/lib/onboarding/mapStepType";
 import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
-import { canAccessEmployee, hasPermission } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
+import { getMobileSession } from "@/lib/mobile-session";
 
 export async function GET(
   req: NextRequest,
   context: any,
 ) {
-  // 🔒 Authentication check
-  const session = await auth();
+  // 🔒 Authentication check - supports both web (NextAuth) and mobile (JWT token)
+  const session = await getMobileSession(req);
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -1,7 +1,6 @@
 // app/api/onboarding/step/[stepId]/complete/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
 import { validateIRDNumber } from "@/lib/payroll/validators";
@@ -9,6 +8,7 @@ import { isValidNzBankAccountNumber, normalizeBankAccountNumber } from "@/lib/ut
 import { validatePhone, validateEmail } from "@/lib/validators";
 import { canAccessEmployee } from "@/lib/permissions";
 import { logStepChange } from "@/lib/onboarding/audit-logger";
+import { getMobileSession } from "@/lib/mobile-session";
 import type { OnboardingStepType } from "@prisma/client";
 
 type CompletionPayload = Record<string, unknown>;
@@ -744,7 +744,8 @@ export async function POST(
   const { stepId } = rawParams?.then ? await rawParams : rawParams;
   const body = await parseBody(request);
 
-  const session = await auth();
+  // 🔒 Authentication check - supports both web (NextAuth) and mobile (JWT token)
+  const session = await getMobileSession(request);
 
   if (!session?.user?.companyId || !session.user.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

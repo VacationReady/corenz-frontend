@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
-// GET a single form by ID
+// GET a single form by ID - supports both web and mobile authentication
 export async function GET(
-  _: NextRequest,
+  req: NextRequest,
   context: any,
 ) {
   const rawParams = context?.params;
   const { id } = rawParams?.then ? await rawParams : rawParams;
-  const session = await auth();
+  
+  // 🔒 Authentication check - supports both web (NextAuth) and mobile (JWT token)
+  const session = await getMobileSession(req);
 
   if (!session?.user?.companyId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

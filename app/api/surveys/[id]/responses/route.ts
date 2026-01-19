@@ -4,7 +4,6 @@ import { getMobileSession } from "@/lib/mobile-session";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { analyzeIndividualResponse } from "@/lib/ai/survey-analyzer";
 import { anonymizeEmployeeData, getAnonymizationLevel } from "@/lib/survey-anonymization";
 
 const submitResponseSchema = z.object({
@@ -228,50 +227,9 @@ export async function POST(
       });
     }
 
-    // Trigger AI analysis for the new response (async, don't wait)
-    try {
-      // Get additional employee details for AI analysis
-      const employeeDetails = await prisma.employee.findUnique({
-        where: { id: employee.id },
-        include: {
-          User: {
-            select: {
-              firstName: true,
-              lastName: true
-            }
-          },
-          Department: {
-            select: { name: true }
-          },
-          JobRole: {
-            select: { name: true }
-          }
-        }
-      });
-
-      if (employeeDetails && employeeDetails.User) {
-        const firstName = employeeDetails.User.firstName || '';
-        const lastName = employeeDetails.User.lastName || '';
-        const employeeName = `${firstName} ${lastName}`.trim() || 'Unknown';
-        
-        const responseData = {
-          employeeId: employeeDetails.id,
-          employeeName,
-          department: employeeDetails.Department?.name || 'Unknown',
-          position: employeeDetails.JobRole?.name || 'Unknown',
-          responseData: validatedData.responseData,
-          submittedAt: response.submittedAt.toISOString()
-        };
-
-        // Run AI analysis in background (don't await to avoid blocking response)
-        analyzeIndividualResponse(id, responseData).catch(error => {
-          console.error("Background AI analysis failed:", error);
-        });
-      }
-    } catch (aiError) {
-      console.error("Error preparing AI analysis:", aiError);
-      // Don't fail the response submission if AI analysis fails
-    }
+    // AI analysis temporarily disabled due to OpenAI package compatibility issues with Turbopack
+    // TODO: Re-enable when OpenAI package is fixed or use a separate worker/queue for AI analysis
+    // The survey response is saved successfully without AI analysis
 
     return NextResponse.json({ 
       response,

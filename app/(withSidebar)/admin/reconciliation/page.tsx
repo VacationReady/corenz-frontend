@@ -802,6 +802,42 @@ export default function ReconciliationHubPage() {
                       {/* Actions */}
                       {entry.timesheetEntry && (
                         <div className="mt-2 flex justify-end gap-2">
+                          {/* Direct Approve button for pending entries */}
+                          {entry.reconciliationStatus !== 'APPROVED' && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch('/api/reconciliation/approve', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ entryId: entry.timesheetEntry!.id }),
+                                  });
+                                  if (!response.ok) throw new Error('Failed to approve');
+                                  
+                                  toast({
+                                    title: 'Success',
+                                    description: 'Timesheet entry approved successfully',
+                                  });
+                                  
+                                  await fetchDayData(selectedDate);
+                                  await fetchStats();
+                                } catch (error) {
+                                  toast({
+                                    title: 'Error',
+                                    description: 'Failed to approve entry',
+                                    variant: 'destructive',
+                                  });
+                                }
+                              }}
+                              className="h-9 bg-emerald-500 hover:bg-emerald-600 text-white font-medium min-w-[100px]"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Approve
+                            </Button>
+                          )}
+                          
                           {/* Link to Shift button - show when entry is not linked to a shift */}
                           {!entry.timesheetEntry.shiftId && entry.shift.employeeId && (
                             <Button

@@ -223,10 +223,10 @@ export default function ReconciliationActions({
           >
             <Button
               size="sm"
-              variant="outline"
+              variant="default"
               onClick={handleApprove}
               disabled={loading === 'approve'}
-              className="h-9 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+              className="h-9 bg-emerald-500 hover:bg-emerald-600 text-white font-medium min-w-[100px]"
             >
               {loading === 'approve' ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

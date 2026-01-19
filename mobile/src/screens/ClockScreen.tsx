@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,10 +52,20 @@ export default function ClockScreen() {
     // Auto-sync every minute
     const syncInterval = setInterval(autoSync, 60000);
 
+    // Handle app state changes
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        // App came to foreground, refresh status and check online status
+        loadStatus();
+        checkOnlineStatus();
+      }
+    });
+
     return () => {
       clearInterval(timeInterval);
       clearInterval(statusInterval);
       clearInterval(syncInterval);
+      subscription?.remove();
     };
   }, []);
 

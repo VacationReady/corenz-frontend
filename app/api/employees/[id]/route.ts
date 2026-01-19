@@ -273,16 +273,18 @@ export async function DELETE(
         
         // Delete action items for these employee documents
         const employeeDocIds = employeeDocs.map(doc => doc.id);
-        await tx.actionItem.deleteMany({
-          where: {
-            companyId,
-            type: { in: ["DOCUMENT_ACKNOWLEDGEMENT", "DOCUMENT_SIGNATURE"] },
-            metadata: {
-              path: ["documentId"],
-              in: employeeDocIds,
+        for (const docId of employeeDocIds) {
+          await tx.actionItem.deleteMany({
+            where: {
+              companyId,
+              type: { in: ["DOCUMENT_ACKNOWLEDGEMENT", "DOCUMENT_SIGNATURE"] },
+              metadata: {
+                path: ["documentId"],
+                equals: docId,
+              },
             },
-          },
-        });
+          });
+        }
       }
       await tx.document.deleteMany({ where: { employeeId } });
 
@@ -341,16 +343,18 @@ export async function DELETE(
           
           // Delete action items for these company documents
           const companyDocIds = companyDocs.map(doc => doc.id);
-          await tx.actionItem.deleteMany({
-            where: {
-              companyId,
-              type: { in: ["DOCUMENT_ACKNOWLEDGEMENT", "DOCUMENT_SIGNATURE"] },
-              metadata: {
-                path: ["documentId"],
-                in: companyDocIds,
+          for (const docId of companyDocIds) {
+            await tx.actionItem.deleteMany({
+              where: {
+                companyId,
+                type: { in: ["DOCUMENT_ACKNOWLEDGEMENT", "DOCUMENT_SIGNATURE"] },
+                metadata: {
+                  path: ["documentId"],
+                  equals: docId,
+                },
               },
-            },
-          });
+            });
+          }
         }
         await tx.document.deleteMany({ where: { uploaderId: userId, employeeId: null } });
       }

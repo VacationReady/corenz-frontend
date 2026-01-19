@@ -321,17 +321,19 @@ async function testEmployeeDeletionAPI(prisma, testCompany, testUser) {
     });
     
     if (employeeDocs.length) {
-      const employeeDocIds = employeeDocs.map(doc => doc.id);
-      await tx.actionItem.deleteMany({
-        where: {
-          companyId,
-          type: { in: ["DOCUMENT_ACKNOWLEDGEMENT", "DOCUMENT_SIGNATURE"] },
-          metadata: {
-            path: ["documentId"],
-            in: employeeDocIds,
+      // Delete action items for each document individually
+      for (const doc of employeeDocs) {
+        await tx.actionItem.deleteMany({
+          where: {
+            companyId,
+            type: { in: ["DOCUMENT_ACKNOWLEDGEMENT", "DOCUMENT_SIGNATURE"] },
+            metadata: {
+              path: ["documentId"],
+              equals: doc.id,
+            },
           },
-        },
-      });
+        });
+      }
     }
     await tx.document.deleteMany({ where: { employeeId } });
 
@@ -342,17 +344,19 @@ async function testEmployeeDeletionAPI(prisma, testCompany, testUser) {
     });
     
     if (companyDocs.length) {
-      const companyDocIds = companyDocs.map(doc => doc.id);
-      await tx.actionItem.deleteMany({
-        where: {
-          companyId,
-          type: { in: ["DOCUMENT_ACKNOWLEDGEMENT", "DOCUMENT_SIGNATURE"] },
-          metadata: {
-            path: ["documentId"],
-            in: companyDocIds,
+      // Delete action items for each document individually
+      for (const doc of companyDocs) {
+        await tx.actionItem.deleteMany({
+          where: {
+            companyId,
+            type: { in: ["DOCUMENT_ACKNOWLEDGEMENT", "DOCUMENT_SIGNATURE"] },
+            metadata: {
+              path: ["documentId"],
+              equals: doc.id,
+            },
           },
-        },
-      });
+        });
+      }
     }
     await tx.document.deleteMany({ where: { uploaderId: userId, employeeId: null } });
 

@@ -83,24 +83,7 @@ export default function ModernSignatureCapture({
 
   return (
     <div className="space-y-6">
-      {/* NZ Compliance Notice */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 border border-blue-200"
-      >
-        <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-900">
-          <p className="font-medium mb-1">Legally Binding Signature</p>
-          <p className="text-blue-700">
-            By signing electronically, you agree that your electronic signature identifies you,
-            indicates your approval of this document, and constitutes your consent to conduct
-            this transaction electronically. Your electronic signature will have the same legal
-            effect as a handwritten signature under New Zealand law.
-          </p>
-        </div>
-      </motion.div>
-
+      
       {/* Method Selector - Modern Pills */}
       <div className="flex gap-2 p-1.5 bg-gray-100 rounded-xl">
         <motion.button

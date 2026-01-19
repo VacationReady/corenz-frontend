@@ -464,24 +464,7 @@ export default function ModernDocumentPreview({
                   </motion.div>
                 )}
 
-                {doc.requiresSignature && signed && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200"
-                  >
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                    <div className="text-sm">
-                      <p className="font-medium text-emerald-900">
-                        Successfully signed on {ackDate?.toLocaleDateString("en-NZ")}
-                      </p>
-                      <p className="text-emerald-700 text-xs mt-0.5">
-                        Your signature is legally binding and securely stored
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
+                              </div>
             </div>
           </motion.div>
         </>

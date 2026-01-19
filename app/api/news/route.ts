@@ -318,7 +318,8 @@ async function getHandler(req: NextRequest) {
 
   const audienceWhereClause = buildAudienceFilter();
 
-  // Ensure drafts are never shown in public feed (publishedAt must be not null AND in the past)
+  // Always filter out drafts for public news feed (publishedAt must be not null AND in the past)
+  // This applies to ALL users including admins - drafts should only be visible in management interface
   const publishedFilter = {
     publishedAt: {
       not: null,
@@ -326,11 +327,9 @@ async function getHandler(req: NextRequest) {
     },
   };
 
-  const whereClause = isAdmin
-    ? baseWhereClause
-    : {
-        AND: [baseWhereClause, publishedFilter, audienceWhereClause],
-      } as any;
+  const whereClause = {
+    AND: [baseWhereClause, publishedFilter, audienceWhereClause],
+  } as any;
 
   // Get total count for pagination
   const totalCount = await prisma.newsPost.count({

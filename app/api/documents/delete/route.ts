@@ -58,6 +58,28 @@ export async function DELETE(req: Request) {
 
     // Delete related records first, then delete the document
     await prisma.$transaction([
+      // Delete action items for document acknowledgements
+      prisma.actionItem.deleteMany({
+        where: {
+          companyId: session.user.companyId,
+          type: "DOCUMENT_ACKNOWLEDGEMENT",
+          metadata: {
+            path: ["documentId"],
+            equals: doc.id,
+          },
+        },
+      }),
+      // Delete action items for document signatures
+      prisma.actionItem.deleteMany({
+        where: {
+          companyId: session.user.companyId,
+          type: "DOCUMENT_SIGNATURE",
+          metadata: {
+            path: ["documentId"],
+            equals: doc.id,
+          },
+        },
+      }),
       prisma.documentSignatureArtifact.deleteMany({
         where: { documentId: doc.id },
       }),

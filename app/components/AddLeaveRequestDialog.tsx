@@ -599,7 +599,7 @@ export default function AddLeaveRequestDialog({
                           <SelectValue placeholder="Select Leave Type" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.filter(c => !c.name.toLowerCase().includes('sick')).map((category) => {
+                          {categories.filter(c => !c.name.toLowerCase().includes('sick')).sort((a, b) => a.name.localeCompare(b.name)).map((category) => {
                             const Icon = getEventCategoryIcon(category.iconKey);
                             return (
                               <SelectItem key={category.id} value={category.id}>

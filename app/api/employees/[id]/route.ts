@@ -266,10 +266,23 @@ export async function DELETE(
       // Documents: delete only those attached to this employee
       const employeeDocs = await tx.document.findMany({
         where: { employeeId },
-        select: { path: true },
+        select: { id: true, path: true },
       });
       if (employeeDocs.length) {
         pathsToRemove.push(...employeeDocs.map((doc) => doc.path));
+        
+        // Delete action items for these employee documents
+        const employeeDocIds = employeeDocs.map(doc => doc.id);
+        await tx.actionItem.deleteMany({
+          where: {
+            companyId,
+            type: { in: ["DOCUMENT_ACKNOWLEDGEMENT", "DOCUMENT_SIGNATURE"] },
+            metadata: {
+              path: ["documentId"],
+              in: employeeDocIds,
+            },
+          },
+        });
       }
       await tx.document.deleteMany({ where: { employeeId } });
 
@@ -321,9 +334,24 @@ export async function DELETE(
         // As a last resort, delete company-level docs by this user (we already removed employee-specific docs above)
         const companyDocs = await tx.document.findMany({
           where: { uploaderId: userId, employeeId: null },
-          select: { path: true },
+          select: { id: true, path: true },
         });
-        if (companyDocs.length) pathsToRemove.push(...companyDocs.map((d) => d.path));
+        if (companyDocs.length) {
+          pathsToRemove.push(...companyDocs.map((d) => d.path));
+          
+          // Delete action items for these company documents
+          const companyDocIds = companyDocs.map(doc => doc.id);
+          await tx.actionItem.deleteMany({
+            where: {
+              companyId,
+              type: { in: ["DOCUMENT_ACKNOWLEDGEMENT", "DOCUMENT_SIGNATURE"] },
+              metadata: {
+                path: ["documentId"],
+                in: companyDocIds,
+              },
+            },
+          });
+        }
         await tx.document.deleteMany({ where: { uploaderId: userId, employeeId: null } });
       }
 

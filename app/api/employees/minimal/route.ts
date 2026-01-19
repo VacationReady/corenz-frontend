@@ -74,10 +74,16 @@ export async function GET(req: Request) {
           },
         },
         Department: {
-          select: { id: true },
+          select: { 
+            id: true,
+            name: true,
+          },
         },
         JobRole: {
-          select: { id: true },
+          select: { 
+            id: true,
+            name: true,
+          },
         },
       },
       orderBy: { id: "desc" },
@@ -119,7 +125,9 @@ export async function GET(req: Request) {
         fullName: fullName || user.email || emp.id,
         email: user.email ?? null,
         departmentId: emp.Department?.id ?? null,
+        departmentName: emp.Department?.name ?? null,
         jobRoleId: emp.JobRole?.id ?? null,
+        jobRoleName: emp.JobRole?.name ?? null,
         avatar: {
           path: avatarPath,
           signedUrl: avatarSignedUrl,

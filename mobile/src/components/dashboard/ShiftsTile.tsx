@@ -119,7 +119,7 @@ export function ShiftsTile({ onPress }: ShiftsTileProps) {
           <View style={styles.shiftRow}>
             <Text style={styles.dayLabel}>Today</Text>
             {todayShift ? (
-              <Text style={styles.shiftTime}>
+              <Text style={styles.shiftTime} numberOfLines={1}>
                 {formatShiftTime(todayShift)}
               </Text>
             ) : (
@@ -131,7 +131,7 @@ export function ShiftsTile({ onPress }: ShiftsTileProps) {
           <View style={styles.shiftRow}>
             <Text style={styles.dayLabel}>Tomorrow</Text>
             {tomorrowShift ? (
-              <Text style={styles.shiftTime}>
+              <Text style={styles.shiftTime} numberOfLines={1}>
                 {formatShiftTime(tomorrowShift)}
               </Text>
             ) : (
@@ -213,11 +213,15 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 13,
     color: '#6b7280',
+    flexShrink: 0,
   },
   shiftTime: {
     fontSize: 13,
     fontWeight: '500',
     color: '#1f2937',
+    flex: 1,
+    textAlign: 'right',
+    overflow: 'hidden',
   },
   offText: {
     fontSize: 13,

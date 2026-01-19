@@ -6,6 +6,7 @@ import { sendNewsEmail } from "@/lib/news/sendNewsEmail";
 import { isEmailRateLimited, getEmailRateLimitError } from "@/lib/email-rate-limit";
 import { withFeatureGuard } from "@/lib/feature-toggles/api-guard";
 import { FEATURE_KEYS } from "@/lib/feature-toggles/types";
+import supabase from "@/lib/supabase-admin";
 
 interface Params {}
 
@@ -70,7 +71,13 @@ async function getHandler(req: NextRequest, context: any) {
       ],
     },
     take: 3,
-    include: {
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      coverImageUrl: true,
+      publishedAt: true,
+      tags: true,
       User: {
         select: {
           name: true,
@@ -105,7 +112,7 @@ async function getHandler(req: NextRequest, context: any) {
   };
 
   const transformedPost = {
-    ...mapNewsPost(post),
+    ...(await mapNewsPost(post)),
     author: {
       id: post.User.id,
       name: formatFullName(post.User),
@@ -129,18 +136,20 @@ async function getHandler(req: NextRequest, context: any) {
       )?.reaction ?? null,
   };
 
-  const transformedRelated = relatedPosts.map((p: any) => {
-    const { coverImageUrl, ...rest } = p;
+  const transformedRelated = await Promise.all(
+  relatedPosts.map(async (p: any) => {
+    const mappedPost = await mapNewsPost(p);
+    const { User, ...rest } = mappedPost;
     return {
       ...rest,
-      coverImage: coverImageUrl ?? null,
       author: {
         name: formatFullName(p.User),
         email: p.User.email,
         avatar: p.User.profileImageUrl,
       },
     };
-  });
+  })
+);
 
   return NextResponse.json({
     post: transformedPost,
@@ -240,7 +249,7 @@ async function putHandler(req: NextRequest, context: any) {
     });
   }
 
-  return NextResponse.json(mapNewsPost(updated));
+  return NextResponse.json(await mapNewsPost(updated));
 }
 
 // DELETE: Delete a news post
@@ -287,11 +296,37 @@ type NewsPostRecord = {
   coverImageUrl: string | null;
 } & Record<string, any>;
 
-function mapNewsPost<T extends NewsPostRecord>(post: T) {
+async function mapNewsPost<T extends NewsPostRecord>(post: T): Promise<Omit<T, "coverImageUrl"> & { coverImage: string | null }> {
   const { coverImageUrl, ...rest } = post;
+  let coverUrl: string | null = coverImageUrl ?? null;
+  
+  if (coverUrl) {
+    // If already a signed Supabase URL and likely expired, extract path and re-sign
+    if (/^https?:\/\//i.test(coverUrl) && coverUrl.includes("/object/sign/") && coverUrl.includes("/documents/")) {
+      try {
+        const after = coverUrl.split("/documents/")[1] || "";
+        const path = after.split("?")[0] || "";
+        if (path) {
+          const { data, error } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(path, 60 * 10);
+          if (!error) coverUrl = data?.signedUrl ?? coverUrl;
+        }
+      } catch {}
+    } else if (!/^https?:\/\//i.test(coverUrl)) {
+      // Stored as a bare path; sign it
+      try {
+        const { data, error } = await supabase.storage
+          .from("documents")
+          .createSignedUrl(coverUrl, 60 * 10);
+        if (!error) coverUrl = data?.signedUrl ?? null;
+      } catch {}
+    }
+  }
+
   return {
     ...rest,
-    coverImage: coverImageUrl ?? null,
+    coverImage: coverUrl,
   } as Omit<T, "coverImageUrl"> & { coverImage: string | null };
 }
 

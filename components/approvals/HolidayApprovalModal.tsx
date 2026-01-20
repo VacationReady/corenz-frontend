@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button";
 import { Calendar, Users, CheckCircle, XCircle, Clock, AlertTriangle, Sparkles, Mail, Building2, Palmtree, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
-import { useApi } from "@/hooks/useApi";
+import { useApi } from "@/app/hooks/useApi";
 import { cn } from "@/lib/utils";
 import { formatLeaveBalance } from "@/lib/decimalPrecision";
 
@@ -66,9 +66,13 @@ export function HolidayApprovalModal({
 }: HolidayApprovalModalProps) {
   const [processing, setProcessing] = useState(false);
 
-  // Fetch approval details using API hook
+  // Fetch approval details using API hook with optimized caching
   const { data: response, error, isLoading: loading } = useApi<{ success: boolean; data: ApprovalDetails }>(
-    decisionId && open ? `/api/approvals/${decisionId}/details` : null
+    decisionId && open ? `/api/approvals/${decisionId}/details` : null,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 300000, // 5 minutes
+    }
   );
 
   const details = response?.success ? response.data : null;

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { processDecision } from "@/lib/advanceLeaveApproval";
+import { 
+  invalidateApprovalDetailsCache,
+  invalidateDepartmentColleaguesCache
+} from "@/lib/approvalCache";
 
 export const runtime = "nodejs";
 
@@ -28,7 +32,19 @@ export async function POST(
     // Ensure decision exists and belongs to this company and user (authorization)
     const decision = await prisma.leaveApprovalDecision.findUnique({
       where: { id },
-      include: { stage: { include: { leaveRequest: true } } },
+      include: { 
+        stage: { 
+          include: { 
+            leaveRequest: {
+              include: {
+                Employee: {
+                  include: { Department: true }
+                }
+              }
+            } 
+          } 
+        } 
+      },
     });
     if (!decision) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -76,6 +92,23 @@ export async function POST(
       action,
       actorUserId: session.user.id,
     });
+
+    // Invalidate caches after successful approval/decline
+    try {
+      await invalidateApprovalDetailsCache(decision.id);
+      
+      if (decision.stage.leaveRequest.Employee.Department?.id) {
+        await invalidateDepartmentColleaguesCache(
+          session.user.companyId!,
+          decision.stage.leaveRequest.Employee.Department.id
+        );
+      }
+      
+      console.log(`[APPROVALS] Cache invalidated for decision ${decision.id}`);
+    } catch (cacheError) {
+      console.warn("[APPROVALS] Failed to invalidate cache:", cacheError);
+      // Don't fail the request if cache invalidation fails
+    }
 
     // Return the leaveRequestId we already know from the decision's stage to avoid nullable typing
     return NextResponse.json({ success: true, data: { leaveRequestId: decision.stage.leaveRequestId } });

@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
-import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
+import { calculateLeaveDeductionBatchEnhanced } from "@/lib/calculateLeaveDeductionBatchEnhanced";
 import { formatLeaveBalance, subtractWithPrecision } from "@/lib/decimalPrecision";
+import { 
+  approvalDetailsCache, 
+  departmentColleaguesCache,
+  generateApprovalDetailsCacheKey,
+  generateDepartmentColleaguesCacheKey,
+  invalidateApprovalDetailsCache
+} from "@/lib/approvalCache";
 
 export const runtime = "nodejs";
 
@@ -19,6 +26,24 @@ export async function GET(
   try {
     await ensurePrismaConnected();
     const { id } = await context.params; // LeaveApprovalDecision.id
+
+    // Check cache first
+    const cacheKey = generateApprovalDetailsCacheKey(id);
+    const cached = await approvalDetailsCache.get(cacheKey);
+    if (cached) {
+      console.log(`[APPROVAL_DETAILS] Cache hit for decision ${id}`);
+      return NextResponse.json(
+        { success: true, data: cached },
+        { 
+          status: 200,
+          headers: {
+            'Cache-Control': 'public, max-age=300, stale-while-revalidate=600'
+          }
+        }
+      );
+    }
+
+    console.log(`[APPROVAL_DETAILS] Cache miss for decision ${id}, fetching from database`);
 
     // Fetch the decision with full context
     const decision = await prisma.leaveApprovalDecision.findUnique({
@@ -88,9 +113,8 @@ export async function GET(
       },
     });
 
-    // Calculate days for this request using working pattern
+    // Calculate days for this request using batched working pattern calculation
     // Parse dates as local dates to avoid timezone shifts
-    // Prisma returns Date objects, but we need to treat them as local dates
     const startDateRaw = leaveRequest.startDate;
     const endDateRaw = leaveRequest.endDate;
     
@@ -108,32 +132,38 @@ export async function GET(
       12, 0, 0, 0
     );
     
-    console.log(`[APPROVAL_DETAILS] Date calculation:`, {
-      startDateRaw: startDateRaw.toISOString(),
-      endDateRaw: endDateRaw.toISOString(),
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      employeeId: employee.id,
-    });
-    
-    // Calculate working pattern deduction (end date is inclusive - last day away)
-    let requestedDays = 0;
-    const dayDeductions: { date: string; deduction: number }[] = [];
+    // Generate all dates in the leave period
+    const leaveDates: Date[] = [];
     for (
       let time = startDate.getTime();
       time <= endDate.getTime();
       time += 24 * 60 * 60 * 1000
     ) {
-      const currentDate = new Date(time);
-      const deduction = await calculateLeaveDeduction(employee.id, currentDate);
-      dayDeductions.push({ date: currentDate.toISOString(), deduction });
-      requestedDays += deduction;
+      leaveDates.push(new Date(time));
     }
-    // Format requestedDays to avoid floating point precision issues
-    requestedDays = formatLeaveBalance(requestedDays);
     
-    console.log(`[APPROVAL_DETAILS] Day deductions:`, dayDeductions);
-    console.log(`[APPROVAL_DETAILS] Total requestedDays:`, requestedDays);
+    console.log(`[APPROVAL_DETAILS] Batch calculation:`, {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      totalDates: leaveDates.length,
+      employeeId: employee.id,
+    });
+    
+    // Batch calculate all deductions at once
+    const deductionResults = await calculateLeaveDeductionBatchEnhanced(employee.id, leaveDates, {
+      includePublicHolidays: true,
+      companyId: session.user.companyId,
+    });
+    
+    // Sum up the total requested days
+    const requestedDays = deductionResults.reduce((sum, result) => sum + result.deduction, 0);
+    const formattedRequestedDays = formatLeaveBalance(requestedDays);
+    
+    console.log(`[APPROVAL_DETAILS] Batch results:`, {
+      totalRequestedDays: formattedRequestedDays,
+      nonWorkingDays: deductionResults.filter(r => r.isNonWorkingDay).length,
+      publicHolidays: deductionResults.filter(r => r.isPublicHoliday).length,
+    });
 
     // Calculate remaining days if approved
     const remainingDaysIfApproved = entitlement
@@ -143,74 +173,82 @@ export async function GET(
     // Find other employees in the same department who are off during these dates
     let departmentColleagues: any[] = [];
     if (employee.Department?.id) {
-      const overlappingLeaves = await prisma.leaveRequest.findMany({
-        where: {
-          companyId: session.user.companyId,
-          approvalStatus: "APPROVED",
-          Employee: {
-            departmentId: employee.Department.id,
-            id: { not: employee.id }, // Exclude the requesting employee
+      // Check cache first for department colleagues
+      const colleaguesCacheKey = generateDepartmentColleaguesCacheKey(
+        session.user.companyId,
+        employee.Department.id,
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+      
+      const cachedColleagues = await departmentColleaguesCache.get(colleaguesCacheKey);
+      if (cachedColleagues) {
+        console.log(`[APPROVAL_DETAILS] Department colleagues cache hit for ${employee.Department.name}`);
+        departmentColleagues = cachedColleagues;
+      } else {
+        console.log(`[APPROVAL_DETAILS] Department colleagues cache miss, querying database`);
+        
+        // Optimized query with only essential fields
+        const overlappingLeaves = await prisma.leaveRequest.findMany({
+          where: {
+            companyId: session.user.companyId,
+            approvalStatus: "APPROVED",
+            Employee: {
+              departmentId: employee.Department.id,
+              id: { not: employee.id }, // Exclude the requesting employee
+            },
+            OR: [
+              // Leave starts during the requested period
+              { startDate: { gte: startDate, lte: endDate } },
+              // Leave ends during the requested period  
+              { endDate: { gte: startDate, lte: endDate } },
+              // Leave spans the entire requested period
+              { AND: [{ startDate: { lte: startDate } }, { endDate: { gte: endDate }}] },
+            ],
           },
-          OR: [
-            // Leave starts during the requested period
-            {
-              startDate: {
-                gte: startDate,
-                lte: endDate,
-              },
-            },
-            // Leave ends during the requested period
-            {
-              endDate: {
-                gte: startDate,
-                lte: endDate,
-              },
-            },
-            // Leave spans the entire requested period
-            {
-              AND: [
-                { startDate: { lte: startDate } },
-                { endDate: { gte: endDate } },
-              ],
-            },
-          ],
-        },
-        include: {
-          Employee: {
-            include: {
-              User: {
-                select: {
-                  id: true,
-                  name: true,
-                  firstName: true,
-                  lastName: true,
-                  profileImageUrl: true,
+          select: {
+            Employee: {
+              select: {
+                id: true,
+                User: {
+                  select: {
+                    id: true,
+                    name: true,
+                    firstName: true,
+                    lastName: true,
+                    profileImageUrl: true,
+                  },
                 },
               },
             },
-          },
-          EventCategory: {
-            select: {
-              name: true,
-              color: true,
+            startDate: true,
+            endDate: true,
+            EventCategory: {
+              select: {
+                name: true,
+                color: true,
+              },
             },
           },
-        },
-        take: 20, // Limit to prevent huge responses
-      });
+          take: 20, // Limit to prevent huge responses
+        });
 
-      departmentColleagues = overlappingLeaves.map((leave) => ({
-        id: leave.Employee.id,
-        name:
-          leave.Employee.User.name ||
-          `${leave.Employee.User.firstName || ""} ${leave.Employee.User.lastName || ""}`.trim() ||
-          "Employee",
-        profileImagePath: leave.Employee.User.profileImageUrl,
-        startDate: leave.startDate,
-        endDate: leave.endDate,
-        leaveType: leave.EventCategory.name,
-        leaveColor: leave.EventCategory.color,
-      }));
+        departmentColleagues = overlappingLeaves.map((leave) => ({
+          id: leave.Employee.id,
+          name:
+            leave.Employee.User.name ||
+            `${leave.Employee.User.firstName || ""} ${leave.Employee.User.lastName || ""}`.trim() ||
+            "Employee",
+          profileImagePath: leave.Employee.User.profileImageUrl,
+          startDate: leave.startDate,
+          endDate: leave.endDate,
+          leaveType: leave.EventCategory.name,
+          leaveColor: leave.EventCategory.color,
+        }));
+
+        // Cache the results for 10 minutes
+        await departmentColleaguesCache.set(colleaguesCacheKey, departmentColleagues, 600);
+      }
     }
 
     // Build response
@@ -250,7 +288,7 @@ export async function GET(
       dates: {
         start: leaveRequest.startDate,
         end: leaveRequest.endDate,
-        requestedDays,
+        requestedDays: formattedRequestedDays,
       },
       balance: entitlement
         ? {
@@ -273,7 +311,18 @@ export async function GET(
       dayType: leaveRequest.dayType,
     };
 
-    return NextResponse.json({ success: true, data: response });
+    // Cache the response for 5 minutes
+    await approvalDetailsCache.set(cacheKey, response, 300);
+
+    return NextResponse.json(
+      { success: true, data: response },
+      { 
+        status: 200,
+        headers: {
+          'Cache-Control': 'public, max-age=300, stale-while-revalidate=600'
+        }
+      }
+    );
   } catch (error: any) {
     console.error("[APPROVAL_DETAILS_GET]", error);
     return NextResponse.json(

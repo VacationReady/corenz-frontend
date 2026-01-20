@@ -252,7 +252,7 @@ class MemoryCache implements CacheClient {
 /**
  * Initialize cache client based on environment
  */
-function createCacheClient(): CacheClient {
+export function createCacheClient(): CacheClient {
     const baseUrl =
         process.env.KV_REST_API_URL || 
         process.env.UPSTASH_REDIS_REST_URL ||

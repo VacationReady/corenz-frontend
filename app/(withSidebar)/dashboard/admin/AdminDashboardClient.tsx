@@ -60,6 +60,42 @@ function usePageVisibility() {
   return visible;
 }
 
+// Persistent avatar URL cache to prevent repeated fetches across component renders
+const avatarUrlCache = new Map<string, string | null>();
+const avatarCacheTimestamps = new Map<string, number>();
+const AVATAR_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+async function getCachedAvatarUrl(userId?: string | null): Promise<string | null> {
+  if (!userId) return null;
+  
+  const now = Date.now();
+  const cached = avatarUrlCache.get(userId);
+  const timestamp = avatarCacheTimestamps.get(userId) || 0;
+  
+  // Return cached URL if still valid
+  if (cached && (now - timestamp) < AVATAR_CACHE_DURATION) {
+    return cached;
+  }
+  
+  // Fetch new URL
+  try {
+    const r = await fetch(`/api/users/${encodeURIComponent(userId)}/profile-image`);
+    const j = await r.json().catch(() => ({}));
+    const url = j?.url ?? null;
+    
+    // Cache the result
+    avatarUrlCache.set(userId, url);
+    avatarCacheTimestamps.set(userId, now);
+    
+    return url;
+  } catch {
+    // Cache failure to prevent repeated attempts
+    avatarUrlCache.set(userId, null);
+    avatarCacheTimestamps.set(userId, now);
+    return null;
+  }
+}
+
 function parseCalendarDate(value: unknown): Date {
   if (value instanceof Date) return value;
   if (typeof value === "string") {
@@ -184,30 +220,16 @@ export function CompactApprovalsList({
             };
           })
           : [];
-        // Sign profile image URLs for avatars when needed
-        const signedCache = new Map<string, string>();
-        async function signByUser(userId?: string | null): Promise<string | null> {
-          if (!userId) return null;
-          if (signedCache.has(userId)) return signedCache.get(userId)!;
-          try {
-            const r = await fetch(`/api/users/${encodeURIComponent(userId)}/profile-image`);
-            const j = await r.json().catch(() => ({}));
-            const url = j?.url ?? null;
-            if (url) signedCache.set(userId, url);
-            return url;
-          } catch {
-            return null;
-          }
-        }
+        // Use persistent avatar cache instead of local cache
         // sign actor avatars for txn items
         for (const it of txnItems) {
           // Try requester id first
           if (!it.actorAvatarUrl && it.actor?.id) {
-            it.actorAvatarUrl = await signByUser(it.actor.id);
+            it.actorAvatarUrl = await getCachedAvatarUrl(it.actor.id);
           }
           // fallback: employee user id
           if (!it.actorAvatarUrl && (it.employee?.user as any)?.id) {
-            const fallback = await signByUser((it.employee?.user as any).id);
+            const fallback = await getCachedAvatarUrl((it.employee?.user as any).id);
             if (fallback) it.actorAvatarUrl = fallback;
           }
         }
@@ -235,7 +257,7 @@ export function CompactApprovalsList({
         // sign avatars for leave items using employee userId
         for (const it of normalizedLeave) {
           if (!it.actorAvatarUrl && it.employeeUserId) {
-            const url = await signByUser(it.employeeUserId);
+            const url = await getCachedAvatarUrl(it.employeeUserId);
             if (url) it.actorAvatarUrl = url;
           }
         }
@@ -255,7 +277,7 @@ export function CompactApprovalsList({
 
   useEffect(() => {
     if (!visible) return;
-    const id = window.setInterval(() => setRefreshKey((k) => k + 1), 120000);
+    const id = window.setInterval(() => setRefreshKey((k) => k + 1), 300000); // Increased from 120s to 300s
     return () => window.clearInterval(id);
   }, [visible]);
 

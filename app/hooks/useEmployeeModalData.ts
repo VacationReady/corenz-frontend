@@ -154,7 +154,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 300000, // 5 minutes - increased from 60s
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1000,
@@ -172,7 +172,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 300000, // 5 minutes - increased from 60s
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1000,
@@ -194,7 +194,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     paginatedEmployeeFetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 300000, // 5 minutes - increased from 60s
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1000,
@@ -212,7 +212,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 300000, // 5 minutes - increased from 60s
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1000,
@@ -230,7 +230,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 300000, // 5 minutes - increased from 60s
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1000,
@@ -248,7 +248,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 300000, // 5 minutes - increased from 60s
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1000,
@@ -266,7 +266,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 300000, // 5 minutes - increased from 60s
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1000,
@@ -284,7 +284,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 300000, // 5 minutes - increased from 60s
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1000,
@@ -302,7 +302,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 300000, // 5 minutes - increased from 60s
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1000,

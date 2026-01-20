@@ -9,6 +9,23 @@ import {
   useRef,
   KeyboardEvent,
 } from "react";
+
+// Debounce hook for search inputs
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -485,6 +502,17 @@ export default function AddEmployeeModal({
   const [holidayMonthSearch, setHolidayMonthSearch] = useState("");
   const [workingPatternSearch, setWorkingPatternSearch] = useState("");
 
+  // Debounced search values to prevent excessive filtering
+  const debouncedDepartmentSearch = useDebounce(departmentSearch, 300);
+  const debouncedJobRoleSearch = useDebounce(jobRoleSearch, 300);
+  const debouncedLocationSearch = useDebounce(locationSearch, 300);
+  const debouncedContractTypeSearch = useDebounce(contractTypeSearch, 300);
+  const debouncedManagerSearch = useDebounce(managerSearch, 300);
+  const debouncedTemplateSearch = useDebounce(templateSearch, 300);
+  const debouncedTaxCodeSearch = useDebounce(taxCodeSearch, 300);
+  const debouncedHolidayMonthSearch = useDebounce(holidayMonthSearch, 300);
+  const debouncedWorkingPatternSearch = useDebounce(workingPatternSearch, 300);
+
   const getEmployeeDisplayName = (emp: EmployeeSummary) =>
     (emp.firstName || emp.lastName)
       ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
@@ -494,55 +522,55 @@ export default function AddEmployeeModal({
   const departmentOptions = useMemo<Department[]>(
     () =>
       shouldShowDepartmentSearch
-        ? filterBySearch(departments, (dept) => dept?.name ?? "", departmentSearch)
+        ? filterBySearch(departments, (dept) => dept?.name ?? "", debouncedDepartmentSearch)
         : departments,
-    [departments, departmentSearch, shouldShowDepartmentSearch],
+    [departments, debouncedDepartmentSearch, shouldShowDepartmentSearch],
   );
 
   const shouldShowJobRoleSearch = jobRoles.length > 10;
   const jobRoleOptions = useMemo<JobRole[]>(
     () =>
       shouldShowJobRoleSearch
-        ? filterBySearch(jobRoles, (role) => role?.name ?? "", jobRoleSearch)
+        ? filterBySearch(jobRoles, (role) => role?.name ?? "", debouncedJobRoleSearch)
         : jobRoles,
-    [jobRoles, jobRoleSearch, shouldShowJobRoleSearch],
+    [jobRoles, debouncedJobRoleSearch, shouldShowJobRoleSearch],
   );
 
   const shouldShowLocationSearch = locations.length > 10;
   const locationOptions = useMemo<Location[]>(
     () =>
       shouldShowLocationSearch
-        ? filterBySearch(locations, (location) => location?.name ?? "", locationSearch)
+        ? filterBySearch(locations, (location) => location?.name ?? "", debouncedLocationSearch)
         : locations,
-    [locations, locationSearch, shouldShowLocationSearch],
+    [locations, debouncedLocationSearch, shouldShowLocationSearch],
   );
 
   const shouldShowContractTypeSearch = contractTypes.length > 10;
   const contractTypeOptions = useMemo<ContractType[]>(
     () =>
       shouldShowContractTypeSearch
-        ? filterBySearch(contractTypes, (type) => type?.label ?? "", contractTypeSearch)
+        ? filterBySearch(contractTypes, (type) => type?.label ?? "", debouncedContractTypeSearch)
         : contractTypes,
-    [contractTypes, contractTypeSearch, shouldShowContractTypeSearch],
+    [contractTypes, debouncedContractTypeSearch, shouldShowContractTypeSearch],
   );
 
   // Always show search for managers to make it easier to find employees
   const shouldShowManagerSearch = employees.length > 0;
   const managerOptions = useMemo<EmployeeSummary[]>(
     () =>
-      shouldShowManagerSearch && managerSearch.trim()
-        ? filterBySearch(employees, (emp) => getEmployeeDisplayName(emp), managerSearch)
+      shouldShowManagerSearch && debouncedManagerSearch.trim()
+        ? filterBySearch(employees, (emp) => getEmployeeDisplayName(emp), debouncedManagerSearch)
         : employees,
-    [employees, managerSearch, shouldShowManagerSearch],
+    [employees, debouncedManagerSearch, shouldShowManagerSearch],
   );
 
   const shouldShowWorkingPatternSearch = workingPatterns.length > 10;
   const workingPatternOptions = useMemo<WorkingPattern[]>(
     () =>
       shouldShowWorkingPatternSearch
-        ? filterBySearch(workingPatterns, (pattern) => pattern?.name ?? "", workingPatternSearch)
+        ? filterBySearch(workingPatterns, (pattern) => pattern?.name ?? "", debouncedWorkingPatternSearch)
         : workingPatterns,
-    [workingPatterns, workingPatternSearch, shouldShowWorkingPatternSearch],
+    [workingPatterns, debouncedWorkingPatternSearch, shouldShowWorkingPatternSearch],
   );
 
   // Check if selected working pattern is shift-based

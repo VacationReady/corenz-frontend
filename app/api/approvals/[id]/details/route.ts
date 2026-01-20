@@ -151,8 +151,7 @@ export async function GET(
     
     // Batch calculate all deductions at once
     const deductionResults = await calculateLeaveDeductionBatchEnhanced(employee.id, leaveDates, {
-      includePublicHolidays: true,
-      companyId: session.user.companyId,
+      prismaClient: prisma,
     });
     
     // Sum up the total requested days

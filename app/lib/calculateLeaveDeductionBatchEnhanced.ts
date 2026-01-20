@@ -14,24 +14,22 @@ interface DeductionResult {
 }
 
 /**
- * Enhanced batch version with support for public holidays and edge cases
+ * Enhanced batch version that maintains exact same logic as original calculateLeaveDeduction
  * @param employeeId - Employee ID (string)
  * @param dates - Array of dates to calculate deductions for
- * @param options - Additional options for calculation
+ * @param options - Additional options (currently unused, for future extensibility)
  * @returns Array of detailed deduction results
  */
 export async function calculateLeaveDeductionBatchEnhanced(
   employeeId: string,
   dates: Date[],
   options: {
-    includePublicHolidays?: boolean;
-    companyId?: string;
     prismaClient?: PrismaClientLike;
   } = {}
 ): Promise<DeductionResult[]> {
   if (dates.length === 0) return [];
 
-  const { includePublicHolidays = false, companyId, prismaClient = prisma } = options;
+  const { prismaClient = prisma } = options;
   const toShortDay = (name: string): string => {
     if (!name) return name;
     const normalized = name.toLowerCase();
@@ -46,7 +44,7 @@ export async function calculateLeaveDeductionBatchEnhanced(
   // Find the earliest date to use for working pattern lookup
   const earliestDate = dates.reduce((min, date) => date < min ? date : min, dates[0]);
 
-  // Fetch working pattern once for all dates
+  // Fetch working pattern once for all dates (same as original)
   const assignment = await prismaClient.employeeWorkingPatternAssignment.findFirst({
     where: { employeeId, effectiveDate: { lte: earliestDate } },
     orderBy: { effectiveDate: "desc" },
@@ -61,42 +59,17 @@ export async function calculateLeaveDeductionBatchEnhanced(
     },
   });
 
-  // Fetch public holidays if requested and companyId provided
-  let publicHolidays: { date: Date; name: string }[] = [];
-  if (includePublicHolidays && companyId) {
-    const startOfYear = new Date(earliestDate.getFullYear(), 0, 1);
-    const endOfYear = new Date(earliestDate.getFullYear(), 11, 31);
-    
-    // Type assertion to access publicHoliday model
-    const client = prismaClient as any;
-    publicHolidays = await client.publicHoliday.findMany({
-      where: {
-        companyId,
-        date: { gte: startOfYear, lte: endOfYear },
-      },
-      select: { date: true, name: true },
-    });
-  }
-
-  const publicHolidaySet = new Set(
-    publicHolidays.map(ph => ph.date.toISOString().split('T')[0])
-  );
-
   if (!assignment || !assignment.WorkingPattern) {
     console.log(
       `[Deduction Batch Enhanced] No pattern assigned for ${earliestDate.toISOString()}. Returning 1 for all dates.`
     );
-    return dates.map(date => {
-      const dateStr = date.toISOString().split('T')[0];
-      const isPublicHoliday = publicHolidaySet.has(dateStr);
-      return {
-        date: dateStr,
-        deduction: isPublicHoliday ? 0 : 1, // Don't deduct for public holidays
-        isNonWorkingDay: false,
-        isPublicHoliday,
-        notes: isPublicHoliday ? 'Public holiday' : 'Default pattern (no assignment)',
-      };
-    });
+    return dates.map(date => ({
+      date: date.toISOString().split('T')[0],
+      deduction: 1,
+      isNonWorkingDay: false,
+      isPublicHoliday: false,
+      notes: 'Default pattern (no assignment)',
+    }));
   }
 
   const workingPattern = assignment.WorkingPattern;
@@ -106,37 +79,21 @@ export async function calculateLeaveDeductionBatchEnhanced(
 
   if (weekCount === 0) {
     console.log(`[Deduction Batch Enhanced] Pattern has 0 weeks. Returning 1 for all dates.`);
-    return dates.map(date => {
-      const dateStr = date.toISOString().split('T')[0];
-      const isPublicHoliday = publicHolidaySet.has(dateStr);
-      return {
-        date: dateStr,
-        deduction: isPublicHoliday ? 0 : 1,
-        isNonWorkingDay: false,
-        isPublicHoliday,
-        notes: isPublicHoliday ? 'Public holiday' : 'Default pattern (no weeks)',
-      };
-    });
+    return dates.map(date => ({
+      date: date.toISOString().split('T')[0],
+      deduction: 1,
+      isNonWorkingDay: false,
+      isPublicHoliday: false,
+      notes: 'Default pattern (no weeks)',
+    }));
   }
 
   const sortedWeeks = weeks.sort((a, b) => a.weekNumber - b.weekNumber);
 
-  // Calculate deduction for each date
+  // Calculate deduction for each date using exact same logic as original
   return dates.map((leaveDate) => {
     const dateStr = leaveDate.toISOString().split('T')[0];
-    const isPublicHoliday = publicHolidaySet.has(dateStr);
     
-    // Skip deduction for public holidays
-    if (isPublicHoliday) {
-      return {
-        date: dateStr,
-        deduction: 0,
-        isNonWorkingDay: true,
-        isPublicHoliday: true,
-        notes: 'Public holiday',
-      };
-    }
-
     const diffInDays = Math.floor(
       (leaveDate.getTime() - firstEffectiveDate.getTime()) / (1000 * 60 * 60 * 24),
     );

@@ -67,7 +67,9 @@ export async function calculateLeaveDeductionBatchEnhanced(
     const startOfYear = new Date(earliestDate.getFullYear(), 0, 1);
     const endOfYear = new Date(earliestDate.getFullYear(), 11, 31);
     
-    publicHolidays = await prismaClient.publicHoliday.findMany({
+    // Type assertion to access publicHoliday model
+    const client = prismaClient as any;
+    publicHolidays = await client.publicHoliday.findMany({
       where: {
         companyId,
         date: { gte: startOfYear, lte: endOfYear },

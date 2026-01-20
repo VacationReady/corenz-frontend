@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button";
 import { Calendar, Users, CheckCircle, XCircle, Clock, AlertTriangle, Sparkles, Mail, Building2, Palmtree, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
-import { useApi } from "@/app/hooks/useApi";
+import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
 import { formatLeaveBalance } from "@/lib/decimalPrecision";
 
@@ -334,7 +334,7 @@ export function HolidayApprovalModal({
                     </span>
                   </div>
                   <div className="space-y-2">
-                    {details.departmentColleagues.slice(0, 3).map((colleague) => (
+                    {details.departmentColleagues.map((colleague) => (
                       <div
                         key={colleague.id}
                         className="flex items-center gap-3 p-2.5 rounded-xl bg-white/60 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50"

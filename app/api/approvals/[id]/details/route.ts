@@ -184,7 +184,7 @@ export async function GET(
       const cachedColleagues = await departmentColleaguesCache.get(colleaguesCacheKey);
       if (cachedColleagues) {
         console.log(`[APPROVAL_DETAILS] Department colleagues cache hit for ${employee.Department.name}`);
-        departmentColleagues = cachedColleagues;
+        departmentColleagues = cachedColleagues as any[];
       } else {
         console.log(`[APPROVAL_DETAILS] Department colleagues cache miss, querying database`);
         

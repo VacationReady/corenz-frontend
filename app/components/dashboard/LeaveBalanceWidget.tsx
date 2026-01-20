@@ -27,12 +27,19 @@ export default async function LeaveBalanceWidget({
 
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
-    include: { LeaveEntitlement: { include: { EventCategory: true } } },
+    include: { 
+      LeaveEntitlement: { include: { EventCategory: true } },
+      Company: true,
+    },
   });
 
   if (!employee) {
     return <div className="p-4">Employee not found for leave balances.</div>;
   }
+
+  // Check if hours-based tracking is enabled for this company
+  const companyWithConfig = employee.Company as any;
+  const showHours = companyWithConfig?.leaveHoursEnabled === true;
 
   // Fully serialize leaveEntitlements precisely for LeaveBalancePanel
   const serializedEntitlements = employee.LeaveEntitlement.map(
@@ -66,6 +73,7 @@ export default async function LeaveBalanceWidget({
       employeeId={employee.id}
       leaveEntitlements={serializedEntitlements}
       nzComplianceData={nzComplianceData}
+      showHours={showHours}
     />
   );
 }

@@ -20,12 +20,15 @@ interface LeaveBalanceClientWidgetProps {
   employeeId: string;
   leaveEntitlements: any[]; // adjust type if you have Entitlement type
   nzComplianceData?: NZComplianceData;
+  /** Whether to show hours alongside days (controlled by Company.leaveHoursEnabled) */
+  showHours?: boolean;
 }
 
 export default function LeaveBalanceClientWidget({
   employeeId,
   leaveEntitlements,
   nzComplianceData,
+  showHours = false,
 }: LeaveBalanceClientWidgetProps) {
   const { data: session } = useSession();
   const role = session?.user?.role ?? null;
@@ -46,6 +49,7 @@ export default function LeaveBalanceClientWidget({
           isAdminOrManager={Boolean(isAdminOrManager)}
           isBookingForSelf={isBookingForSelf}
           nzComplianceData={nzComplianceData}
+          showHours={showHours}
         />
         <AddLeaveRequestDialog
           employeeId={employeeId}

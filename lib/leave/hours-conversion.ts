@@ -43,18 +43,28 @@ export interface CompanyLeaveConfig {
 /**
  * Check if hours-based leave tracking is enabled for a company.
  * 
+ * DEFAULT: true (enabled by default for new rollouts)
+ * 
  * When this returns false:
  * - All leave calculations use days only (legacy behavior)
  * - Hours fields are ignored even if populated
  * - No hours data is written or read
  * 
+ * When this returns true:
+ * - Hours are the source of truth
+ * - Days are derived from hours for display
+ * - Accurate tracking for part-time/variable-hour employees
+ * 
  * @param companyConfig - Company configuration (can be partial)
- * @returns true if hours tracking is enabled
+ * @returns true if hours tracking is enabled (defaults to true if not explicitly set to false)
  */
 export function isLeaveHoursEnabled(
   companyConfig: { leaveHoursEnabled?: boolean | null } | null | undefined
 ): boolean {
-  return companyConfig?.leaveHoursEnabled === true;
+  // Default to true - hours tracking is enabled unless explicitly disabled
+  if (!companyConfig) return true;
+  if (companyConfig.leaveHoursEnabled === null || companyConfig.leaveHoursEnabled === undefined) return true;
+  return companyConfig.leaveHoursEnabled === true;
 }
 
 /** Minimum hours per day (for validation) */

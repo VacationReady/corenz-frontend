@@ -181,10 +181,10 @@ model Company {
   publicHolidayRegion                 String?
   // Calendar visibility settings
   calendarEmployeeScope               CalendarEmployeeScope                 @default(DEPARTMENT)
-  // Leave hours configuration (NZ Holidays Act 2003 compliance)
-  // When leaveHoursEnabled=false: system uses days only (legacy behavior)
-  // When leaveHoursEnabled=true: hours are source of truth, days derived for display
-  leaveHoursEnabled                   Boolean                               @default(false)
+  // Leave hours tracking feature flag (NZ Holidays Act 2003 compliance)
+  // When false: system behaves exactly as before (days only)
+  // When true: hours become source of truth, days derived for display
+  leaveHoursEnabled       Boolean              @default(true)
   defaultHoursPerDay                  Decimal?                              @default(8.0) @db.Decimal(4, 2)
   leaveDisplayUnit                    LeaveDisplayUnit                      @default(DAYS)
   // Custom document categories (JSON array of strings)

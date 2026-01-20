@@ -20,10 +20,10 @@ ALTER TABLE "LeaveEntitlement" ADD COLUMN "carryoverHours" DECIMAL(10,2);
 ALTER TABLE "Company" ADD COLUMN "defaultHoursPerDay" DECIMAL(4,2) DEFAULT 8.0;
 ALTER TABLE "Company" ADD COLUMN "leaveDisplayUnit" "LeaveDisplayUnit" DEFAULT 'DAYS';
 
--- Add feature flag for hours-based tracking (default OFF for existing tenants)
+-- Add feature flag to Company (default true for new rollout)
 -- When false: system behaves exactly as before (days only), hours fields are ignored
 -- When true: hours become source of truth, days are derived for display
-ALTER TABLE "Company" ADD COLUMN "leaveHoursEnabled" BOOLEAN DEFAULT false;
+ALTER TABLE "Company" ADD COLUMN "leaveHoursEnabled" BOOLEAN NOT NULL DEFAULT true;
 
 -- Add index for efficient querying (only useful once data is backfilled)
 CREATE INDEX IF NOT EXISTS "LeaveEntitlement_totalHours_idx" ON "LeaveEntitlement"("totalHours");

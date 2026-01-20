@@ -22,10 +22,10 @@ import {
 import { Info, AlertCircle } from "lucide-react";
 import { roundToTwoDecimals, subtractWithPrecision } from "@/lib/decimalPrecision";
 
-interface LeaveEntitlement extends PrismaEntitlement {
+interface LeaveEntitlement extends Omit<PrismaEntitlement, 'totalHours' | 'usedHours' | 'carryoverHours'> {
   eventCategory: EventCategory;
   // Hours-based tracking (for NZ Holidays Act compliance)
-  // Note: These override Prisma's Decimal | null with number | null for UI consumption
+  // Convert Prisma's Decimal | null to number | null for UI consumption
   totalHours: number | null;
   usedHours: number | null;
   carryoverHours: number | null;

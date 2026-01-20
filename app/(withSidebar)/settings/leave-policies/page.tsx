@@ -159,6 +159,8 @@ export default function LeavePoliciesPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
+  const [showHoursInLeave, setShowHoursInLeave] = useState(true);
+  const [savingHoursSetting, setSavingHoursSetting] = useState(false);
   const [formData, setFormData] = useState<LeavePolicyFormData>({
     name: "",
     description: "",
@@ -178,7 +180,50 @@ export default function LeavePoliciesPage() {
   useEffect(() => {
     fetchPolicies();
     fetchEventCategories();
+    fetchCompanySettings();
   }, []);
+
+  const fetchCompanySettings = async () => {
+    try {
+      const response = await fetch("/api/company/settings");
+      if (response.ok) {
+        const data = await response.json();
+        setShowHoursInLeave(data.leaveHoursEnabled ?? true);
+      }
+    } catch (error) {
+      console.error("Failed to fetch company settings:", error);
+    }
+  };
+
+  const handleShowHoursToggle = async (enabled: boolean) => {
+    setSavingHoursSetting(true);
+    try {
+      const response = await fetch("/api/company/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leaveHoursEnabled: enabled }),
+      });
+      if (response.ok) {
+        setShowHoursInLeave(enabled);
+        toast({
+          title: "Settings updated",
+          description: enabled 
+            ? "Leave balances will now show hours alongside days" 
+            : "Leave balances will show days only",
+        });
+      } else {
+        throw new Error("Failed to update setting");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update leave display setting",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingHoursSetting(false);
+    }
+  };
 
   const fetchPolicies = async () => {
     try {
@@ -395,6 +440,37 @@ export default function LeavePoliciesPage() {
         </div>
       ) : (
         <>
+          {/* Company-wide Leave Display Settings */}
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Leave Display Settings
+              </CardTitle>
+              <CardDescription>
+                Configure how leave balances are displayed across the system
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="showHoursToggle" className="text-sm font-medium">
+                    Show leave in hours
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Display hours alongside days in leave balances (e.g., "5 days (40 hours)")
+                  </p>
+                </div>
+                <Switch
+                  id="showHoursToggle"
+                  checked={showHoursInLeave}
+                  onCheckedChange={handleShowHoursToggle}
+                  disabled={savingHoursSetting}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="flex justify-end mb-6">
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>

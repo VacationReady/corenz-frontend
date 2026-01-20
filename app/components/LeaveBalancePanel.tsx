@@ -24,10 +24,11 @@ import { roundToTwoDecimals, subtractWithPrecision } from "@/lib/decimalPrecisio
 
 interface LeaveEntitlement extends PrismaEntitlement {
   eventCategory: EventCategory;
-  // Hours-based tracking (optional, for NZ Holidays Act compliance)
-  totalHours?: number | null;
-  usedHours?: number | null;
-  carryoverHours?: number | null;
+  // Hours-based tracking (for NZ Holidays Act compliance)
+  // Note: These override Prisma's Decimal | null with number | null for UI consumption
+  totalHours: number | null;
+  usedHours: number | null;
+  carryoverHours: number | null;
 }
 
 /**

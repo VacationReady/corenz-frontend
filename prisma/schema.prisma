@@ -181,6 +181,12 @@ model Company {
   publicHolidayRegion                 String?
   // Calendar visibility settings
   calendarEmployeeScope               CalendarEmployeeScope                 @default(DEPARTMENT)
+  // Leave hours configuration (NZ Holidays Act 2003 compliance)
+  // When leaveHoursEnabled=false: system uses days only (legacy behavior)
+  // When leaveHoursEnabled=true: hours are source of truth, days derived for display
+  leaveHoursEnabled                   Boolean                               @default(false)
+  defaultHoursPerDay                  Decimal?                              @default(8.0) @db.Decimal(4, 2)
+  leaveDisplayUnit                    LeaveDisplayUnit                      @default(DAYS)
   // Custom document categories (JSON array of strings)
   documentCategories                  Json?
   ApprovalWorkflow                    ApprovalWorkflow[]
@@ -1199,11 +1205,16 @@ model LeaveEntitlement {
   carryoverDays   Float         @default(0)
   carryoverExpiry DateTime?
   companyId       String
+  // Hours-based tracking (NZ Holidays Act 2003 compliance)
+  totalHours      Decimal?      @db.Decimal(10, 2)
+  usedHours       Decimal?      @db.Decimal(10, 2)
+  carryoverHours  Decimal?      @db.Decimal(10, 2)
   Company         Company       @relation(fields: [companyId], references: [id])
   Employee        Employee      @relation(fields: [employeeId], references: [id])
   EventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id])
 
   @@unique([employeeId, eventCategoryId])
+  @@index([totalHours])
 }
 
 model LeavePolicy {
@@ -2385,6 +2396,12 @@ enum AccrualPeriod {
 enum AccrualUnit {
   DAYS
   HOURS
+}
+
+enum LeaveDisplayUnit {
+  DAYS
+  HOURS
+  BOTH
 }
 
 enum ApprovalStatus {

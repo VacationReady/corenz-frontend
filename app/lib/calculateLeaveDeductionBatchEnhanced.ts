@@ -2,12 +2,21 @@
 
 import { prisma } from "@/lib/prisma";
 import { DayType, Prisma } from "@prisma/client";
+import { 
+  DEFAULT_HOURS_PER_DAY,
+  decimalToNumber,
+} from "@/lib/leave/hours-conversion";
 
 type PrismaClientLike = Prisma.TransactionClient | typeof prisma;
 
 interface DeductionResult {
   date: string;
+  /** Deduction in days (1, 0.5, 0) - for backward compatibility */
   deduction: number;
+  /** Deduction in hours - based on working pattern hoursPerDay */
+  deductionHours: number;
+  /** Hours per day for this specific date */
+  hoursPerDay: number;
   isNonWorkingDay: boolean;
   isPublicHoliday: boolean;
   notes?: string;
@@ -30,6 +39,29 @@ export async function calculateLeaveDeductionBatchEnhanced(
   if (dates.length === 0) return [];
 
   const { prismaClient = prisma } = options;
+
+  // Fetch employee to get company default hours
+  const employee = await prismaClient.employee.findUnique({
+    where: { id: employeeId },
+    select: { companyId: true },
+  });
+
+  // Get company default hours per day
+  let companyDefaultHours = DEFAULT_HOURS_PER_DAY;
+  if (employee?.companyId) {
+    try {
+      const company = await prismaClient.company.findUnique({
+        where: { id: employee.companyId },
+      });
+      const companyWithHours = company as typeof company & { defaultHoursPerDay?: any };
+      if (companyWithHours?.defaultHoursPerDay) {
+        companyDefaultHours = decimalToNumber(companyWithHours.defaultHoursPerDay, DEFAULT_HOURS_PER_DAY);
+      }
+    } catch {
+      // Field doesn't exist yet, use default
+    }
+  }
+
   const toShortDay = (name: string): string => {
     if (!name) return name;
     const normalized = name.toLowerCase();
@@ -66,6 +98,8 @@ export async function calculateLeaveDeductionBatchEnhanced(
     return dates.map(date => ({
       date: date.toISOString().split('T')[0],
       deduction: 1,
+      deductionHours: companyDefaultHours,
+      hoursPerDay: companyDefaultHours,
       isNonWorkingDay: false,
       isPublicHoliday: false,
       notes: 'Default pattern (no assignment)',
@@ -82,6 +116,8 @@ export async function calculateLeaveDeductionBatchEnhanced(
     return dates.map(date => ({
       date: date.toISOString().split('T')[0],
       deduction: 1,
+      deductionHours: companyDefaultHours,
+      hoursPerDay: companyDefaultHours,
       isNonWorkingDay: false,
       isPublicHoliday: false,
       notes: 'Default pattern (no weeks)',
@@ -109,31 +145,54 @@ export async function calculateLeaveDeductionBatchEnhanced(
       return {
         date: dateStr,
         deduction: 0,
+        deductionHours: 0,
+        hoursPerDay: companyDefaultHours,
         isNonWorkingDay: true,
         isPublicHoliday: false,
         notes: `No working pattern entry for ${dayOfWeek}`,
       };
     }
 
+    // Get hours for this specific day from the working pattern
+    const hoursForDay = dayEntry.hoursPerDay 
+      ? decimalToNumber(dayEntry.hoursPerDay, companyDefaultHours)
+      : companyDefaultHours;
+
+    // Get break minutes for TIMED days (NZ Holidays Act compliance)
+    // Break time should be deducted from the hours worked
+    const breakMinutes = dayEntry.breakMinutes ?? 0;
+    const breakHours = breakMinutes / 60;
+
     let deduction = 0;
+    let deductionHours = 0;
     let notes = '';
 
     switch (dayEntry.type) {
       case DayType.FULL_DAY:
         deduction = 1;
+        deductionHours = hoursForDay;
         notes = 'Full working day';
         break;
       case DayType.HALF_DAY_AM:
       case DayType.HALF_DAY_PM:
         deduction = 0.5;
+        deductionHours = hoursForDay / 2;
         notes = `Half day (${dayEntry.type === DayType.HALF_DAY_AM ? 'AM' : 'PM'})`;
         break;
       case DayType.TIMED:
-        deduction = 1; // Full working day for leave purposes
-        notes = 'Timed hours (counted as full day)';
+        // TIMED days: Use actual hours worked minus break time
+        // This is critical for NZ Holidays Act compliance for variable-hour employees
+        // Example: 8h scheduled with 30min break = 7.5h deduction
+        const actualHoursWorked = Math.max(0, hoursForDay - breakHours);
+        deduction = actualHoursWorked / companyDefaultHours; // Proportional day deduction
+        deductionHours = actualHoursWorked;
+        notes = breakMinutes > 0 
+          ? `Timed: ${hoursForDay}h - ${breakMinutes}min break = ${actualHoursWorked}h`
+          : `Timed: ${hoursForDay}h`;
         break;
       default:
         deduction = 0;
+        deductionHours = 0;
         notes = 'Non-working day';
         break;
     }
@@ -141,6 +200,8 @@ export async function calculateLeaveDeductionBatchEnhanced(
     return {
       date: dateStr,
       deduction,
+      deductionHours,
+      hoursPerDay: hoursForDay,
       isNonWorkingDay: deduction === 0,
       isPublicHoliday: false,
       notes,

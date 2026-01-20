@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import AppNavigator from './src/navigation/AppNavigator';
 import { getStoredSession, getSession, signOut } from './src/api/auth';
@@ -134,7 +135,9 @@ export default function App() {
   if (appState === 'unauthenticated') {
     return (
       <SafeAreaProvider>
-        <AuthNavigator onLoginSuccess={handleLoginSuccess} />
+        <NavigationContainer>
+          <AuthNavigator onLoginSuccess={handleLoginSuccess} />
+        </NavigationContainer>
         <StatusBar style="auto" />
       </SafeAreaProvider>
     );
@@ -159,7 +162,9 @@ export default function App() {
   // Authenticated - show main app
   return (
     <SafeAreaProvider>
-      <AppNavigator onLogout={handleLogout} />
+      <NavigationContainer>
+        <AppNavigator onLogout={handleLogout} />
+      </NavigationContainer>
       <StatusBar style="auto" />
     </SafeAreaProvider>
   );

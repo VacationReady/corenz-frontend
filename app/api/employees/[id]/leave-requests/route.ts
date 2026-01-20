@@ -8,6 +8,8 @@ import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
 import { notifyApproversForStage } from "@/lib/approvalNotifications";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { calculateLeaveDeductionBatch } from "@/lib/calculateLeaveDeductionBatch";
+import { calculateLeaveDeductionBatchEnhanced } from "@/lib/calculateLeaveDeductionBatchEnhanced";
+import { decimalToNumber, isLeaveHoursEnabled } from "@/lib/leave/hours-conversion";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 import {
   canAccessLeaveRequests,
@@ -1073,11 +1075,44 @@ export async function POST(
               },
             });
 
-            // Update entitlement
-            await tx.leaveEntitlement.update({
-              where: { id: entitlement.id },
-              data: { usedDays: roundToTwoDecimals(entitlement.usedDays + totalDeduction) },
+            // Check if hours-based tracking is enabled for this company
+            const company = await tx.company.findUnique({
+              where: { id: session.user.companyId },
             });
+            const hoursEnabled = isLeaveHoursEnabled(company as any);
+
+            // Update entitlement
+            // HOURS SOURCE OF TRUTH MODEL:
+            // - When hoursEnabled=true: Update hours first, days derived from hours
+            // - When hoursEnabled=false: Update days only (legacy behavior)
+            if (hoursEnabled) {
+              // Calculate hours deduction based on working pattern
+              const enhancedDeductions = await calculateLeaveDeductionBatchEnhanced(employeeId, dates, { prismaClient: tx });
+              const totalDeductionHours = roundToTwoDecimals(enhancedDeductions.reduce((sum, d) => sum + d.deductionHours, 0));
+              const entitlementWithHours = entitlement as typeof entitlement & { usedHours?: any; totalHours?: any };
+              const currentUsedHours = decimalToNumber(entitlementWithHours.usedHours, entitlement.usedDays * 8);
+              const newUsedHours = roundToTwoDecimals(currentUsedHours + totalDeductionHours);
+              
+              // Hours are source of truth - days derived for backward compatibility
+              const hoursPerDay = enhancedDeductions[0]?.hoursPerDay || 8;
+              const newUsedDays = roundToTwoDecimals(newUsedHours / hoursPerDay);
+              
+              await (tx.leaveEntitlement as any).update({
+                where: { id: entitlement.id },
+                data: { 
+                  usedHours: newUsedHours,
+                  usedDays: newUsedDays,
+                },
+              });
+            } else {
+              // Legacy behavior: days only
+              await tx.leaveEntitlement.update({
+                where: { id: entitlement.id },
+                data: { 
+                  usedDays: roundToTwoDecimals(entitlement.usedDays + totalDeduction),
+                },
+              });
+            }
 
             // Approve leave request
             return (tx.leaveRequest as any).update({

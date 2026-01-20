@@ -11,12 +11,17 @@
  * INTERNAL UNIT: Hours (8 hours = 1 day)
  * DISPLAY UNIT: Days (rounded to 0.5 day increments)
  * 
- * @version 1.0
- * @date 2024
+ * @version 1.1
+ * @date 2026
  */
 
 import type { PrismaClient, Employee, LeaveBalanceLedger } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import {
+  hoursToDisplayDays as sharedHoursToDisplayDays,
+  daysToHours as sharedDaysToHours,
+  DEFAULT_HOURS_PER_DAY,
+} from './hours-conversion';
 
 // ============================================
 // CONSTANTS (Holidays Act 2003)
@@ -619,17 +624,20 @@ export async function reverseSickLeaveUsage(
 
 /**
  * Convert hours to display days (rounded to 0.5 increments).
+ * 
+ * @deprecated Use hoursToDisplayDays from './hours-conversion' directly for new code.
  */
 export function hoursToDisplayDays(hours: number): number {
-  const days = hours / HOURS_PER_DAY;
-  return Math.round(days * 2) / 2; // Round to nearest 0.5
+  return sharedHoursToDisplayDays(hours, HOURS_PER_DAY);
 }
 
 /**
  * Convert days to hours.
+ * 
+ * @deprecated Use daysToHours from './hours-conversion' directly for new code.
  */
 export function daysToHours(days: number): number {
-  return days * HOURS_PER_DAY;
+  return sharedDaysToHours(days, HOURS_PER_DAY);
 }
 
 /**

@@ -223,28 +223,48 @@ export default function OnboardingScreen({
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={['#0F172A', '#1E293B']}
-        style={StyleSheet.absoluteFill}
-      />
       
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View style={styles.welcomeBadge}>
-            <Ionicons name="sparkles" size={14} color="#3B82F6" />
-            <Text style={styles.welcomeBadgeText}>Welcome aboard</Text>
+          <View>
+            <Text style={styles.headerTitle}>Hi, {employeeName}!</Text>
+            <Text style={styles.headerSubtitle}>
+              Complete your onboarding tasks to get started
+            </Text>
           </View>
           <TouchableOpacity onPress={onLogout} style={styles.logoutIcon}>
-            <Ionicons name="log-out-outline" size={24} color="#94A3B8" />
+            <Ionicons name="log-out-outline" size={24} color="#64748B" />
           </TouchableOpacity>
         </View>
-        
-        <Text style={styles.headerTitle}>Hi, {employeeName}!</Text>
-        <Text style={styles.headerSubtitle}>
-          Complete your onboarding tasks to get started
-        </Text>
-        
+      </View>
+
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#3B82F6"
+            colors={['#3B82F6']}
+          />
+        }
+      >
+        {/* Active Step Card */}
+        {activeStep && (
+          <OnboardingStepCard
+            step={activeStep}
+            employeeId={employeeId}
+            isCompleting={completingStep === (activeStep.instanceStepId || activeStep.id)}
+            onComplete={handleStepComplete}
+            onStartComplete={() => setCompletingStep(activeStep.instanceStepId || activeStep.id)}
+            onEndComplete={() => setCompletingStep(null)}
+          />
+        )}
+
         {/* Progress Section */}
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
@@ -267,22 +287,7 @@ export default function OnboardingScreen({
             />
           </View>
         </View>
-      </View>
 
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#3B82F6"
-            colors={['#3B82F6']}
-          />
-        }
-      >
         {/* Step Timeline */}
         <View style={styles.timeline}>
           {steps.map((step, index) => {
@@ -321,7 +326,7 @@ export default function OnboardingScreen({
                       <Ionicons
                         name={icon}
                         size={16}
-                        color={isActive ? '#fff' : '#94A3B8'}
+                        color={isActive ? '#fff' : '#64748B'}
                       />
                     )}
                   </View>
@@ -357,18 +362,6 @@ export default function OnboardingScreen({
           })}
         </View>
 
-        {/* Active Step Card */}
-        {activeStep && (
-          <OnboardingStepCard
-            step={activeStep}
-            employeeId={employeeId}
-            isCompleting={completingStep === (activeStep.instanceStepId || activeStep.id)}
-            onComplete={handleStepComplete}
-            onStartComplete={() => setCompletingStep(activeStep.instanceStepId || activeStep.id)}
-            onEndComplete={() => setCompletingStep(null)}
-          />
-        )}
-
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
@@ -378,7 +371,7 @@ export default function OnboardingScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -425,48 +418,36 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 20,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  welcomeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
-  },
-  welcomeBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#3B82F6',
+    alignItems: 'flex-start',
   },
   logoutIcon: {
     padding: 8,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F172A',
     marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 15,
-    color: '#94A3B8',
-    marginBottom: 20,
+    fontSize: 14,
+    color: '#64748B',
   },
   progressSection: {
-    backgroundColor: 'rgba(30, 41, 59, 0.8)',
-    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    marginBottom: 20,
   },
   progressHeader: {
     flexDirection: 'row',
@@ -475,18 +456,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   progressLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F172A',
   },
   progressCount: {
-    fontSize: 14,
-    color: '#94A3B8',
+    fontSize: 13,
+    color: '#64748B',
   },
   progressBarContainer: {
-    height: 8,
-    backgroundColor: '#1E293B',
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressBar: {
@@ -502,33 +483,33 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   timeline: {
-    marginBottom: 24,
+    marginTop: 8,
   },
   timelineItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 12,
-    marginBottom: 4,
-    borderRadius: 12,
+    marginBottom: 2,
+    borderRadius: 8,
     backgroundColor: 'transparent',
   },
   timelineItemActive: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: '#F1F5F9',
   },
   timelineLeft: {
     alignItems: 'center',
     marginRight: 12,
   },
   timelineIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#1E293B',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: '#CBD5E1',
   },
   timelineIconCompleted: {
     backgroundColor: '#10B981',
@@ -539,8 +520,8 @@ const styles = StyleSheet.create({
   },
   timelineLine: {
     width: 2,
-    height: 24,
-    backgroundColor: '#334155',
+    height: 20,
+    backgroundColor: '#E2E8F0',
     marginTop: 4,
   },
   timelineLineCompleted: {
@@ -551,20 +532,20 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   timelineLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#64748B',
     marginBottom: 2,
   },
   timelineLabelActive: {
-    color: '#fff',
+    color: '#0F172A',
   },
   timelineLabelCompleted: {
     color: '#10B981',
   },
   timelineStatus: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 11,
+    color: '#94A3B8',
   },
   activeIndicator: {
     width: 4,

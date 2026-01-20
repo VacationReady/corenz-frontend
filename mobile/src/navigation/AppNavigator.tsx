@@ -1,7 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { NavigationContainer } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -267,8 +266,7 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
   const insets = useSafeAreaInsets();
   
   return (
-    <NavigationContainer>
-      <Tab.Navigator
+    <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIcon: ({ focused, color, size }) => {
             let iconName: keyof typeof Ionicons.glyphMap;
@@ -360,6 +358,5 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
           {() => <MoreStackNavigator onLogout={onLogout} />}
         </Tab.Screen>
       </Tab.Navigator>
-    </NavigationContainer>
   );
 }

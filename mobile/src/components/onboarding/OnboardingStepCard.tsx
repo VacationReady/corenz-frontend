@@ -380,12 +380,17 @@ export default function OnboardingStepCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E293B',
-    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#334155',
-    marginBottom: 16,
+    borderColor: '#E2E8F0',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
@@ -416,10 +421,11 @@ const styles = StyleSheet.create({
   },
   body: {
     padding: 20,
+    backgroundColor: '#FFFFFF',
   },
   description: {
     fontSize: 15,
-    color: '#94A3B8',
+    color: '#64748B',
     lineHeight: 22,
     marginBottom: 20,
   },
@@ -428,18 +434,18 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: 15,
-    color: '#CBD5E1',
+    color: '#475569',
     lineHeight: 22,
   },
   documentPreview: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     padding: 16,
     borderRadius: 12,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   documentInfo: {
     flex: 1,
@@ -447,7 +453,7 @@ const styles = StyleSheet.create({
   documentName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F172A',
     marginBottom: 2,
   },
   documentAction: {
@@ -459,7 +465,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#475569',
+    borderColor: '#CBD5E1',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
@@ -470,7 +476,7 @@ const styles = StyleSheet.create({
   },
   acknowledgementText: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: '#475569',
     flex: 1,
     marginLeft: 8,
   },
@@ -486,7 +492,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   completeButtonDisabled: {
-    backgroundColor: '#475569',
+    backgroundColor: '#CBD5E1',
     opacity: 0.6,
   },
   completeButtonText: {
@@ -497,10 +503,10 @@ const styles = StyleSheet.create({
   uploadArea: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: '#CBD5E1',
     borderStyle: 'dashed',
     paddingVertical: 40,
     paddingHorizontal: 24,
@@ -508,7 +514,7 @@ const styles = StyleSheet.create({
   uploadText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F172A',
     marginTop: 12,
   },
   uploadSubtext: {

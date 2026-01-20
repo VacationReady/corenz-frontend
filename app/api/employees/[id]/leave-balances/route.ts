@@ -6,6 +6,12 @@ import {
   createAuthContext,
 } from "@/lib/authz";
 import { formatLeaveBalance, subtractWithPrecision } from "@/lib/decimalPrecision";
+import { 
+  decimalToNumber, 
+  DEFAULT_HOURS_PER_DAY,
+  daysToHours,
+  isLeaveHoursEnabled,
+} from "@/lib/leave/hours-conversion";
 
 export const runtime = "nodejs";
 
@@ -254,6 +260,26 @@ export async function GET(
       pendingByCategory.map((p) => [p.eventCategoryId, p._count.id])
     );
 
+    // Get company configuration for hours-based tracking
+    let companyDefaultHours = DEFAULT_HOURS_PER_DAY;
+    let hoursEnabled = false;
+    try {
+      const company = await prisma.company.findUnique({
+        where: { id: session.user.companyId },
+      });
+      const companyWithConfig = company as typeof company & { 
+        defaultHoursPerDay?: any;
+        leaveHoursEnabled?: boolean;
+      };
+      if (companyWithConfig?.defaultHoursPerDay) {
+        companyDefaultHours = decimalToNumber(companyWithConfig.defaultHoursPerDay, DEFAULT_HOURS_PER_DAY);
+      }
+      // Check feature flag - only include hours data when enabled
+      hoursEnabled = isLeaveHoursEnabled(companyWithConfig);
+    } catch {
+      // Fields don't exist yet, use defaults
+    }
+
     // 7. Build normalized response
     interface BalanceItem {
       id: string;
@@ -267,6 +293,12 @@ export async function GET(
       pending: number;
       carryover: number;
       carryoverExpiry: string | null;
+      // Hours-based tracking (NZ Holidays Act 2003 compliance)
+      remainingHours?: number;
+      usedHours?: number;
+      totalHours?: number | null;
+      carryoverHours?: number;
+      hoursPerDay?: number;
       // NZ Holidays Act 2003 compliance fields (for annual leave)
       isUnearned?: boolean;
       futureEntitlement?: number | null;
@@ -295,7 +327,9 @@ export async function GET(
     // Add entitlements from LeaveEntitlement table (including auto-created ones)
     for (const ent of allEntitlements) {
       const remaining = formatLeaveBalance(Math.max(0, subtractWithPrecision(ent.totalDays, ent.usedDays)));
-      balances.push({
+      
+      // Base balance item (always included)
+      const balanceItem: BalanceItem = {
         id: ent.id,
         type: "entitlement",
         categoryId: ent.eventCategoryId,
@@ -307,7 +341,31 @@ export async function GET(
         pending: pendingCountMap.get(ent.eventCategoryId) ?? 0,
         carryover: formatLeaveBalance(ent.carryoverDays),
         carryoverExpiry: (ent as any).carryoverExpiry?.toISOString() ?? null,
-      });
+      };
+
+      // Only include hours data when feature flag is enabled
+      // This ensures existing tenants see no change until they opt-in
+      if (hoursEnabled) {
+        const entWithHours = ent as typeof ent & { totalHours?: any; usedHours?: any; carryoverHours?: any };
+        const totalHours = entWithHours.totalHours 
+          ? decimalToNumber(entWithHours.totalHours, ent.totalDays * companyDefaultHours)
+          : ent.totalDays * companyDefaultHours;
+        const usedHours = entWithHours.usedHours
+          ? decimalToNumber(entWithHours.usedHours, ent.usedDays * companyDefaultHours)
+          : ent.usedDays * companyDefaultHours;
+        const carryoverHours = entWithHours.carryoverHours
+          ? decimalToNumber(entWithHours.carryoverHours, ent.carryoverDays * companyDefaultHours)
+          : ent.carryoverDays * companyDefaultHours;
+        const remainingHours = Math.max(0, totalHours - usedHours);
+        
+        balanceItem.remainingHours = formatLeaveBalance(remainingHours);
+        balanceItem.usedHours = formatLeaveBalance(usedHours);
+        balanceItem.totalHours = formatLeaveBalance(totalHours);
+        balanceItem.carryoverHours = formatLeaveBalance(carryoverHours);
+        balanceItem.hoursPerDay = companyDefaultHours;
+      }
+      
+      balances.push(balanceItem);
     }
 
     // Check if sick leave is already covered by entitlements

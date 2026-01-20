@@ -24,6 +24,25 @@ import { roundToTwoDecimals, subtractWithPrecision } from "@/lib/decimalPrecisio
 
 interface LeaveEntitlement extends PrismaEntitlement {
   eventCategory: EventCategory;
+  // Hours-based tracking (optional, for NZ Holidays Act compliance)
+  totalHours?: number | null;
+  usedHours?: number | null;
+  carryoverHours?: number | null;
+}
+
+/**
+ * Format leave balance with optional hours display
+ */
+function formatLeaveWithHours(
+  days: number, 
+  hours?: number | null, 
+  showHours: boolean = false
+): string {
+  const daysStr = `${days} day${days === 1 ? '' : 's'}`;
+  if (showHours && hours !== null && hours !== undefined) {
+    return `${daysStr} (${roundToTwoDecimals(hours)} hrs)`;
+  }
+  return daysStr;
 }
 
 /**
@@ -53,6 +72,8 @@ interface LeaveBalancePanelProps {
   eventCategoryNameAllowList?: string[];
   /** NZ Holidays Act 2003 compliance data for pre-12-month employees */
   nzComplianceData?: NZComplianceData;
+  /** Whether to show hours alongside days (NZ Holidays Act compliance for variable-hour employees) */
+  showHours?: boolean;
 }
 
 import { useTenantFetch } from "@/hooks/useTenantFetch";
@@ -109,6 +130,7 @@ export default function LeaveBalancePanel({
   isBookingForSelf = true,
   eventCategoryNameAllowList,
   nzComplianceData,
+  showHours = false,
 }: LeaveBalancePanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const normalizedAllowList = (eventCategoryNameAllowList ?? []).map((name) =>
@@ -253,19 +275,27 @@ export default function LeaveBalancePanel({
                 ? "Annual Leave Entitlement" 
                 : entitlement.eventCategory.name;
 
+              // Calculate hours if available
+              const remainingHours = entitlement.totalHours && entitlement.usedHours
+                ? roundToTwoDecimals(Number(entitlement.totalHours) - Number(entitlement.usedHours))
+                : null;
+              const totalHours = entitlement.totalHours ? roundToTwoDecimals(Number(entitlement.totalHours)) : null;
+              const usedHoursVal = entitlement.usedHours ? roundToTwoDecimals(Number(entitlement.usedHours)) : null;
+              const carryoverHoursVal = entitlement.carryoverHours ? roundToTwoDecimals(Number(entitlement.carryoverHours)) : null;
+
               return (
                 <p key={entitlement.id} className="flex items-center gap-1">
-                  <strong>{label}:</strong> {remainingDays}{" "}
-                  days remaining
+                  <strong>{label}:</strong> {formatLeaveWithHours(remainingDays, remainingHours, showHours)}{" "}
+                  remaining
                   <HoverCard>
                     <HoverCardTrigger asChild>
                       <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
                     </HoverCardTrigger>
                     <HoverCardContent className="text-xs">
-                      <div>Standard Entitlement: {standardEntitlement} days</div>
-                      <div>Carryover: {carryoverDays} days</div>
-                      <div>Used: {usedDays} days</div>
-                      <div>Remaining: {remainingDays} days</div>
+                      <div>Standard Entitlement: {formatLeaveWithHours(standardEntitlement, totalHours ? totalHours - (carryoverHoursVal ?? 0) : null, showHours)}</div>
+                      <div>Carryover: {formatLeaveWithHours(carryoverDays, carryoverHoursVal, showHours)}</div>
+                      <div>Used: {formatLeaveWithHours(usedDays, usedHoursVal, showHours)}</div>
+                      <div>Remaining: {formatLeaveWithHours(remainingDays, remainingHours, showHours)}</div>
                     </HoverCardContent>
                   </HoverCard>
                 </p>

@@ -2,11 +2,10 @@
 
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HolidayApprovalModal } from '../components/approvals/HolidayApprovalModal';
 import { useApi } from '../app/hooks/useApi';
 
-// Mock the useApi hook
+// Mock the useApi hook (which uses SWR internally)
 jest.mock('../app/hooks/useApi');
 jest.mock('next-auth/react', () => ({
   useSession: () => ({
@@ -26,25 +25,12 @@ jest.mock('sonner', () => ({
 }));
 
 describe('HolidayApprovalModal Performance', () => {
-  let queryClient: QueryClient;
-
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false,
-        },
-      },
-    });
     jest.clearAllMocks();
   });
 
-  const renderWithQueryClient = (component: React.ReactElement) => {
-    return render(
-      <QueryClientProvider client={queryClient}>
-        {component}
-      </QueryClientProvider>
-    );
+  const renderModal = (props: any) => {
+    return render(<HolidayApprovalModal {...props} />);
   };
 
   describe('Loading Performance', () => {
@@ -94,15 +80,13 @@ describe('HolidayApprovalModal Performance', () => {
       const onDecline = jest.fn();
       const onOpenChange = jest.fn();
 
-      renderWithQueryClient(
-        <HolidayApprovalModal
-          decisionId="decision123"
-          open={true}
-          onOpenChange={onOpenChange}
-          onApprove={onApprove}
-          onDecline={onDecline}
-        />
-      );
+      renderModal({
+        decisionId: "decision123",
+        open: true,
+        onOpenChange,
+        onApprove,
+        onDecline,
+      });
 
       // Should show loading state immediately
       expect(screen.getByText('Loading request details...')).toBeInTheDocument();
@@ -165,15 +149,13 @@ describe('HolidayApprovalModal Performance', () => {
       const onDecline = jest.fn();
       const onOpenChange = jest.fn();
 
-      renderWithQueryClient(
-        <HolidayApprovalModal
-          decisionId="decision123"
-          open={true}
-          onOpenChange={onOpenChange}
-          onApprove={onApprove}
-          onDecline={onDecline}
-        />
-      );
+      renderModal({
+        decisionId: "decision123",
+        open: true,
+        onOpenChange,
+        onApprove,
+        onDecline,
+      });
 
       // Should render all modal content
       await waitFor(() => {
@@ -227,15 +209,13 @@ describe('HolidayApprovalModal Performance', () => {
       const onDecline = jest.fn();
       const onOpenChange = jest.fn();
 
-      const { rerender } = renderWithQueryClient(
-        <HolidayApprovalModal
-          decisionId="decision123"
-          open={true}
-          onOpenChange={onOpenChange}
-          onApprove={onApprove}
-          onDecline={onDecline}
-        />
-      );
+      const { rerender } = renderModal({
+        decisionId: "decision123",
+        open: true,
+        onOpenChange,
+        onApprove,
+        onDecline,
+      });
 
       // Wait for initial render
       await waitFor(() => {
@@ -243,30 +223,22 @@ describe('HolidayApprovalModal Performance', () => {
       });
 
       // Close modal
-      rerender(
-        <QueryClientProvider client={queryClient}>
-          <HolidayApprovalModal
-            decisionId="decision123"
-            open={false}
-            onOpenChange={onOpenChange}
-            onApprove={onApprove}
-            onDecline={onDecline}
-          />
-        </QueryClientProvider>
-      );
+      rerender(<HolidayApprovalModal
+        decisionId="decision123"
+        open={false}
+        onOpenChange={onOpenChange}
+        onApprove={onApprove}
+        onDecline={onDecline}
+      />);
 
       // Reopen modal - should use cached data
-      rerender(
-        <QueryClientProvider client={queryClient}>
-          <HolidayApprovalModal
-            decisionId="decision123"
-            open={true}
-            onOpenChange={onOpenChange}
-            onApprove={onApprove}
-            onDecline={onDecline}
-          />
-        </QueryClientProvider>
-      );
+      rerender(<HolidayApprovalModal
+        decisionId="decision123"
+        open={true}
+        onOpenChange={onOpenChange}
+        onApprove={onApprove}
+        onDecline={onDecline}
+      />);
 
       // Should show data immediately from cache
       await waitFor(() => {
@@ -297,15 +269,13 @@ describe('HolidayApprovalModal Performance', () => {
       const onDecline = jest.fn();
       const onOpenChange = jest.fn();
 
-      renderWithQueryClient(
-        <HolidayApprovalModal
-          decisionId="decision123"
-          open={true}
-          onOpenChange={onOpenChange}
-          onApprove={onApprove}
-          onDecline={onDecline}
-        />
-      );
+      renderModal({
+        decisionId: "decision123",
+        open: true,
+        onOpenChange,
+        onApprove,
+        onDecline,
+      });
 
       await waitFor(() => {
         expect(onOpenChange).toHaveBeenCalledWith(false);
@@ -369,15 +339,13 @@ describe('HolidayApprovalModal Performance', () => {
       const onDecline = jest.fn();
       const onOpenChange = jest.fn();
 
-      renderWithQueryClient(
-        <HolidayApprovalModal
-          decisionId="decision123"
-          open={true}
-          onOpenChange={onOpenChange}
-          onApprove={onApprove}
-          onDecline={onDecline}
-        />
-      );
+      renderModal({
+        decisionId: "decision123",
+        open: true,
+        onOpenChange,
+        onApprove,
+        onDecline,
+      });
 
       await waitFor(() => {
         expect(screen.getByText('John Doe')).toBeInTheDocument();
@@ -419,15 +387,13 @@ describe('HolidayApprovalModal Performance', () => {
       const onDecline = jest.fn();
       const onOpenChange = jest.fn();
 
-      renderWithQueryClient(
-        <HolidayApprovalModal
-          decisionId="decision123"
-          open={true}
-          onOpenChange={onOpenChange}
-          onApprove={onApprove}
-          onDecline={onDecline}
-        />
-      );
+      renderModal({
+        decisionId: "decision123",
+        open: true,
+        onOpenChange,
+        onApprove,
+        onDecline,
+      });
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /Approve/i })).toBeInTheDocument();

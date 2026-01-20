@@ -18,6 +18,7 @@ import {
   FileText,
   HelpCircle,
   Star,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STEP_TYPE_CONFIG } from "./EnhancedStepPalette";
@@ -35,6 +36,7 @@ interface EnhancedStepCardProps {
   index: number;
   isSelected: boolean;
   onSelect: () => void;
+  onRemove: () => void;
   stepType?: StepType;
 }
 
@@ -92,6 +94,7 @@ export function EnhancedStepCard({
   index,
   isSelected,
   onSelect,
+  onRemove,
   stepType,
 }: EnhancedStepCardProps) {
   const {
@@ -143,6 +146,18 @@ export function EnhancedStepCard({
             className="absolute left-0 top-3 bottom-3 w-1 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"
           />
         )}
+
+        {/* Delete Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="absolute top-2 right-2 w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-red-100 dark:hover:bg-red-900/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          aria-label="Remove step"
+        >
+          <X className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400" />
+        </button>
 
         {/* Compact Card Content */}
         <div className="flex items-center gap-3 p-3">

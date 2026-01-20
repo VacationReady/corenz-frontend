@@ -221,6 +221,7 @@ function StepsCanvas({
                     index={index}
                     isSelected={selectedStepIndex === index}
                     onSelect={() => setSelectedStepIndex(index)}
+                    onRemove={() => removeStep(index)}
                     stepType={STEP_TYPES.find((t) => t.value === step.type)}
                   />
                 ))}

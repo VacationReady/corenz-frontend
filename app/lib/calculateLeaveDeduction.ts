@@ -2,14 +2,16 @@
 
 import { prisma } from "@/lib/prisma";
 import { DayType, Prisma } from "@prisma/client";
+import { getNZPublicHolidayInfo } from "@/lib/public-holiday-checker";
 
 type PrismaClientLike = Prisma.TransactionClient | typeof prisma;
 
 /**
- * Calculates leave deduction based on employee working pattern.
+ * Calculates leave deduction based on employee working pattern and public holidays.
  * @param employeeId - Employee ID (string)
  * @param leaveDate - Date of leave (Date object)
- * @returns For FULL_DAY/TIMED: 1, HALF_DAY: 0.5, NON_WORKING/not found: 0
+ * @param prismaClient - Prisma client or transaction
+ * @returns For FULL_DAY/TIMED: 1, HALF_DAY: 0.5, NON_WORKING/not found: 0, PUBLIC_HOLIDAY (standard employees): 0
  */
 export async function calculateLeaveDeduction(
   employeeId: string,
@@ -39,6 +41,42 @@ export async function calculateLeaveDeduction(
     };
     return map[normalized] || name;
   };
+
+  // Fetch employee to check canBookPublicHolidays and companyId
+  const employee = await prismaClient.employee.findUnique({
+    where: { id: employeeId },
+    select: { 
+      canBookPublicHolidays: true,
+      companyId: true,
+    },
+  });
+
+  if (!employee) {
+    console.log(`[Deduction] Employee ${employeeId} not found. Returning 1.`);
+    return 1;
+  }
+
+  // Check if this date is a public holiday
+  const holidayInfo = await getNZPublicHolidayInfo(leaveDate, employee.companyId);
+  
+  // Standard employees (canBookPublicHolidays=false) should NOT be deducted for public holidays
+  // because public holidays are already paid time off for them
+  if (holidayInfo && !employee.canBookPublicHolidays) {
+    console.log(
+      `[Deduction] Public holiday detected: ${holidayInfo.holidayName} on ${leaveDate.toISOString()}. ` +
+      `Employee has canBookPublicHolidays=false, so no deduction (returning 0).`
+    );
+    return 0;
+  }
+
+  // Contractors (canBookPublicHolidays=true) should be deducted normally for public holidays
+  // because they don't receive public holidays as paid time off
+  if (holidayInfo && employee.canBookPublicHolidays) {
+    console.log(
+      `[Deduction] Public holiday detected: ${holidayInfo.holidayName} on ${leaveDate.toISOString()}. ` +
+      `Employee has canBookPublicHolidays=true (contractor), so will be deducted normally.`
+    );
+  }
 
   const assignment = await prismaClient.employeeWorkingPatternAssignment.findFirst({
     where: {

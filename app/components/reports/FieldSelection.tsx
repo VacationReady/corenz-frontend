@@ -9,6 +9,8 @@ import {
   HRReportField,
   getFieldsByCategory,
   getFieldByKey,
+  filterCategoriesByFeatures,
+  filterFieldsByFeatures,
 } from "@/lib/hrReportFields";
 
 interface FieldSelectionProps {
@@ -17,6 +19,8 @@ interface FieldSelectionProps {
   showSearch?: boolean;
   showSelectedSummary?: boolean;
   initialExpandedCategories?: string[];
+  /** Feature toggles state - categories with disabled features will be hidden */
+  enabledFeatures?: Record<string, boolean>;
 }
 
 export default function FieldSelection({
@@ -25,38 +29,50 @@ export default function FieldSelection({
   showSearch = true,
   showSelectedSummary = true,
   initialExpandedCategories,
+  enabledFeatures = {},
 }: FieldSelectionProps) {
   const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Filter categories based on feature toggles
+  const visibleCategories = useMemo(() => {
+    return filterCategoriesByFeatures(enabledFeatures);
+  }, [enabledFeatures]);
+  
+  // Filter fields based on feature toggles
+  const visibleFields = useMemo(() => {
+    return filterFieldsByFeatures(enabledFeatures);
+  }, [enabledFeatures]);
+  
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(initialExpandedCategories && initialExpandedCategories.length > 0 ? initialExpandedCategories : [hrCategories[0].id])
+    new Set(initialExpandedCategories && initialExpandedCategories.length > 0 ? initialExpandedCategories : [visibleCategories[0]?.id].filter(Boolean))
   );
 
-  // Filter fields based on search term
+  // Filter fields based on search term (from already feature-filtered fields)
   const filteredFields = useMemo(() => {
     if (!searchTerm.trim()) {
-      return hrReportFields;
+      return visibleFields;
     }
     
     const term = searchTerm.toLowerCase();
-    return hrReportFields.filter(
+    return visibleFields.filter(
       field =>
         field.label.toLowerCase().includes(term) ||
         field.description?.toLowerCase().includes(term) ||
         field.model.toLowerCase().includes(term)
     );
-  }, [searchTerm]);
+  }, [searchTerm, visibleFields]);
 
-  // Group filtered fields by category
+  // Group filtered fields by category (only visible categories)
   const fieldsByCategory = useMemo(() => {
     const grouped: Record<string, HRReportField[]> = {};
     
-    hrCategories.forEach(category => {
+    visibleCategories.forEach(category => {
       grouped[category.id] = filteredFields.filter(field => field.category === category.id);
     });
     
     return grouped;
-  }, [filteredFields]);
+  }, [filteredFields, visibleCategories]);
 
   const toggleField = (fieldKey: string) => {
     if (REQUIRED_FIELDS.includes(fieldKey)) {
@@ -187,7 +203,7 @@ export default function FieldSelection({
 
       {/* Field Categories */}
       <div className="space-y-4">
-        {hrCategories.map((category) => {
+        {visibleCategories.map((category) => {
           const categoryFields = fieldsByCategory[category.id] || [];
           const selectedInCategory = categoryFields.filter(f => selectedFields.includes(f.field));
           const allSelected = categoryFields.length > 0 && selectedInCategory.length === categoryFields.length;

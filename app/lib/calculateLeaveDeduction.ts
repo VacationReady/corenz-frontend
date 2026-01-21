@@ -370,21 +370,18 @@ export async function calculateLeaveDeductionWithHours(
         notes: `Half day (${dayEntry.type === DayType.HALF_DAY_AM ? 'AM' : 'PM'})`,
       };
     case DayType.TIMED:
-      // TIMED days: Use actual hours worked minus break time
+      // TIMED days: hoursPerDay already has break time deducted when saved
+      // (calculated by calculateDayHours in working-pattern-utils.ts)
+      // So we use hoursForDay directly without subtracting break again
       // This is critical for NZ Holidays Act compliance for variable-hour employees
-      const breakMinutes = dayEntry.breakMinutes ?? 0;
-      const breakHours = breakMinutes / 60;
-      const actualHoursWorked = Math.max(0, hoursForDay - breakHours);
-      const proportionalDays = actualHoursWorked / companyDefaultHours;
+      const proportionalDays = hoursForDay / companyDefaultHours;
       return {
         days: proportionalDays,
-        hours: actualHoursWorked,
+        hours: hoursForDay,
         hoursPerDay: hoursForDay,
         isPublicHoliday: !!holidayInfo,
         isNonWorkingDay: false,
-        notes: breakMinutes > 0 
-          ? `Timed: ${hoursForDay}h - ${breakMinutes}min break = ${actualHoursWorked}h`
-          : `Timed: ${hoursForDay}h`,
+        notes: `Timed: ${hoursForDay}h`,
       };
     default:
       return {

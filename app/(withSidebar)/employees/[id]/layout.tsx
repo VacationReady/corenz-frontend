@@ -5,6 +5,8 @@ import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
 import { canAccessEmployee, getAccessibleEmployeeScreensViaProfile, isUserSubordinateOf, UserWithProfile } from "@/lib/permissions";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
 import EmployeeNavClient from "./EmployeeNavClient";
+import { featureToggleService } from "@/lib/feature-toggles/service";
+import { FEATURE_KEYS, FeatureKey } from "@/lib/feature-toggles/types";
 
 /**
  * Cached data fetching functions to prevent redundant queries on tab navigation.
@@ -188,8 +190,23 @@ export default async function EmployeeLayout({
     hasFullEmployeesAccessViaProfile,
   });
 
-  // Build the full menu
-  const fullMenu = [
+  // Fetch feature toggles for the tenant to filter menu items
+  const featureToggles = await featureToggleService.getEnabledFeatures(session.user.companyId);
+  
+  // Helper to check if a feature is enabled
+  const isFeatureEnabled = (featureKey: FeatureKey): boolean => {
+    return featureToggles[featureKey] ?? true; // Default to enabled if not set
+  };
+
+  // Build the full menu with feature key associations
+  type MenuItemWithFeature = {
+    href: string;
+    label: string;
+    screenKey: string;
+    featureKey?: FeatureKey;
+  };
+  
+  const fullMenu: MenuItemWithFeature[] = [
     { href: `/employees/${id}/overview`, label: "Overview", screenKey: "employee-overview" },
     {
       href: `/employees/${id}/personal-information`,
@@ -198,16 +215,30 @@ export default async function EmployeeLayout({
     },
     { href: `/employees/${id}/leave`, label: "Leave", screenKey: "employee-leave" },
     { href: `/employees/${id}/documents`, label: "Documents", screenKey: "employee-documents" },
-    ...forms.map((form: any) => ({
+    // Only include forms if the forms feature is enabled
+    ...(isFeatureEnabled(FEATURE_KEYS.FORMS) ? forms.map((form: any) => ({
       href: `/employees/${id}/${form.slug}`,
       label: form.name,
-      screenKey: "employee-forms", // Forms use the general forms permission
-    })),
+      screenKey: "employee-forms",
+      featureKey: FEATURE_KEYS.FORMS,
+    })) : []),
     { href: `/employees/${id}/employment-details`, label: "Employment Details", screenKey: "employee-employment-details" },
     { href: `/employees/${id}/emergency-contacts`, label: "Emergency Contacts", screenKey: "employee-emergency-contacts" },
     { href: `/employees/${id}/bank-payroll`, label: "Bank & Payroll", screenKey: "employee-bank-payroll" },
-    { href: `/employees/${id}/performance`, label: "Performance", screenKey: "employee-performance" },
-    { href: `/employees/${id}/onboarding`, label: "Onboarding History", screenKey: "employee-onboarding" },
+    // Performance tab requires performance_management feature
+    ...(isFeatureEnabled(FEATURE_KEYS.PERFORMANCE_MANAGEMENT) ? [{
+      href: `/employees/${id}/performance`,
+      label: "Performance",
+      screenKey: "employee-performance",
+      featureKey: FEATURE_KEYS.PERFORMANCE_MANAGEMENT,
+    }] : []),
+    // Onboarding History tab requires onboarding feature
+    ...(isFeatureEnabled(FEATURE_KEYS.ONBOARDING) ? [{
+      href: `/employees/${id}/onboarding`,
+      label: "Onboarding History",
+      screenKey: "employee-onboarding",
+      featureKey: FEATURE_KEYS.ONBOARDING,
+    }] : []),
     // Show offboarding tab for archived employees or if they have an offboarding record
     ...(employee.EmployeeOffboarding || !employee.isActive
       ? [{ href: `/employees/${id}/offboarding`, label: "Offboarding", screenKey: "employee-offboarding" }]

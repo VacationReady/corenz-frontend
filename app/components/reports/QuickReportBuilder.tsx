@@ -46,10 +46,13 @@ import {
   hrReportFields,
   hrCategories,
   getFieldsByCategory,
+  filterCategoriesByFeatures,
+  filterFieldsByFeatures,
   type HRReportField,
   type HRCategory,
 } from "@/lib/hrReportFields";
 import type { FilterGroup, SortConfig } from "@/lib/reportFilters";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import {
   createRootFilterGroup,
   createFilterRule,
@@ -201,6 +204,7 @@ export default function QuickReportBuilder({
   onCancel,
   initialConfig,
 }: QuickReportBuilderProps) {
+  const { enabledFeatures } = useFeatureToggles();
   const [currentStep, setCurrentStep] = useState<QuickBuilderStep>("fields");
   const [config, setConfig] = useState<QuickReportConfig>({
     selectedFields: initialConfig?.selectedFields || [...REQUIRED_FIELDS],
@@ -219,14 +223,19 @@ export default function QuickReportBuilder({
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
   const isLastStep = currentStepIndex === steps.length - 1;
 
-  // Filter fields based on search
+  // Filter categories based on feature toggles first
+  const visibleCategories = useMemo(() => {
+    return filterCategoriesByFeatures(enabledFeatures);
+  }, [enabledFeatures]);
+
+  // Filter fields based on search (from already feature-filtered categories)
   const filteredCategories = useMemo(() => {
     if (!debouncedSearch) {
-      return hrCategories;
+      return visibleCategories;
     }
 
     const searchLower = debouncedSearch.toLowerCase();
-    return hrCategories
+    return visibleCategories
       .map((category) => {
         const fields = getFieldsByCategory(category.id);
         const matchingFields = fields.filter(
@@ -238,7 +247,7 @@ export default function QuickReportBuilder({
         return matchingFields.length > 0 ? { ...category, fields: matchingFields } : null;
       })
       .filter(Boolean) as typeof hrCategories;
-  }, [debouncedSearch]);
+  }, [debouncedSearch, visibleCategories]);
 
   // Handle field toggle
   const toggleField = useCallback((fieldKey: string) => {
@@ -518,7 +527,7 @@ export default function QuickReportBuilder({
 
                   {/* Categories */}
                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                    {(debouncedSearch ? filteredCategories : hrCategories).map((category) => {
+                    {(debouncedSearch ? filteredCategories : visibleCategories).map((category) => {
                       const fields = debouncedSearch
                         ? (category as any).fields || getFieldsByCategory(category.id)
                         : getFieldsByCategory(category.id);

@@ -24,8 +24,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { ReportTemplate, hrReportFields, hrCategories, getFieldsByCategory } from "@/lib/hrReportFields";
+import { ReportTemplate, hrReportFields, hrCategories, getFieldsByCategory, filterCategoriesByFeatures } from "@/lib/hrReportFields";
 import type { ReportFilter, SortConfig, FilterOperator, FilterGroup } from "@/lib/reportFilters";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import {
   createRootFilterGroup,
   createFilterRule,
@@ -83,6 +84,7 @@ const steps: Array<{ id: WizardStep; title: string; description: string }> = [
 
 export default function ReportWizard({ onComplete, onCancel, initialConfig }: ReportWizardProps) {
   const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
+  const { enabledFeatures } = useFeatureToggles();
   const [currentStep, setCurrentStep] = useState<WizardStep>(
     initialConfig ? "fields" : "template"
   );
@@ -306,6 +308,7 @@ const allowedOperators: FilterOperator[] = [
                 initialExpandedCategories={
                   fieldsPanelKey && fieldsPanelKey !== "all" ? [fieldsPanelKey] : undefined
                 }
+                enabledFeatures={enabledFeatures}
               />
             )}
 

@@ -11,6 +11,7 @@ import {
   TrendingUp,
   FileText,
 } from "lucide-react";
+import { FeatureKey, FEATURE_KEYS } from "@/lib/feature-toggles/types";
 
 // Enhanced HR-focused report fields with categories and metadata
 export type HRReportField = {
@@ -38,6 +39,7 @@ export type HRCategory = {
 	iconComponent?: LucideIcon; // Modern Lucide icon
 	color: string;
 	order: number;
+	featureKey?: FeatureKey; // Optional feature key - categories without this are always visible
 };
 
 export const hrCategories: HRCategory[] = [
@@ -103,6 +105,7 @@ export const hrCategories: HRCategory[] = [
 		iconComponent: Clock,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 7,
+		featureKey: FEATURE_KEYS.TIMESHEETS,
 	},
 	{
 		id: "performance",
@@ -112,6 +115,7 @@ export const hrCategories: HRCategory[] = [
 		iconComponent: TrendingUp,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 8,
+		featureKey: FEATURE_KEYS.PERFORMANCE_MANAGEMENT,
 	},
 	{
 		id: "forms",
@@ -121,6 +125,7 @@ export const hrCategories: HRCategory[] = [
 		iconComponent: FileText,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 9,
+		featureKey: FEATURE_KEYS.FORMS,
 	},
 ];
 
@@ -1783,3 +1788,66 @@ export type ReportTemplate = {
 
 export const hrReportTemplates: ReportTemplate[] = [];
 
+/**
+ * Filter categories based on enabled feature toggles
+ * Categories without a featureKey are always included
+ * @param enabledFeatures - Object mapping feature keys to enabled state
+ */
+export function filterCategoriesByFeatures(
+	enabledFeatures: Record<string, boolean>
+): HRCategory[] {
+	return hrCategories.filter(category => {
+		// If no featureKey, always include (core functionality)
+		if (!category.featureKey) return true;
+		// Otherwise, check if the feature is enabled (default to true if not set)
+		return enabledFeatures[category.featureKey] ?? true;
+	});
+}
+
+/**
+ * Filter fields based on enabled feature toggles
+ * Fields in categories with disabled features are excluded
+ * @param enabledFeatures - Object mapping feature keys to enabled state
+ */
+export function filterFieldsByFeatures(
+	enabledFeatures: Record<string, boolean>
+): HRReportField[] {
+	const enabledCategoryIds = new Set(
+		filterCategoriesByFeatures(enabledFeatures).map(c => c.id)
+	);
+	return hrReportFields.filter(field => enabledCategoryIds.has(field.category));
+}
+
+/**
+ * Get fields by category, filtered by enabled features
+ * @param categoryId - The category ID to get fields for
+ * @param enabledFeatures - Object mapping feature keys to enabled state
+ */
+export function getFieldsByCategoryWithFeatures(
+	categoryId: string,
+	enabledFeatures: Record<string, boolean>
+): HRReportField[] {
+	const category = getCategoryById(categoryId);
+	// If category has a feature key and it's disabled, return empty array
+	if (category?.featureKey && !(enabledFeatures[category.featureKey] ?? true)) {
+		return [];
+	}
+	return getFieldsByCategory(categoryId);
+}
+
+/**
+ * Group fields by category, filtered by enabled features
+ * @param enabledFeatures - Object mapping feature keys to enabled state
+ */
+export function groupFieldsByCategoryWithFeatures(
+	enabledFeatures: Record<string, boolean>
+): Record<string, HRReportField[]> {
+	const grouped: Record<string, HRReportField[]> = {};
+	const enabledCategories = filterCategoriesByFeatures(enabledFeatures);
+	
+	enabledCategories.forEach(category => {
+		grouped[category.id] = getFieldsByCategory(category.id);
+	});
+	
+	return grouped;
+}

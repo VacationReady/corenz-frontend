@@ -415,12 +415,37 @@ export default function AddLeaveRequestDialog({
         data = {};
       }
 
-      // Handle warning confirmation flow for admins/managers
+      // Handle warning confirmation flow
+      // Only show override dialog to admins/managers - employees see informational message
       if (data?.requiresConfirmation && data?.warnings?.length > 0) {
-        setValidationWarnings(data.warnings);
-        setShowOverrideDialog(true);
-        setLoading(false);
-        return;
+        if (isAdminOrManager) {
+          // Admins/managers can override - show confirmation dialog
+          setValidationWarnings(data.warnings);
+          setShowOverrideDialog(true);
+          setLoading(false);
+          return;
+        } else {
+          // Employees cannot override - show informational toast and block submission
+          // Check if this is a "leave in advance" warning (NZ compliance)
+          const leaveInAdvanceWarning = data.warnings.find(
+            (w: LeaveValidationWarning) => w.ruleType === "leave_in_advance"
+          );
+          if (leaveInAdvanceWarning) {
+            toast.error("Leave in Advance Request", {
+              description: "You have less than 12 months of service. This leave will be deducted from your entitlement when it crystallises. Please contact your manager to submit this request on your behalf.",
+              duration: 8000,
+            });
+          } else {
+            // Generic warning message for other rule violations
+            const firstWarning = data.warnings[0];
+            toast.error("Cannot Submit Request", {
+              description: firstWarning?.message || "This request violates company leave rules. Please contact your manager for assistance.",
+              duration: 6000,
+            });
+          }
+          setLoading(false);
+          return;
+        }
       }
 
       if (!res.ok || data.success === false) {

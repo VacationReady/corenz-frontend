@@ -1096,6 +1096,8 @@ export default function AddEmployeeModal({
     }
 
     // Calculate employee days worked per week from pattern
+    // For TIMED patterns, use hoursPerDay to calculate day equivalent (8 hours = 1 day)
+    const FULL_DAY_HOURS = 8;
     let employeeDaysPerWeek = 0;
     selectedPattern.weeks.forEach((week) => {
       week.days.forEach((day) => {
@@ -1103,6 +1105,9 @@ export default function AddEmployeeModal({
           employeeDaysPerWeek += 1;
         } else if (day.type.includes("HALF_DAY")) {
           employeeDaysPerWeek += 0.5;
+        } else if (day.type === "TIMED" && day.hoursPerDay) {
+          // Convert hours to day equivalent (e.g., 4 hours = 0.5 days)
+          employeeDaysPerWeek += day.hoursPerDay / FULL_DAY_HOURS;
         }
       });
     });

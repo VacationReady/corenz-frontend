@@ -2,7 +2,6 @@ import { NextResponse, NextRequest } from "next/server";
 import { calculateLeaveDeductionBatchEnhanced } from "@/lib/calculateLeaveDeductionBatchEnhanced";
 import { formatLeaveBalance } from "@/lib/decimalPrecision";
 import { prisma } from "@/lib/prisma";
-import { isLeaveHoursEnabled } from "@/lib/leave/hours-conversion";
 
 export async function GET(
   req: NextRequest,
@@ -39,7 +38,8 @@ export async function GET(
   const deductionHours = results.reduce((sum, r) => sum + r.deductionHours, 0);
 
   // Check if hours display is enabled for this employee's company
-  let hoursEnabled = false;
+  // Default to true (hours enabled) when not explicitly set to false
+  let hoursEnabled = true;
   try {
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
@@ -49,10 +49,12 @@ export async function GET(
       const company = await prisma.company.findUnique({
         where: { id: employee.companyId },
       });
-      hoursEnabled = isLeaveHoursEnabled(company);
+      // Type assertion for leaveHoursEnabled field that may not exist in Prisma types yet
+      const companyWithConfig = company as typeof company & { leaveHoursEnabled?: boolean | null };
+      hoursEnabled = companyWithConfig?.leaveHoursEnabled !== false;
     }
   } catch {
-    // Default to false if error
+    // Default to true if error (hours enabled by default)
   }
 
   // Format to 2 decimal places to avoid floating point precision issues

@@ -276,13 +276,19 @@ export default function LeaveBalancePanel({
                 ? "Annual Leave Entitlement" 
                 : entitlement.eventCategory.name;
 
-              // Calculate hours if available
-              const remainingHours = entitlement.totalHours && entitlement.usedHours
-                ? roundToTwoDecimals(Number(entitlement.totalHours) - Number(entitlement.usedHours))
+              // Calculate hours if available (use !== null to handle zero values correctly)
+              const totalHours = entitlement.totalHours !== null && entitlement.totalHours !== undefined 
+                ? roundToTwoDecimals(Number(entitlement.totalHours)) 
                 : null;
-              const totalHours = entitlement.totalHours ? roundToTwoDecimals(Number(entitlement.totalHours)) : null;
-              const usedHoursVal = entitlement.usedHours ? roundToTwoDecimals(Number(entitlement.usedHours)) : null;
-              const carryoverHoursVal = entitlement.carryoverHours ? roundToTwoDecimals(Number(entitlement.carryoverHours)) : null;
+              const usedHoursVal = entitlement.usedHours !== null && entitlement.usedHours !== undefined 
+                ? roundToTwoDecimals(Number(entitlement.usedHours)) 
+                : null;
+              const carryoverHoursVal = entitlement.carryoverHours !== null && entitlement.carryoverHours !== undefined 
+                ? roundToTwoDecimals(Number(entitlement.carryoverHours)) 
+                : null;
+              const remainingHours = totalHours !== null && usedHoursVal !== null
+                ? roundToTwoDecimals(totalHours - usedHoursVal)
+                : null;
 
               return (
                 <p key={entitlement.id} className="flex items-center gap-1">

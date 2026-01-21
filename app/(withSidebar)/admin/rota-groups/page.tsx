@@ -340,7 +340,7 @@ export default function RotaGroupsPage() {
             <div>
               <h4 className="text-foreground font-medium mb-1">What are Rota Groups?</h4>
               <p className="text-sm text-muted-foreground">
-                Rota Groups are scheduling pools that organize employees by location, department, and roles. 
+                Rota Groups are scheduling pools that organise employees by location, department, and roles. 
                 They make shift scheduling faster by filtering the right employees for each shift, 
                 enforcing skill requirements, and providing coverage insights.
               </p>

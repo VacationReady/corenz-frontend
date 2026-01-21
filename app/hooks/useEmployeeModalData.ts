@@ -37,6 +37,10 @@ export interface OnboardingTemplate {
 
 export interface WorkingPatternDay {
   type: string;
+  hoursPerDay?: number | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  breakMinutes?: number | null;
 }
 
 export interface WorkingPatternWeek {

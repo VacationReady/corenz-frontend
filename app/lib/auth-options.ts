@@ -11,9 +11,80 @@ const MAIN_PRODUCTION_COMPANY_ID = process.env.NEXT_PUBLIC_MAIN_PRODUCTION_COMPA
 
 export const authConfig = {
   secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
 
   adapter: PrismaAdapter(prisma) as Adapter,
   session: { strategy: "jwt" },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production" 
+        ? "__Secure-authjs.session-token" 
+        : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-authjs.callback-url"
+        : "authjs.callback-url",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Host-authjs.csrf-token"
+        : "authjs.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    pkceCodeVerifier: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-authjs.pkce.code_verifier"
+        : "authjs.pkce.code_verifier",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 15,
+      },
+    },
+    state: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-authjs.state"
+        : "authjs.state",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 15,
+      },
+    },
+    nonce: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-authjs.nonce"
+        : "authjs.nonce",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   providers: [
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { X, Save, AlertTriangle, Loader2, Search, Check, ChevronsUpDown, User, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -50,6 +51,14 @@ interface RotaGroup {
   _count: {
     Members: number;
   };
+}
+
+interface RotaAccessInfo {
+  accessLevel: 'none' | 'group_manager' | 'full_access';
+  managedGroups: { id: string; name: string }[];
+  memberGroups: { id: string; name: string }[];
+  hasRotaAccess: boolean;
+  managedEmployeeIds?: string[];
 }
 
 interface GroupMember {
@@ -366,6 +375,10 @@ export default function CreateShiftModal({
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
   const [shiftBasedOnly, setShiftBasedOnly] = useState(true); // Default to only showing shift-based workers
+  const [rotaAccessInfo, setRotaAccessInfo] = useState<RotaAccessInfo | null>(null);
+  
+  // Determine if user has full rota access (admin/manager) or is just a group manager
+  const isGroupManagerOnly = rotaAccessInfo?.accessLevel === 'group_manager';
 
   // Form state - now supports multiple employees
   const [formData, setFormData] = useState<ShiftFormData>({
@@ -397,12 +410,39 @@ export default function CreateShiftModal({
 
   useEffect(() => {
     if (isOpen) {
-      fetchEmployees();
+      fetchRotaAccessInfo();
       fetchDepartments();
       fetchLocations();
       fetchRotaGroups();
     }
-  }, [isOpen, shiftBasedOnly]);
+  }, [isOpen]);
+
+  // Fetch employees after rota access info is available (for proper filtering)
+  useEffect(() => {
+    if (isOpen && rotaAccessInfo !== null) {
+      fetchEmployees();
+    }
+  }, [isOpen, shiftBasedOnly, rotaAccessInfo]);
+
+  const fetchRotaAccessInfo = async () => {
+    try {
+      const response = await fetch('/api/user/rota-access');
+      if (response.ok) {
+        const data = await response.json();
+        setRotaAccessInfo(data);
+        
+        // For group managers, auto-select first managed group if available
+        if (data.accessLevel === 'group_manager' && data.managedGroups?.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            rotaGroupId: prev.rotaGroupId || data.managedGroups[0].id,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching rota access info:', error);
+    }
+  };
 
   useEffect(() => {
     if (formData.rotaGroupId) {
@@ -493,7 +533,7 @@ export default function CreateShiftModal({
       }
       
       // Transform to expected nested format for the component
-      const employeeList = allEmployees.map((emp: any) => ({
+      let employeeList = allEmployees.map((emp: any) => ({
         id: emp.id,
         User: {
           name: emp.firstName && emp.lastName 
@@ -512,6 +552,14 @@ export default function CreateShiftModal({
         workingPatternType: emp.workingPatternType || null,
         workingPatternName: emp.workingPatternName || null,
       }));
+      
+      // For group managers, filter to only show employees from their managed groups
+      // This is a security measure - even if they somehow bypass the UI, the API will reject
+      if (rotaAccessInfo?.accessLevel === 'group_manager' && rotaAccessInfo.managedEmployeeIds) {
+        const managedIds = new Set(rotaAccessInfo.managedEmployeeIds);
+        employeeList = employeeList.filter(emp => managedIds.has(emp.id));
+      }
+      
       setEmployees(employeeList);
     } catch (error) {
       console.error('Error fetching employees:', error);
@@ -847,7 +895,9 @@ export default function CreateShiftModal({
                 })}
                 className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-150"
               >
-                <option value="">All Employees (No Filter)</option>
+                {!isGroupManagerOnly && (
+                  <option value="">All Employees (No Filter)</option>
+                )}
                 {rotaGroups.map((group) => (
                   <optgroup key={group.id} label={`${group.icon || '📋'} ${group.name}`}>
                     <option value={group.id}>

@@ -20,6 +20,7 @@ import {
   Search,
   Check,
   Pencil,
+  Shield,
 } from 'lucide-react';
 import { RotaGroupIconPicker } from '@/components/rota/RotaGroupIconPicker';
 import { RotaGroupColorPicker } from '@/components/rota/RotaGroupColorPicker';
@@ -62,6 +63,13 @@ interface Member {
   Employee: Employee;
 }
 
+interface Manager {
+  id: string;
+  employeeId: string;
+  addedAt: string;
+  Employee: Employee;
+}
+
 interface RotaGroup {
   id: string;
   name: string;
@@ -76,8 +84,10 @@ interface RotaGroup {
   Location?: { id: string; name: string };
   Department?: { id: string; name: string };
   Members?: Member[];
+  Managers?: Manager[];
   _count: {
     Members: number;
+    Managers?: number;
     Shifts: number;
     ShiftRequirements: number;
   };
@@ -99,12 +109,14 @@ export default function EditRotaGroupModal({
 }: EditRotaGroupModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'members'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'members' | 'managers'>('details');
   const [locations, setLocations] = useState<Location[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [managers, setManagers] = useState<Manager[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [managerSearchTerm, setManagerSearchTerm] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string[]>>({});
   const [selectedSkills, setSelectedSkills] = useState<Record<string, string[]>>({});
@@ -142,8 +154,10 @@ export default function EditRotaGroupModal({
         optionalTags: group.optionalTags || [],
       });
       setMembers(group.Members || []);
+      setManagers(group.Managers || []);
       fetchDropdownData();
       fetchEmployees();
+      fetchManagers();
       setActiveTab('details');
       setErrors({});
     }
@@ -237,13 +251,100 @@ export default function EditRotaGroupModal({
     }
   };
 
+  const fetchManagers = async () => {
+    if (!group) return;
+    try {
+      const res = await fetch(`/api/rota-groups/${group.id}/managers`);
+      if (res.ok) {
+        const data = await res.json();
+        setManagers(data.managers || []);
+      }
+    } catch (error) {
+      console.error('Error fetching managers:', error);
+    }
+  };
+
+  const addManager = async (employeeId: string) => {
+    if (!group) return;
+    try {
+      const response = await fetch(`/api/rota-groups/${group.id}/managers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeIds: [employeeId] }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: 'Failed to add manager',
+          description: error.error || 'Something went wrong',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Manager added',
+        description: 'Manager has been added to the group',
+      });
+      fetchManagers();
+    } catch (error) {
+      console.error('Error adding manager:', error);
+      toast({
+        title: 'Failed to add manager',
+        description: 'Something went wrong',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const removeManager = async (employeeId: string) => {
+    if (!group) return;
+    try {
+      const response = await fetch(`/api/rota-groups/${group.id}/managers/${employeeId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: 'Failed to remove manager',
+          description: error.error || 'Something went wrong',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setManagers(managers.filter((m) => m.employeeId !== employeeId));
+      toast({
+        title: 'Manager removed',
+        description: 'Manager has been removed from the group',
+      });
+    } catch (error) {
+      console.error('Error removing manager:', error);
+      toast({
+        title: 'Failed to remove manager',
+        description: 'Something went wrong',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const memberIds = new Set(members.map((m) => m.employeeId));
+  const managerIds = new Set(managers.map((m) => m.employeeId));
   const availableEmployees = allEmployees.filter((e) => !memberIds.has(e.id));
+  const availableForManager = allEmployees.filter((e) => !managerIds.has(e.id));
 
   const filteredEmployees = availableEmployees.filter(
     (emp) =>
       emp.User.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.User.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredManagerCandidates = availableForManager.filter(
+    (emp) =>
+      emp.User.name.toLowerCase().includes(managerSearchTerm.toLowerCase()) ||
+      emp.User.email.toLowerCase().includes(managerSearchTerm.toLowerCase())
   );
 
   const toggleEmployee = (employeeId: string) => {
@@ -633,6 +734,21 @@ export default function EditRotaGroupModal({
                 <span className="px-2 py-0.5 text-xs rounded-full bg-muted">{members.length}</span>
               </div>
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('managers')}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-all ${
+                activeTab === 'managers'
+                  ? 'border-amber-500 text-amber-600 dark:text-amber-400'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                Managers
+                <span className="px-2 py-0.5 text-xs rounded-full bg-muted">{managers.length}</span>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -914,7 +1030,7 @@ export default function EditRotaGroupModal({
                 </div>
               </div>
             </form>
-          ) : (
+          ) : activeTab === 'members' ? (
             /* Members Tab */
             <div className="space-y-6">
               {/* Add Members Section */}
@@ -1230,7 +1346,121 @@ export default function EditRotaGroupModal({
                 )}
               </div>
             </div>
-          )}
+          ) : activeTab === 'managers' ? (
+            /* Managers Tab */
+            <div className="space-y-6">
+              {/* Add Managers Section */}
+              <div className="bg-amber-500/5 rounded-xl p-4 border border-amber-500/20">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-amber-500" />
+                    <h3 className="font-semibold text-foreground">Add Manager</h3>
+                  </div>
+                  <span className="text-sm text-muted-foreground px-2 py-1 bg-muted rounded-full">
+                    {availableForManager.length} available
+                  </span>
+                </div>
+
+                <p className="text-sm text-muted-foreground mb-4">
+                  Managers can create and manage shifts for this team without full admin access.
+                </p>
+
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    value={managerSearchTerm}
+                    onChange={(e) => setManagerSearchTerm(e.target.value)}
+                    placeholder="Search employees to add as manager..."
+                    className="pl-10 h-10 rounded-lg border-muted/50 bg-white/50 dark:bg-white/5"
+                  />
+                </div>
+
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {filteredManagerCandidates.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-4 text-sm">
+                      {managerSearchTerm ? 'No employees found' : 'No available employees'}
+                    </p>
+                  ) : (
+                    filteredManagerCandidates.slice(0, 10).map((emp) => (
+                      <div
+                        key={emp.id}
+                        className="p-3 rounded-lg border bg-card border-border hover:border-amber-500/30 transition-all flex items-center justify-between"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{emp.User.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{emp.User.email}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => addManager(emp.id)}
+                          className="bg-amber-500 hover:bg-amber-600 text-white"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                  {filteredManagerCandidates.length > 10 && (
+                    <p className="text-center text-muted-foreground py-2 text-xs">
+                      Showing 10 of {filteredManagerCandidates.length} employees. Use search to find more.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Current Managers */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Shield className="w-5 h-5 text-amber-500" />
+                  <h3 className="font-semibold text-foreground">Current Managers</h3>
+                  <span className="text-sm text-muted-foreground px-2 py-1 bg-muted rounded-full">{managers.length}</span>
+                </div>
+
+                {managers.length === 0 ? (
+                  <div className="text-center py-8 bg-muted/30 rounded-xl border border-dashed border-border">
+                    <Shield className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+                    <p className="text-muted-foreground">No managers assigned</p>
+                    <p className="text-sm text-muted-foreground/70">Add employees from the list above</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {managers.map((manager) => (
+                      <motion.div
+                        key={manager.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="p-4 bg-card rounded-lg border border-border hover:border-amber-500/30 transition-all"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                              <Shield className="w-5 h-5 text-amber-500" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">{manager.Employee.User.name}</p>
+                              <p className="text-xs text-muted-foreground">{manager.Employee.User.email}</p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeManager(manager.employeeId)}
+                            className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Footer */}

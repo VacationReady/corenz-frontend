@@ -16,7 +16,10 @@ import {
   Tag,
   ChevronRight,
   Palette,
-  Sparkles
+  Sparkles,
+  Shield,
+  Search,
+  Check
 } from 'lucide-react';
 import { RotaGroupIconPicker } from '@/components/rota/RotaGroupIconPicker';
 import { RotaGroupColorPicker } from '@/components/rota/RotaGroupColorPicker';
@@ -43,6 +46,13 @@ interface Location {
 interface Department {
   id: string;
   name: string;
+}
+
+interface Employee {
+  id: string;
+  User: { name: string; email: string };
+  Location?: { name: string };
+  Department?: { name: string };
 }
 
 // Collapsible Section Component
@@ -116,6 +126,8 @@ export default function CreateRotaGroupPage() {
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [managerSearch, setManagerSearch] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -127,6 +139,7 @@ export default function CreateRotaGroupPage() {
     roles: [] as string[],
     requiredSkills: [] as string[],
     optionalTags: [] as string[],
+    managerIds: [] as string[],
   });
 
   const [newRole, setNewRole] = useState('');
@@ -139,16 +152,47 @@ export default function CreateRotaGroupPage() {
 
   const fetchDropdownData = async () => {
     try {
-      const [locationsRes, departmentsRes] = await Promise.all([
+      const [locationsRes, departmentsRes, employeesRes] = await Promise.all([
         fetch('/api/locations'),
         fetch('/api/departments'),
+        fetch('/api/employees?status=active&limit=500'),
       ]);
       
       const locationsData = await locationsRes.json();
       const departmentsData = await departmentsRes.json();
+      const employeesData = await employeesRes.json();
       
       setLocations(locationsData.locations || []);
       setDepartments(departmentsData || []);
+      
+      // Normalize employees data
+      const rawEmployees = (employeesData.data || []) as any[];
+      const normalizedEmployees: Employee[] = rawEmployees.map((emp: any) => {
+        if (emp.User) {
+          return {
+            id: emp.id,
+            User: {
+              name: emp.User.name || [emp.User.firstName, emp.User.lastName].filter(Boolean).join(' ') || emp.User.email,
+              email: emp.User.email,
+            },
+            Location: emp.Location ? { name: emp.Location.name } : emp.locationName ? { name: emp.locationName } : undefined,
+            Department: emp.Department ? { name: emp.Department.name } : emp.departmentName ? { name: emp.departmentName } : undefined,
+          };
+        }
+        return {
+          id: emp.id,
+          User: {
+            name: [emp.firstName, emp.lastName].filter(Boolean).join(' ') || emp.email,
+            email: emp.email,
+          },
+          Location: emp.locationName ? { name: emp.locationName } : undefined,
+          Department: emp.departmentName ? { name: emp.departmentName } : undefined,
+        };
+      });
+      
+      // Sort alphabetically by name
+      normalizedEmployees.sort((a, b) => a.User.name.localeCompare(b.User.name));
+      setAllEmployees(normalizedEmployees);
     } catch (error) {
       console.error('Error fetching dropdown data:', error);
     }
@@ -163,6 +207,7 @@ export default function CreateRotaGroupPage() {
         ...formData,
         locationId: formData.locationId || undefined,
         departmentId: formData.departmentId || undefined,
+        managerIds: formData.managerIds.length > 0 ? formData.managerIds : undefined,
       };
 
       const response = await fetch('/api/rota-groups', {
@@ -235,6 +280,20 @@ export default function CreateRotaGroupPage() {
   const removeTag = (tag: string) => {
     setFormData({ ...formData, optionalTags: formData.optionalTags.filter(t => t !== tag) });
   };
+
+  const toggleManager = (employeeId: string) => {
+    const newManagerIds = formData.managerIds.includes(employeeId)
+      ? formData.managerIds.filter(id => id !== employeeId)
+      : [...formData.managerIds, employeeId];
+    setFormData({ ...formData, managerIds: newManagerIds });
+  };
+
+  const filteredEmployees = allEmployees.filter(emp =>
+    emp.User.name.toLowerCase().includes(managerSearch.toLowerCase()) ||
+    emp.User.email.toLowerCase().includes(managerSearch.toLowerCase())
+  );
+
+  const selectedManagers = allEmployees.filter(emp => formData.managerIds.includes(emp.id));
 
   const SelectedIcon = getRotaGroupIcon(formData.icon);
 
@@ -545,6 +604,104 @@ export default function CreateRotaGroupPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+          </FormSection>
+
+          {/* Team Managers */}
+          <FormSection title="Team Managers" icon={Shield} accentColor="amber" defaultOpen={false}>
+            <p className="text-sm text-muted-foreground -mt-2 mb-3">
+              Select employees who can manage shifts and schedules for this team
+            </p>
+            
+            <div className="space-y-3">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  value={managerSearch}
+                  onChange={(e) => setManagerSearch(e.target.value)}
+                  placeholder="Search employees..."
+                  className="pl-10 h-10 rounded-lg border-muted/50 bg-white/50 dark:bg-white/5"
+                />
+              </div>
+
+              {/* Selected Managers */}
+              <AnimatePresence>
+                {selectedManagers.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex flex-wrap gap-2"
+                  >
+                    {selectedManagers.map((emp) => (
+                      <motion.span
+                        key={emp.id}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full border border-amber-500/30 text-sm font-medium"
+                      >
+                        <Shield className="w-3.5 h-3.5" />
+                        {emp.User.name}
+                        <button
+                          type="button"
+                          onClick={() => toggleManager(emp.id)}
+                          className="hover:text-red-500 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </motion.span>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Employee List */}
+              <div className="max-h-[200px] overflow-y-auto border border-border rounded-lg divide-y divide-border">
+                {filteredEmployees.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    {managerSearch ? 'No employees found' : 'No employees available'}
+                  </div>
+                ) : (
+                  filteredEmployees.slice(0, 50).map((emp) => {
+                    const isSelected = formData.managerIds.includes(emp.id);
+                    return (
+                      <button
+                        key={emp.id}
+                        type="button"
+                        onClick={() => toggleManager(emp.id)}
+                        className={`w-full flex items-center gap-3 p-3 text-left transition-colors ${
+                          isSelected ? 'bg-amber-500/10' : 'hover:bg-muted/50'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                          isSelected 
+                            ? 'bg-amber-500 border-amber-500 text-white' 
+                            : 'border-muted-foreground/30'
+                        }`}>
+                          {isSelected && <Check className="w-3 h-3" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm text-foreground truncate">{emp.User.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{emp.User.email}</div>
+                        </div>
+                        {(emp.Department || emp.Location) && (
+                          <div className="text-xs text-muted-foreground">
+                            {emp.Department?.name || emp.Location?.name}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+              {filteredEmployees.length > 50 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Showing first 50 results. Use search to find more.
+                </p>
+              )}
             </div>
           </FormSection>
 

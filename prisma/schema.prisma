@@ -589,6 +589,7 @@ model Employee {
   ClockEntries                     ClockEntry[]                       @relation("ClockEntryEmployee")
   Shifts                           Shift[]                            @relation("ShiftEmployee")
   RotaGroupMemberships             RotaGroupMember[]                  @relation("RotaGroupMembers")
+  ManagedRotaGroups                RotaGroupManager[]                 @relation("RotaGroupManagers")
   TimesheetEntryAuditsAsEmployee   TimesheetEntryAudit[]              @relation("TimesheetEntryAuditEmployee")
   TimesheetEntryAuditsAsChanger    TimesheetEntryAudit[]              @relation("TimesheetEntryAuditChangedBy")
   OvertimeAuditLogs                OvertimeAuditLog[]
@@ -3888,6 +3889,7 @@ model RotaGroup {
   Location          Location?          @relation(fields: [locationId], references: [id])
   Department        Department?        @relation(fields: [departmentId], references: [id])
   Members           RotaGroupMember[]
+  Managers          RotaGroupManager[]
   ShiftTemplates    ShiftTemplate[]
   ShiftRequirements ShiftRequirement[]
   Shifts            Shift[]
@@ -3896,6 +3898,21 @@ model RotaGroup {
   @@index([companyId, isActive])
   @@index([locationId])
   @@index([departmentId])
+}
+
+model RotaGroupManager {
+  id          String   @id @default(cuid())
+  rotaGroupId String
+  employeeId  String
+  addedAt     DateTime @default(now())
+  addedBy     String?
+
+  RotaGroup RotaGroup @relation(fields: [rotaGroupId], references: [id], onDelete: Cascade)
+  Employee  Employee  @relation("RotaGroupManagers", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([rotaGroupId, employeeId])
+  @@index([rotaGroupId])
+  @@index([employeeId])
 }
 
 model RotaGroupMember {

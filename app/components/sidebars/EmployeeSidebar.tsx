@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, LayoutDashboard, Calendar, Clock, Users, X, Target, ClipboardList, CalendarClock, FileText, Megaphone } from "lucide-react";
@@ -34,15 +34,31 @@ export default function EmployeeSidebar({
   const headerPadding = isMobile ? "px-4 py-4" : "px-4 py-4";
   const sectionPadding = isMobile ? "px-4 py-3" : "px-4 py-3";
   const navPadding = isMobile ? "px-2" : "px-2";
+  const [hasRotaAccess, setHasRotaAccess] = useState(false);
 
   const brandName = branding.shortName || branding.name;
+
+  useEffect(() => {
+    const checkRotaAccess = async () => {
+      try {
+        const res = await fetch('/api/user/rota-access');
+        if (res.ok) {
+          const data = await res.json();
+          setHasRotaAccess(data.hasRotaAccess === true);
+        }
+      } catch (error) {
+        console.error('Error checking rota access:', error);
+      }
+    };
+    checkRotaAccess();
+  }, []);
 
   const handleLogout = () => {
     onMobileNavigate?.();
     void signOut({ callbackUrl: getLogoutCallbackUrl() });
   };
 
-  const navItems: NavItem[] = [
+  const baseNavItems: NavItem[] = [
     {
       label: "Dashboard",
       href: "/dashboard",
@@ -57,10 +73,24 @@ export default function EmployeeSidebar({
     { label: "Documents", href: "/documents", icon: <FileText size={18} /> },
   ];
 
+  const navItems: NavItem[] = useMemo(() => {
+    const items = [...baseNavItems];
+    if (hasRotaAccess) {
+      // Insert Team Schedule after My Schedule
+      const myScheduleIndex = items.findIndex(item => item.href === '/employee/schedule');
+      items.splice(myScheduleIndex + 1, 0, {
+        label: "Team Schedule",
+        href: "/rota",
+        icon: <CalendarClock size={18} />,
+      });
+    }
+    return items;
+  }, [hasRotaAccess]);
+
   // Filter navigation items based on feature toggles
   const filteredNavItems = useMemo(
     () => filterNavItems(navItems),
-    [filterNavItems]
+    [filterNavItems, navItems]
   );
 
   return (

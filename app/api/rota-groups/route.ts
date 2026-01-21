@@ -18,6 +18,7 @@ const rotaGroupSchema = z.object({
   icon: z.string().optional(),
   displayOrder: z.number().default(0),
   isActive: z.boolean().default(true),
+  managerIds: z.array(z.string()).optional(), // Employee IDs who can manage this group
 });
 
 // GET /api/rota-groups - List all rota groups for the company
@@ -60,14 +61,25 @@ async function getHandler(request: NextRequest) {
       companyId: requestingEmployee.companyId,
     };
 
-    // Non-admin/manager users can only see rota groups they are members of
+    // Non-admin/manager users can only see rota groups they are members of OR managers of
     if (!isAdminOrManager) {
-      where.Members = {
-        some: {
-          employeeId: requestingEmployee.id,
-          isActive: true,
+      where.OR = [
+        {
+          Members: {
+            some: {
+              employeeId: requestingEmployee.id,
+              isActive: true,
+            },
+          },
         },
-      };
+        {
+          Managers: {
+            some: {
+              employeeId: requestingEmployee.id,
+            },
+          },
+        },
+      ];
     }
 
     if (locationId) where.locationId = locationId;
@@ -83,9 +95,21 @@ async function getHandler(request: NextRequest) {
         Department: {
           select: { id: true, name: true },
         },
+        Managers: {
+          include: {
+            Employee: {
+              include: {
+                User: {
+                  select: { id: true, name: true, email: true },
+                },
+              },
+            },
+          },
+        },
         _count: {
           select: {
             Members: true,
+            Managers: true,
             Shifts: true,
             ShiftRequirements: true,
           },
@@ -163,9 +187,12 @@ async function postHandler(request: NextRequest) {
       );
     }
 
+    // Extract managerIds before creating the group
+    const { managerIds, ...groupData } = validatedData;
+
     const rotaGroup = await prisma.rotaGroup.create({
       data: {
-        ...validatedData,
+        ...groupData,
         companyId: requestingEmployee.companyId,
       },
       include: {
@@ -179,10 +206,34 @@ async function postHandler(request: NextRequest) {
           select: {
             Members: true,
             Shifts: true,
+            Managers: true,
           },
         },
       },
     });
+
+    // Create managers if provided
+    if (managerIds && managerIds.length > 0) {
+      // Verify all employees exist and belong to company
+      const employees = await prisma.employee.findMany({
+        where: {
+          id: { in: managerIds },
+          companyId: requestingEmployee.companyId,
+          isActive: true,
+        },
+      });
+
+      if (employees.length > 0) {
+        await prisma.rotaGroupManager.createMany({
+          data: employees.map((emp) => ({
+            rotaGroupId: rotaGroup.id,
+            employeeId: emp.id,
+            addedBy: session.user.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
 
     // Create audit log (using EMPLOYEE entityType as ROTA_GROUP is not in enum)
     await prisma.globalAuditLog.create({

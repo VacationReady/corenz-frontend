@@ -18,6 +18,8 @@ import {
   Pencil,
   Award,
   Loader2,
+  Shield,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
@@ -38,6 +40,13 @@ interface Member {
   Employee: Employee;
 }
 
+interface Manager {
+  id: string;
+  employeeId: string;
+  addedAt: string;
+  Employee: Employee;
+}
+
 interface RotaGroup {
   id: string;
   name: string;
@@ -45,6 +54,7 @@ interface RotaGroup {
   color?: string;
   roles: string[];
   requiredSkills: string[];
+  Managers?: Manager[];
 }
 
 export default function RotaGroupMembersPage() {
@@ -54,6 +64,7 @@ export default function RotaGroupMembersPage() {
 
   const [group, setGroup] = useState<RotaGroup | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const [managers, setManagers] = useState<Manager[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,6 +92,7 @@ export default function RotaGroupMembersPage() {
 
       setGroup(groupData.rotaGroup);
       setMembers(membersData.members || []);
+      setManagers(groupData.rotaGroup?.Managers || []);
       // API returns { data: [...], pagination: {...} }
       const rawEmployees = (employeesData.data || []) as any[];
 
@@ -521,6 +533,49 @@ export default function RotaGroupMembersPage() {
               )}
             </div>
           </motion.div>
+
+          {/* Managers Section */}
+          {managers.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+              className="bg-card border border-amber-500/30 rounded-xl overflow-hidden shadow-sm lg:col-span-2"
+            >
+              <div className="p-4 border-b border-amber-500/20 bg-amber-500/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-amber-500" />
+                    <h2 className="text-lg font-semibold text-foreground">Team Managers</h2>
+                  </div>
+                  <span className="text-sm px-2 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full font-medium">
+                    {managers.length} manager{managers.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  These employees can create and manage shifts for this team
+                </p>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-wrap gap-3">
+                  {managers.map((manager) => (
+                    <div
+                      key={manager.id}
+                      className="flex items-center gap-3 px-4 py-2 bg-amber-500/5 border border-amber-500/20 rounded-lg"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
+                        <Shield className="w-4 h-4 text-amber-500" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm text-foreground">{manager.Employee.User.name}</div>
+                        <div className="text-xs text-muted-foreground">{manager.Employee.User.email}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Current Members */}
           <motion.div 

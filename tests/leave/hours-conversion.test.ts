@@ -268,36 +268,37 @@ describe('Leave Hours Conversion Utilities', () => {
 
   // ============================================
   // FEATURE FLAG TESTS
+  // Note: Default is TRUE (hours enabled by default for new rollout)
   // ============================================
   describe('isLeaveHoursEnabled (Feature Flag)', () => {
-    it('returns false when leaveHoursEnabled is false', () => {
+    it('returns false when leaveHoursEnabled is explicitly false', () => {
       assert.strictEqual(isLeaveHoursEnabled({ leaveHoursEnabled: false }), false);
     });
 
-    it('returns false when leaveHoursEnabled is null', () => {
-      assert.strictEqual(isLeaveHoursEnabled({ leaveHoursEnabled: null }), false);
+    it('returns true when leaveHoursEnabled is null (defaults to enabled)', () => {
+      assert.strictEqual(isLeaveHoursEnabled({ leaveHoursEnabled: null }), true);
     });
 
-    it('returns false when leaveHoursEnabled is undefined', () => {
-      assert.strictEqual(isLeaveHoursEnabled({ leaveHoursEnabled: undefined }), false);
+    it('returns true when leaveHoursEnabled is undefined (defaults to enabled)', () => {
+      assert.strictEqual(isLeaveHoursEnabled({ leaveHoursEnabled: undefined }), true);
     });
 
-    it('returns false when config is null', () => {
-      assert.strictEqual(isLeaveHoursEnabled(null), false);
+    it('returns true when config is null (defaults to enabled)', () => {
+      assert.strictEqual(isLeaveHoursEnabled(null), true);
     });
 
-    it('returns false when config is undefined', () => {
-      assert.strictEqual(isLeaveHoursEnabled(undefined), false);
+    it('returns true when config is undefined (defaults to enabled)', () => {
+      assert.strictEqual(isLeaveHoursEnabled(undefined), true);
     });
 
-    it('returns true ONLY when leaveHoursEnabled is explicitly true', () => {
+    it('returns true when leaveHoursEnabled is explicitly true', () => {
       assert.strictEqual(isLeaveHoursEnabled({ leaveHoursEnabled: true }), true);
     });
 
-    it('ensures existing tenants see no change (default false)', () => {
-      // Simulates a company record without the field set
-      const legacyCompany = {};
-      assert.strictEqual(isLeaveHoursEnabled(legacyCompany as any), false);
+    it('defaults to enabled for new tenants (hours tracking on by default)', () => {
+      // Simulates a company record without the field set - defaults to enabled
+      const newCompany = {};
+      assert.strictEqual(isLeaveHoursEnabled(newCompany as any), true);
     });
   });
 

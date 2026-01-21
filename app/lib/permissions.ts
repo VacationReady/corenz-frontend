@@ -172,6 +172,14 @@ export const SCREEN_METADATA: ScreenMetadata[] = [
     category: 'system',
     affectsOthers: false,
   },
+  {
+    key: 'rota',
+    label: 'Rota',
+    displayLabel: 'Rota & Shift Management',
+    description: 'Full access to view and manage rotas, shifts, and scheduling for all teams',
+    category: 'system',
+    affectsOthers: true,
+  },
   // Employee profile screens - these control access to OTHER employees' data
   {
     key: 'employee-overview',
@@ -315,6 +323,7 @@ const ADMIN_BASE_PERMISSIONS: ScreenPermissions = {
   departments: ["read", "edit", "delete"],
   "job-roles": ["read", "edit", "delete"],
   permissions: ["read", "edit", "delete"],
+  rota: ["read", "edit", "delete"],
 };
 
 export const DEFAULT_PERMISSIONS: Record<string, ScreenPermissions> = {
@@ -332,6 +341,7 @@ export const DEFAULT_PERMISSIONS: Record<string, ScreenPermissions> = {
     "working-patterns": ["read"],
     onboarding: ["read"],
     offboarding: ["read"],
+    rota: ["read", "edit"],
   },
   EMPLOYEE: {
     dashboard: ["read"],
@@ -528,6 +538,7 @@ export function getScreenDisplayName(screen: string): string {
     departments: "Departments",
     "job-roles": "Job Roles",
     permissions: "Permissions",
+    rota: "Rota & Shifts",
     // Employee detail screens
     "employee-overview": "Employee Overview",
     "employee-personal-information": "Employee Personal Information",

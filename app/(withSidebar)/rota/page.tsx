@@ -77,9 +77,18 @@ interface RotaGroup {
   Department?: { id: string; name: string };
   _count: {
     Members: number;
+    Managers?: number;
     Shifts: number;
     ShiftRequirements: number;
   };
+}
+
+// Rota access types
+interface RotaAccessInfo {
+  accessLevel: 'none' | 'group_manager' | 'full_access';
+  managedGroups: { id: string; name: string }[];
+  memberGroups: { id: string; name: string }[];
+  hasRotaAccess: boolean;
 }
 
  function renderRotaGroupIcon(icon?: string, color?: string) {
@@ -244,6 +253,9 @@ export default function RotaPage() {
   const [rotaGroups, setRotaGroups] = useState<RotaGroup[]>([]);
   const [loadingRotaGroups, setLoadingRotaGroups] = useState(false);
   
+  // Rota access level state
+  const [rotaAccessInfo, setRotaAccessInfo] = useState<RotaAccessInfo | null>(null);
+  
   // Live Attendance panel state
   const [liveAttendancePanelOpen, setLiveAttendancePanelOpen] = useState(false);
   const [liveAttendanceData, setLiveAttendanceData] = useState<LiveAttendanceData | null>(null);
@@ -328,6 +340,13 @@ export default function RotaPage() {
   useEffect(() => {
     if (status === 'authenticated') {
       loadFilterOptions();
+      // Fetch rota access info
+      fetch('/api/user/rota-access')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) setRotaAccessInfo(data);
+        })
+        .catch(err => console.error('Error fetching rota access:', err));
     }
   }, [status, loadFilterOptions]);
 

@@ -301,12 +301,43 @@ async function getHandler(req: NextRequest) {
 
     const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
 
+    // Check if user is a rota group manager
+    const managedRotaGroups = await prisma.rotaGroupManager.findMany({
+      where: {
+        employeeId: requestingEmployee.id,
+        RotaGroup: {
+          companyId: requestingEmployee.companyId,
+          isActive: true,
+        },
+      },
+      select: {
+        rotaGroupId: true,
+        RotaGroup: {
+          select: {
+            Members: {
+              where: { isActive: true },
+              select: { employeeId: true },
+            },
+          },
+        },
+      },
+    });
+
+    const isRotaGroupManager = managedRotaGroups.length > 0;
+    // Get all employee IDs from managed groups
+    const managedEmployeeIds = new Set<string>();
+    managedRotaGroups.forEach((mg: { rotaGroupId: string; RotaGroup: { Members: { employeeId: string }[] } }) => {
+      mg.RotaGroup.Members.forEach((m: { employeeId: string }) => managedEmployeeIds.add(m.employeeId));
+    });
+
     console.log('[Shifts API] Request from:', {
       userId: session.user.id,
       employeeId: requestingEmployee.id,
       name: `${requestingEmployee.User.firstName} ${requestingEmployee.User.lastName}`,
       role: requestingEmployee.User.role,
       isAdminOrManager,
+      isRotaGroupManager,
+      managedEmployeeCount: managedEmployeeIds.size,
       requestedEmployeeId: employeeId,
       isMobileRequest,
     });
@@ -324,11 +355,35 @@ async function getHandler(req: NextRequest) {
     }
     // Regular employees can see their own shifts (regardless of publish status)
     // isPublished controls visibility to OTHER employees for open/broadcast shifts
-    else if (!isAdminOrManager) {
+    else if (!isAdminOrManager && !isRotaGroupManager) {
       where.employeeId = requestingEmployee.id;
       console.log('[Shifts API] Non-admin user - filtering to own shifts only:', requestingEmployee.id);
       // Note: Removed isPublished filter - employees should see their assigned shifts
+    } else if (isRotaGroupManager && !isAdminOrManager) {
+      // Rota group managers can see shifts for employees in their managed groups
+      if (employeeId) {
+        // If filtering by specific employee, verify they're in a managed group
+        if (managedEmployeeIds.has(employeeId)) {
+          where.employeeId = employeeId;
+          console.log('[Shifts API] Rota group manager filtering by managed employee:', employeeId);
+        } else {
+          // Employee not in managed groups - only show own shifts
+          where.employeeId = requestingEmployee.id;
+          console.log('[Shifts API] Rota group manager - employee not in managed groups, showing own shifts');
+        }
+      } else {
+        // Show shifts for all employees in managed groups
+        where.employeeId = { in: Array.from(managedEmployeeIds) };
+        console.log('[Shifts API] Rota group manager viewing managed group shifts:', managedEmployeeIds.size, 'employees');
+      }
+      if (departmentId) {
+        where.departmentId = departmentId;
+      }
+      if (isPublished !== null) {
+        where.isPublished = isPublished === 'true';
+      }
     } else {
+      // Admin/Manager - full access
       if (employeeId) {
         where.employeeId = employeeId;
         console.log('[Shifts API] Admin/Manager filtering by specific employee:', employeeId);
@@ -594,13 +649,52 @@ async function postHandler(req: NextRequest) {
       return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
     }
 
-    // Check permission (ADMIN or MANAGER only)
+    // Check permission (ADMIN, MANAGER, or Rota Group Manager)
     const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
-    if (!isAdminOrManager) {
+    
+    // Check if user is a rota group manager
+    const managedRotaGroups = await (prisma as any).rotaGroupManager.findMany({
+      where: {
+        employeeId: requestingEmployee.id,
+        RotaGroup: {
+          companyId: requestingEmployee.companyId,
+          isActive: true,
+        },
+      },
+      select: {
+        rotaGroupId: true,
+        RotaGroup: {
+          select: {
+            Members: {
+              where: { isActive: true },
+              select: { employeeId: true },
+            },
+          },
+        },
+      },
+    });
+
+    const isRotaGroupManager = managedRotaGroups.length > 0;
+    const managedEmployeeIds = new Set<string>();
+    managedRotaGroups.forEach((mg: { RotaGroup: { Members: { employeeId: string }[] } }) => {
+      mg.RotaGroup.Members.forEach((m: { employeeId: string }) => managedEmployeeIds.add(m.employeeId));
+    });
+
+    if (!isAdminOrManager && !isRotaGroupManager) {
       return NextResponse.json(
         { error: 'You do not have permission to create shifts' },
         { status: 403 }
       );
+    }
+
+    // If rota group manager (not admin/manager), verify the employee is in their managed groups
+    if (isRotaGroupManager && !isAdminOrManager && data.employeeId) {
+      if (!managedEmployeeIds.has(data.employeeId)) {
+        return NextResponse.json(
+          { error: 'You can only create shifts for employees in your managed rota groups' },
+          { status: 403 }
+        );
+      }
     }
 
     // Validate times

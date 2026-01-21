@@ -16,6 +16,7 @@ const updateRotaGroupSchema = z.object({
   icon: z.string().optional(),
   displayOrder: z.number().optional(),
   isActive: z.boolean().optional(),
+  managerIds: z.array(z.string()).optional(), // Employee IDs who can manage this group
 });
 
 // GET /api/rota-groups/[id] - Get single rota group
@@ -78,9 +79,30 @@ export async function GET(
             addedAt: 'desc',
           },
         },
+        Managers: {
+          include: {
+            Employee: {
+              include: {
+                User: {
+                  select: { id: true, name: true, email: true, profileImageUrl: true },
+                },
+                Location: {
+                  select: { id: true, name: true },
+                },
+                Department: {
+                  select: { id: true, name: true },
+                },
+              },
+            },
+          },
+          orderBy: {
+            addedAt: 'desc',
+          },
+        },
         _count: {
           select: {
             Members: true,
+            Managers: true,
             Shifts: true,
             ShiftRequirements: true,
           },
@@ -95,18 +117,31 @@ export async function GET(
       );
     }
 
-    // Non-admin/manager users can only view rota groups they are members of
+    // Non-admin/manager users can only view rota groups they are members of OR managers of
     if (!isAdminOrManager) {
-      const membership = await prisma.rotaGroupMember.findUnique({
-        where: {
-          rotaGroupId_employeeId: {
-            rotaGroupId: id,
-            employeeId: requestingEmployee.id,
+      const [membership, managerRecord] = await Promise.all([
+        prisma.rotaGroupMember.findUnique({
+          where: {
+            rotaGroupId_employeeId: {
+              rotaGroupId: id,
+              employeeId: requestingEmployee.id,
+            },
           },
-        },
-      });
+        }),
+        prisma.rotaGroupManager.findUnique({
+          where: {
+            rotaGroupId_employeeId: {
+              rotaGroupId: id,
+              employeeId: requestingEmployee.id,
+            },
+          },
+        }),
+      ]);
 
-      if (!membership || !membership.isActive) {
+      const isMember = membership && membership.isActive;
+      const isGroupManager = !!managerRecord;
+
+      if (!isMember && !isGroupManager) {
         return NextResponse.json(
           { error: 'You do not have permission to view this rota group' },
           { status: 403 }
@@ -201,9 +236,13 @@ export async function PUT(
       }
     }
 
+    // Extract managerIds before updating the group (only admins can update managers)
+    const { managerIds, ...groupData } = validatedData;
+    const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(requestingEmployee.User.role);
+
     const rotaGroup = await prisma.rotaGroup.update({
       where: { id: id },
-      data: validatedData,
+      data: groupData,
       include: {
         Location: {
           select: { id: true, name: true },
@@ -211,14 +250,72 @@ export async function PUT(
         Department: {
           select: { id: true, name: true },
         },
+        Managers: {
+          include: {
+            Employee: {
+              include: {
+                User: {
+                  select: { id: true, name: true, email: true },
+                },
+              },
+            },
+          },
+        },
         _count: {
           select: {
             Members: true,
+            Managers: true,
             Shifts: true,
           },
         },
       },
     });
+
+    // Update managers if provided (only admins can do this)
+    if (isAdmin && managerIds !== undefined) {
+      // Get current managers
+      const currentManagers = await prisma.rotaGroupManager.findMany({
+        where: { rotaGroupId: id },
+        select: { employeeId: true },
+      });
+      const currentManagerIds = currentManagers.map((m) => m.employeeId);
+
+      // Determine additions and removals
+      const toAdd = managerIds.filter((empId) => !currentManagerIds.includes(empId));
+      const toRemove = currentManagerIds.filter((empId) => !managerIds.includes(empId));
+
+      // Verify employees to add exist and belong to company
+      if (toAdd.length > 0) {
+        const employees = await prisma.employee.findMany({
+          where: {
+            id: { in: toAdd },
+            companyId: requestingEmployee.companyId,
+            isActive: true,
+          },
+        });
+
+        if (employees.length > 0) {
+          await prisma.rotaGroupManager.createMany({
+            data: employees.map((emp) => ({
+              rotaGroupId: id,
+              employeeId: emp.id,
+              addedBy: session.user.id,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+
+      // Remove managers
+      if (toRemove.length > 0) {
+        await prisma.rotaGroupManager.deleteMany({
+          where: {
+            rotaGroupId: id,
+            employeeId: { in: toRemove },
+          },
+        });
+      }
+    }
 
     // Create audit log
     await prisma.globalAuditLog.create({

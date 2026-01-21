@@ -296,7 +296,7 @@ export default function LoginClient() {
               if (loading || ssoLoading) return;
               setSsoLoading("azure-ad");
               setError("");
-              signIn("azure-ad");
+              signIn("azure-ad", { callbackUrl: "/dashboard" });
             }}
             loading={ssoLoading === "azure-ad"}
             disabled={loading || ssoLoading === "google"}
@@ -317,7 +317,7 @@ export default function LoginClient() {
               if (loading || ssoLoading) return;
               setSsoLoading("google");
               setError("");
-              signIn("google");
+              signIn("google", { callbackUrl: "/dashboard" });
             }}
             loading={ssoLoading === "google"}
             disabled={loading || ssoLoading === "azure-ad"}

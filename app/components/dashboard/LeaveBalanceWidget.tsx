@@ -43,17 +43,30 @@ export default async function LeaveBalanceWidget({
 
   // Fully serialize leaveEntitlements precisely for LeaveBalancePanel
   const serializedEntitlements = employee.LeaveEntitlement.map(
-    (entitlement) => ({
-      id: entitlement.id,
-      totalDays: formatLeaveBalance(entitlement.totalDays),
-      usedDays: formatLeaveBalance(entitlement.usedDays),
-      carryoverDays: formatLeaveBalance(entitlement.carryoverDays ?? 0),
-      eventCategory: {
-        id: entitlement.EventCategory.id,
-        name: entitlement.EventCategory.name,
-        color: entitlement.EventCategory.color ?? null,
-      },
-    }),
+    (entitlement) => {
+      // Type assertion for hours fields that may not exist in Prisma types yet
+      const entWithHours = entitlement as typeof entitlement & {
+        totalHours?: any;
+        usedHours?: any;
+        carryoverHours?: any;
+      };
+      
+      return {
+        id: entitlement.id,
+        totalDays: formatLeaveBalance(entitlement.totalDays),
+        usedDays: formatLeaveBalance(entitlement.usedDays),
+        carryoverDays: formatLeaveBalance(entitlement.carryoverDays ?? 0),
+        // Include hours data when available
+        totalHours: entWithHours.totalHours ? Number(entWithHours.totalHours) : null,
+        usedHours: entWithHours.usedHours ? Number(entWithHours.usedHours) : null,
+        carryoverHours: entWithHours.carryoverHours ? Number(entWithHours.carryoverHours) : null,
+        eventCategory: {
+          id: entitlement.EventCategory.id,
+          name: entitlement.EventCategory.name,
+          color: entitlement.EventCategory.color ?? null,
+        },
+      };
+    },
   );
 
   // Prepare NZ Holidays Act 2003 compliance data

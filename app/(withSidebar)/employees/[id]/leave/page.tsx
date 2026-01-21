@@ -99,6 +99,12 @@ interface BalanceItem {
   pending: number;
   carryover: number;
   carryoverExpiry: string | null;
+  // Hours-based tracking (NZ Holidays Act 2003 compliance)
+  remainingHours?: number;
+  usedHours?: number;
+  totalHours?: number | null;
+  carryoverHours?: number;
+  hoursPerDay?: number;
   // NZ Holidays Act 2003 compliance fields (for annual leave)
   isUnearned?: boolean;
   futureEntitlement?: number | null;
@@ -268,17 +274,27 @@ function BalanceCard({
   index,
   onEdit,
   sickLeaveStatus,
+  showHours = false,
 }: {
   balance: BalanceItem;
   index: number;
   onEdit?: () => void;
   sickLeaveStatus?: SickLeaveStatus | null;
+  showHours?: boolean;
 }) {
   const Icon = getEventCategoryIcon(balance.categoryIconKey);
   const hasTotal = balance.total !== null;
   const isAnnualLeave = balance.categoryName.toLowerCase().includes('annual');
   const isSickLeave = balance.categoryName.toLowerCase().includes('sick');
   const isUnearned = balance.isUnearned === true;
+  
+  // Format value with optional hours
+  const formatWithHours = (days: number, hours?: number) => {
+    if (showHours && hours !== undefined && hours !== null) {
+      return `${days.toFixed(2)} days (${hours.toFixed(1)}h)`;
+    }
+    return days.toFixed(2);
+  };
   
   // Format date for display (e.g., "15 Jul 2025")
   const formatDate = (dateStr: string | null) => {
@@ -343,12 +359,12 @@ function BalanceCard({
           <div>
             <span className="text-muted-foreground text-xs">Available to book</span>
             <p className="font-semibold text-lg text-amber-600 dark:text-amber-400">
-              {balance.remaining.toFixed(2)}
+              {formatWithHours(balance.remaining, balance.remainingHours)}
             </p>
           </div>
           <div>
             <span className="text-muted-foreground text-xs">Future entitlement</span>
-            <p className="font-medium">{balance.futureEntitlement?.toFixed(2) ?? balance.total?.toFixed(2)}</p>
+            <p className="font-medium">{formatWithHours(balance.futureEntitlement ?? balance.total ?? 0, balance.totalHours ?? undefined)}</p>
           </div>
         </div>
         
@@ -425,17 +441,17 @@ function BalanceCard({
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div>
           <span className="text-muted-foreground text-xs">Remaining</span>
-          <p className="font-semibold text-lg text-primary">{balance.remaining.toFixed(2)}</p>
+          <p className="font-semibold text-lg text-primary">{formatWithHours(balance.remaining, balance.remainingHours)}</p>
         </div>
         {hasTotal ? (
           <div>
             <span className="text-muted-foreground text-xs">Total</span>
-            <p className="font-medium">{balance.total?.toFixed(2)}</p>
+            <p className="font-medium">{formatWithHours(balance.total ?? 0, balance.totalHours ?? undefined)}</p>
           </div>
         ) : (
           <div>
             <span className="text-muted-foreground text-xs">Used</span>
-            <p className="font-medium">{balance.used.toFixed(2)}</p>
+            <p className="font-medium">{formatWithHours(balance.used, balance.usedHours)}</p>
           </div>
         )}
       </div>
@@ -552,6 +568,7 @@ function LeavePageContent() {
   const [balances, setBalances] = useState<BalanceItem[]>([]);
   const [sickLeaveStatus, setSickLeaveStatus] = useState<SickLeaveStatus | null>(null);
   const [otherEntitlements, setOtherEntitlements] = useState<OtherEntitlement[]>([]);
+  const [showHours, setShowHours] = useState(false); // Hours display from company settings
   const [tenantTimeSettings, setTenantTimeSettings] = useState<TenantTimeSettings>(() =>
     resolveTenantTimeSettings(null, null)
   );
@@ -611,6 +628,8 @@ function LeavePageContent() {
         try {
           const data = await results[0].value.json();
           setBalances(data.balances || []);
+          // Set hours display based on company setting
+          setShowHours(data.hoursEnabled === true);
         } catch (err) {
           console.error("Failed to parse balances:", err);
         }
@@ -993,6 +1012,7 @@ function LeavePageContent() {
                   index={index} 
                   onEdit={balance.categoryName.toLowerCase().includes('annual') ? handleEditAnnualLeave : undefined}
                   sickLeaveStatus={balance.categoryName.toLowerCase().includes('sick') ? sickLeaveStatus : undefined}
+                  showHours={showHours}
                 />
               ))}
               <OtherEntitlementsCard 

@@ -509,6 +509,9 @@ export async function GET(
     return NextResponse.json({
       success: true,
       balances,
+      // Include hours configuration so UI knows whether to display hours
+      hoursEnabled,
+      defaultHoursPerDay: companyDefaultHours,
     });
   } catch (error) {
     console.error("[LEAVE_BALANCES_GET]", error);

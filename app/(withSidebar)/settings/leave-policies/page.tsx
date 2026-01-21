@@ -203,6 +203,9 @@ export default function LeavePoliciesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ leaveHoursEnabled: enabled }),
       });
+      
+      const data = await response.json();
+      
       if (response.ok) {
         setShowHoursInLeave(enabled);
         toast({
@@ -212,9 +215,15 @@ export default function LeavePoliciesPage() {
             : "Leave balances will show days only",
         });
       } else {
-        throw new Error("Failed to update setting");
+        console.error("Failed to update setting:", data);
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update leave display setting",
+          variant: "destructive",
+        });
       }
     } catch (error) {
+      console.error("Error updating leave display setting:", error);
       toast({
         title: "Error",
         description: "Failed to update leave display setting",

@@ -133,6 +133,8 @@ export default function AddLeaveRequestDialog({
   const [paidStatus, setPaidStatus] = useState("PAID");
   const [totalDays, setTotalDays] = useState(0);
   const [deduction, setDeduction] = useState(0);
+  const [deductionHours, setDeductionHours] = useState(0);
+  const [showHours, setShowHours] = useState(false);
   const [deductionLoading, setDeductionLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -223,6 +225,7 @@ export default function AddLeaveRequestDialog({
       setPaidStatus("PAID");
       setTotalDays(0);
       setDeduction(0);
+      setDeductionHours(0);
       setIsSickLeave(false);
       setValidationWarnings([]);
     }
@@ -273,17 +276,22 @@ export default function AddLeaveRequestDialog({
           if (res.ok) {
             const data = await res.json();
             setDeduction(data.deduction);
+            setDeductionHours(data.deductionHours ?? 0);
+            setShowHours(data.hoursEnabled === true);
           } else {
             setDeduction(0);
+            setDeductionHours(0);
           }
         } catch {
           setDeduction(0);
+          setDeductionHours(0);
         } finally {
           setDeductionLoading(false);
         }
       })();
     } else {
       setDeduction(0);
+      setDeductionHours(0);
       setDeductionLoading(false);
     }
   }, [startDate, endDate, employeeId]);
@@ -431,6 +439,7 @@ export default function AddLeaveRequestDialog({
       setPaidStatus("PAID");
       setTotalDays(0);
       setDeduction(0);
+      setDeductionHours(0);
       setIsSickLeave(false);
       setValidationWarnings([]);
       onSubmitted?.();
@@ -780,7 +789,16 @@ export default function AddLeaveRequestDialog({
                             <span className="inline-flex items-center">
                               <span className="w-5 h-5 border-2 border-emerald-400/30 border-t-emerald-500 rounded-full animate-spin" />
                             </span>
-                          ) : totalDeducted}
+                          ) : (
+                            <>
+                              {totalDeducted}
+                              {showHours && deductionHours > 0 && (
+                                <span className="text-base font-medium ml-2 text-emerald-500/80">
+                                  ({formatLeaveBalance(deductionHours)}h)
+                                </span>
+                              )}
+                            </>
+                          )}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">Per working pattern</p>
                       </div>

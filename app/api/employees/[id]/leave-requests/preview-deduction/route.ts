@@ -1,6 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
-import { calculateLeaveDeductionBatch } from "@/lib/calculateLeaveDeductionBatch";
+import { calculateLeaveDeductionBatchEnhanced } from "@/lib/calculateLeaveDeductionBatchEnhanced";
 import { formatLeaveBalance } from "@/lib/decimalPrecision";
+import { prisma } from "@/lib/prisma";
+import { isLeaveHoursEnabled } from "@/lib/leave/hours-conversion";
 
 export async function GET(
   req: NextRequest,
@@ -31,10 +33,32 @@ export async function GET(
     dates.push(new Date(time));
   }
 
-  // Calculate deductions in batch (single DB query instead of N queries)
-  const deductions = await calculateLeaveDeductionBatch(employeeId, dates);
-  const deduction = deductions.reduce((sum, d) => sum + d, 0);
+  // Calculate deductions in batch with hours data
+  const results = await calculateLeaveDeductionBatchEnhanced(employeeId, dates);
+  const deduction = results.reduce((sum, r) => sum + r.deduction, 0);
+  const deductionHours = results.reduce((sum, r) => sum + r.deductionHours, 0);
+
+  // Check if hours display is enabled for this employee's company
+  let hoursEnabled = false;
+  try {
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { companyId: true },
+    });
+    if (employee?.companyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: employee.companyId },
+      });
+      hoursEnabled = isLeaveHoursEnabled(company);
+    }
+  } catch {
+    // Default to false if error
+  }
 
   // Format to 2 decimal places to avoid floating point precision issues
-  return NextResponse.json({ deduction: formatLeaveBalance(deduction) });
+  return NextResponse.json({ 
+    deduction: formatLeaveBalance(deduction),
+    deductionHours: formatLeaveBalance(deductionHours),
+    hoursEnabled,
+  });
 }

@@ -38,8 +38,14 @@ export default async function LeaveBalanceWidget({
   }
 
   // Check if hours-based tracking is enabled for this company
+  // Default to true (hours enabled) when not explicitly set to false
   const companyWithConfig = employee.Company as any;
-  const showHours = companyWithConfig?.leaveHoursEnabled === true;
+  const showHours = companyWithConfig?.leaveHoursEnabled !== false;
+  
+  // Get company default hours per day (default 8 for NZ standard)
+  const defaultHoursPerDay = companyWithConfig?.defaultHoursPerDay 
+    ? Number(companyWithConfig.defaultHoursPerDay) 
+    : 8;
 
   // Fully serialize leaveEntitlements precisely for LeaveBalancePanel
   const serializedEntitlements = employee.LeaveEntitlement.map(
@@ -51,15 +57,30 @@ export default async function LeaveBalanceWidget({
         carryoverHours?: any;
       };
       
+      const totalDays = formatLeaveBalance(entitlement.totalDays);
+      const usedDays = formatLeaveBalance(entitlement.usedDays);
+      const carryoverDays = formatLeaveBalance(entitlement.carryoverDays ?? 0);
+      
+      // Calculate hours - use stored values if available, otherwise derive from days
+      const totalHours = entWithHours.totalHours 
+        ? Number(entWithHours.totalHours) 
+        : (showHours ? totalDays * defaultHoursPerDay : null);
+      const usedHours = entWithHours.usedHours 
+        ? Number(entWithHours.usedHours) 
+        : (showHours ? usedDays * defaultHoursPerDay : null);
+      const carryoverHours = entWithHours.carryoverHours 
+        ? Number(entWithHours.carryoverHours) 
+        : (showHours ? carryoverDays * defaultHoursPerDay : null);
+      
       return {
         id: entitlement.id,
-        totalDays: formatLeaveBalance(entitlement.totalDays),
-        usedDays: formatLeaveBalance(entitlement.usedDays),
-        carryoverDays: formatLeaveBalance(entitlement.carryoverDays ?? 0),
-        // Include hours data when available
-        totalHours: entWithHours.totalHours ? Number(entWithHours.totalHours) : null,
-        usedHours: entWithHours.usedHours ? Number(entWithHours.usedHours) : null,
-        carryoverHours: entWithHours.carryoverHours ? Number(entWithHours.carryoverHours) : null,
+        totalDays,
+        usedDays,
+        carryoverDays,
+        // Include calculated hours data when showHours is enabled
+        totalHours,
+        usedHours,
+        carryoverHours,
         eventCategory: {
           id: entitlement.EventCategory.id,
           name: entitlement.EventCategory.name,

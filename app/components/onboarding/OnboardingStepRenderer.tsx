@@ -607,9 +607,26 @@ export default function OnboardingStepRenderer({
                       return;
                     }
 
+                    const uploadResult = await res.json();
+                    const document = uploadResult?.Document;
+
+                    if (!document?.id || !document?.url) {
+                      toast.error("Upload succeeded but document data is missing");
+                      setLoading(false);
+                      return;
+                    }
+
                     toast.success("Document uploaded");
-                    // ✅ Auto-refresh onboarding UI and employee docs
-                    await onComplete();
+                    
+                    // ✅ Pass document info to step completion so validation passes
+                    await onComplete({
+                      fileUrl: document.url,
+                      fileName: document.name,
+                      fileSize: document.size,
+                      fileType: document.type,
+                      filePath: document.url,
+                    });
+                    
                     window.dispatchEvent(
                       new CustomEvent("employee-documents-updated", {
                         detail: { employeeId },

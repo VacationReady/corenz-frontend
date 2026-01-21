@@ -277,34 +277,22 @@ export default function AddLeaveRequestDialog({
       setDeductionLoading(true);
       (async () => {
         try {
+          // Build URL with all day type parameters for accurate server-side calculation
+          const params = new URLSearchParams({
+            startDate,
+            endDate,
+            dayType,
+            startDayType,
+            endDayType,
+          });
           const res = await fetch(
-            `/api/employees/${employeeId}/leave-requests/preview-deduction?startDate=${startDate}&endDate=${endDate}`,
+            `/api/employees/${employeeId}/leave-requests/preview-deduction?${params.toString()}`,
           );
           if (res.ok) {
             const data = await res.json();
-            let adjustedDeduction = data.deduction;
-            let adjustedHours = data.deductionHours ?? 0;
-            
-            if (startDate === endDate) {
-              // Single-day: apply half-day multiplier
-              if (dayType === "HALF_DAY_AM" || dayType === "HALF_DAY_PM") {
-                adjustedDeduction *= 0.5;
-                adjustedHours *= 0.5;
-              }
-            } else {
-              // Multi-day: subtract 0.5 for each half-day start/end
-              if (startDayType === "HALF_DAY_PM") {
-                adjustedDeduction -= 0.5;
-                adjustedHours -= (adjustedHours / data.deduction) * 0.5;
-              }
-              if (endDayType === "HALF_DAY_AM") {
-                adjustedDeduction -= 0.5;
-                adjustedHours -= (adjustedHours / data.deduction) * 0.5;
-              }
-            }
-            
-            setDeduction(Math.max(0, adjustedDeduction));
-            setDeductionHours(Math.max(0, adjustedHours));
+            // API now handles half-day adjustments, use values directly
+            setDeduction(Math.max(0, data.deduction));
+            setDeductionHours(Math.max(0, data.deductionHours ?? 0));
             setShowHours(data.hoursEnabled === true);
           } else {
             setDeduction(0);

@@ -305,11 +305,30 @@ export async function GET(req: NextRequest) {
           ? categoryVisibilityMap.get(categoryId) === false 
           : false;
         
+        // Determine half-day display info
+        const dayType = req.dayType || "FULL_DAY";
+        const startDayType = req.startDayType || "FULL_DAY";
+        const endDayType = req.endDayType || "FULL_DAY";
+        const isSingleDay = startDate.getTime() === endDate.getTime();
+        
+        // Build half-day suffix for title
+        let halfDaySuffix = "";
+        if (isSingleDay) {
+          if (dayType === "HALF_DAY_AM") halfDaySuffix = " (AM)";
+          else if (dayType === "HALF_DAY_PM") halfDaySuffix = " (PM)";
+        } else {
+          // Multi-day: show half-day info if applicable
+          const parts = [];
+          if (startDayType === "HALF_DAY_PM") parts.push("starts PM");
+          if (endDayType === "HALF_DAY_AM") parts.push("ends AM");
+          if (parts.length > 0) halfDaySuffix = ` (${parts.join(", ")})`;
+        }
+        
         return {
           id: req.id,
           title: isOtherEntitlement && req.OtherEntitlement?.name 
-            ? `${req.OtherEntitlement.name} - ${displayName}`
-            : `${req.EventCategory?.name ?? "Leave"} - ${displayName}`,
+            ? `${req.OtherEntitlement.name} - ${displayName}${halfDaySuffix}`
+            : `${req.EventCategory?.name ?? "Leave"} - ${displayName}${halfDaySuffix}`,
           start: formatDateLocal(startDate),
           end: formatDateLocal(exclusiveEndDate),
           allDay: true,
@@ -324,6 +343,10 @@ export async function GET(req: NextRequest) {
           backgroundColor: eventColor,
           borderColor: "transparent",
           textColor: '#FFFFFF',
+          // Half-day information for UI display
+          dayType,
+          startDayType,
+          endDayType,
           // Internal flags for filtering (not exposed to UI directly)
           _isSickness: isSickness,
           _isOtherEntitlement: isOtherEntitlement,

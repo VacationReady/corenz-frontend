@@ -10,6 +10,11 @@ export async function GET(
   const { id: employeeId } = await context.params;
   const startDateParam = req.nextUrl.searchParams.get("startDate");
   const endDateParam = req.nextUrl.searchParams.get("endDate");
+  // Half-day parameters for multi-day bookings
+  const startDayType = req.nextUrl.searchParams.get("startDayType") || "FULL_DAY";
+  const endDayType = req.nextUrl.searchParams.get("endDayType") || "FULL_DAY";
+  // Single-day dayType parameter
+  const dayType = req.nextUrl.searchParams.get("dayType") || "FULL_DAY";
 
   if (!startDateParam || !endDateParam) {
     return NextResponse.json(
@@ -34,8 +39,37 @@ export async function GET(
 
   // Calculate deductions in batch with hours data
   const results = await calculateLeaveDeductionBatchEnhanced(employeeId, dates);
-  const deduction = results.reduce((sum, r) => sum + r.deduction, 0);
-  const deductionHours = results.reduce((sum, r) => sum + r.deductionHours, 0);
+  let deduction = results.reduce((sum, r) => sum + r.deduction, 0);
+  let deductionHours = results.reduce((sum, r) => sum + r.deductionHours, 0);
+
+  // Adjust for half-day start/end on multi-day bookings
+  const isSingleDay = startDate.getTime() === endDate.getTime();
+  if (isSingleDay) {
+    // Single day: apply dayType directly
+    if (dayType === "HALF_DAY_AM" || dayType === "HALF_DAY_PM") {
+      deduction = deduction * 0.5;
+      deductionHours = deductionHours * 0.5;
+    }
+  } else {
+    // Multi-day: adjust for half-day start and/or end
+    // Get hours per day from first result for proportional calculation
+    const hoursPerDay = results[0]?.hoursPerDay || 8;
+    
+    if (startDayType === "HALF_DAY_PM" && results.length > 0) {
+      // Starting afternoon = half day on first day
+      const firstDayDeduction = results[0]?.deduction || 0;
+      const firstDayHours = results[0]?.deductionHours || 0;
+      deduction -= firstDayDeduction * 0.5;
+      deductionHours -= firstDayHours * 0.5;
+    }
+    if (endDayType === "HALF_DAY_AM" && results.length > 0) {
+      // Ending morning = half day on last day
+      const lastDayDeduction = results[results.length - 1]?.deduction || 0;
+      const lastDayHours = results[results.length - 1]?.deductionHours || 0;
+      deduction -= lastDayDeduction * 0.5;
+      deductionHours -= lastDayHours * 0.5;
+    }
+  }
 
   // Check if hours display is enabled for this employee's company
   // Default to true (hours enabled) when not explicitly set to false

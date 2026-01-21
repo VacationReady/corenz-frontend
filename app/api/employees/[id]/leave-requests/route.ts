@@ -24,6 +24,49 @@ import {
 } from "@/lib/leave/nz-sick-leave-ledger";
 import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
+/**
+ * Adjusts deduction for half-day start/end on multi-day bookings.
+ * For single-day bookings, applies half-day multiplier if dayType is half-day.
+ * 
+ * @param totalDeduction - Base deduction in days
+ * @param deductionsByDay - Array of per-day deductions (for proportional half-day calc)
+ * @param isSingleDay - Whether this is a single-day booking
+ * @param dayType - Day type for single-day bookings
+ * @param startDayType - Start day type for multi-day bookings
+ * @param endDayType - End day type for multi-day bookings
+ * @returns Adjusted deduction accounting for half days
+ */
+function adjustDeductionForHalfDays(
+  totalDeduction: number,
+  deductionsByDay: number[],
+  isSingleDay: boolean,
+  dayType?: string | null,
+  startDayType?: string | null,
+  endDayType?: string | null
+): number {
+  if (isSingleDay) {
+    // Single day: apply half-day multiplier
+    if (dayType === "HALF_DAY_AM" || dayType === "HALF_DAY_PM") {
+      return roundToTwoDecimals(totalDeduction * 0.5);
+    }
+    return totalDeduction;
+  }
+  
+  // Multi-day: adjust for half-day start and/or end
+  let adjusted = totalDeduction;
+  
+  if (startDayType === "HALF_DAY_PM" && deductionsByDay.length > 0) {
+    // Starting afternoon = half day on first day
+    adjusted -= deductionsByDay[0] * 0.5;
+  }
+  if (endDayType === "HALF_DAY_AM" && deductionsByDay.length > 0) {
+    // Ending morning = half day on last day
+    adjusted -= deductionsByDay[deductionsByDay.length - 1] * 0.5;
+  }
+  
+  return roundToTwoDecimals(Math.max(0, adjusted));
+}
+
 const optionalTrimmedString = z
   .union([z.string(), z.null(), z.undefined()])
   .transform((val) => {
@@ -440,7 +483,10 @@ export async function POST(
       currentDate.setDate(currentDate.getDate() + 1);
     }
     const totalDays = await calculateLeaveDeductionBatch(employeeId, dates);
-    const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
+    const baseDeduction = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
+    // Adjust for half-day start/end
+    const isSingleDay = startDateObj.getTime() === endDateObj.getTime();
+    const totalDeduction = adjustDeductionForHalfDays(baseDeduction, totalDays, isSingleDay, dayType, startDayType, endDayType);
 
     // Check balance (convert to number for comparison)
     const currentBalance = Number(otherEntitlement.balance);
@@ -791,7 +837,10 @@ export async function POST(
             currentDate.setDate(currentDate.getDate() + 1);
           }
           const totalDays = await calculateLeaveDeductionBatch(employeeId, dates);
-          const totalDeductionDays = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
+          const baseSickDeduction = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
+          // Adjust for half-day start/end
+          const isSingleDaySick = startDateObj.getTime() === endDateObj.getTime();
+          const totalDeductionDays = adjustDeductionForHalfDays(baseSickDeduction, totalDays, isSingleDaySick, dayType, startDayType, endDayType);
 
           // Apply any pending grants BEFORE creating the leave request
           // This ensures the balance is up-to-date for validation
@@ -958,7 +1007,10 @@ export async function POST(
             currentDate.setDate(currentDate.getDate() + 1);
           }
           const totalDays = await calculateLeaveDeductionBatch(employeeId, dates);
-          const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
+          const baseDeductionDays = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
+          // Adjust for half-day start/end
+          const isSingleDayLeave = startDateObj.getTime() === endDateObj.getTime();
+          const totalDeduction = adjustDeductionForHalfDays(baseDeductionDays, totalDays, isSingleDayLeave, dayType, startDayType, endDayType);
 
           // ── NZ HOLIDAYS ACT 2003: PRE-12-MONTH EMPLOYEE HANDLING ──────────────────
           // If validation classified this as "leave in advance", the employee is pre-12-month
@@ -1108,7 +1160,11 @@ export async function POST(
             if (hoursEnabled) {
               // Calculate hours deduction based on working pattern
               const enhancedDeductions = await calculateLeaveDeductionBatchEnhanced(employeeId, dates, { prismaClient: tx });
-              const totalDeductionHours = roundToTwoDecimals(enhancedDeductions.reduce((sum, d) => sum + d.deductionHours, 0));
+              const baseDeductionHours = roundToTwoDecimals(enhancedDeductions.reduce((sum, d) => sum + d.deductionHours, 0));
+              // Adjust hours for half-day start/end
+              const hoursByDay = enhancedDeductions.map(d => d.deductionHours);
+              const totalDeductionHours = adjustDeductionForHalfDays(baseDeductionHours, hoursByDay, isSingleDayLeave, dayType, startDayType, endDayType);
+              
               const entitlementWithHours = entitlement as typeof entitlement & { usedHours?: any; totalHours?: any };
               const currentUsedHours = decimalToNumber(entitlementWithHours.usedHours, entitlement.usedDays * 8);
               const newUsedHours = roundToTwoDecimals(currentUsedHours + totalDeductionHours);

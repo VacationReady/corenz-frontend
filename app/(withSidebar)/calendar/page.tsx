@@ -833,7 +833,28 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
               }
             </div>
             <div className="text-xs text-muted-foreground">
-              {totalDays} {totalDays === 1 ? "day" : "days"}
+              {(() => {
+                // Calculate actual deduction accounting for half days
+                const dayType = content.event.extendedProps?.dayType;
+                const startDayType = content.event.extendedProps?.startDayType;
+                const endDayType = content.event.extendedProps?.endDayType;
+                
+                let actualDays = totalDays;
+                if (isSingleDay) {
+                  if (dayType === "HALF_DAY_AM" || dayType === "HALF_DAY_PM") {
+                    actualDays = 0.5;
+                  }
+                } else {
+                  if (startDayType === "HALF_DAY_PM") actualDays -= 0.5;
+                  if (endDayType === "HALF_DAY_AM") actualDays -= 0.5;
+                }
+                
+                // Format display
+                if (actualDays === 0.5) return "½ day";
+                if (actualDays === 1) return "1 day";
+                if (actualDays % 1 === 0.5) return `${actualDays} days`;
+                return `${actualDays} ${actualDays === 1 ? "day" : "days"}`;
+              })()}
             </div>
           </div>
           

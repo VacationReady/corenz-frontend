@@ -2137,10 +2137,31 @@ model TrainingRecord {
   TrainingProvider TrainingProvider @relation(fields: [providerId], references: [id])
 }
 
+// NextAuth.js Account model for OAuth providers
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
 model User {
   id                                                                       String                          @id
   email                                                                    String
-  password                                                                 String
+  password                                                                 String?
   role                                                                     Role                            @default(EMPLOYEE)
   createdAt                                                                DateTime                        @default(now())
   updatedAt                                                                DateTime
@@ -2173,6 +2194,7 @@ model User {
   pronouns                                                                 String?
   residencyStatus                                                          String?
   welcomeEmailSentAt                                                       DateTime?
+  accounts                                                                 Account[]
   ActivationToken                                                          ActivationToken?
   ApprovalWorkflowStageApprover_ApprovalWorkflowStageApprover_userIdToUser ApprovalWorkflowStageApprover[] @relation("ApprovalWorkflowStageApprover_userIdToUser")
   AutomationRule                                                           AutomationRule[]

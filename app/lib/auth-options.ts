@@ -1,5 +1,5 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "./prisma";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import type { Adapter } from "next-auth/adapters";
 import GoogleProvider from "next-auth/providers/google";
@@ -8,6 +8,13 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
 const MAIN_PRODUCTION_COMPANY_ID = process.env.NEXT_PUBLIC_MAIN_PRODUCTION_COMPANY_ID;
+
+// Debug: Log prisma client status at module load
+if (!prisma) {
+  console.error("[auth-options] CRITICAL: Prisma client is undefined at module load!");
+} else if (!prisma.user) {
+  console.error("[auth-options] CRITICAL: Prisma client exists but user model is undefined!");
+}
 
 // Determine if we're in production and using secure cookies
 const useSecureCookies = process.env.NODE_ENV === "production";

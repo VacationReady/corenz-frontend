@@ -1279,6 +1279,10 @@ model LeaveRequest {
   sickReason                           String?
   paidStatus                           PaidStatus?
   dayType                              DayType
+  /// Day type for the start date (for multi-day bookings with half-day start)
+  startDayType                         DayType?
+  /// Day type for the end date (for multi-day bookings with half-day end)
+  endDayType                           DayType?
   eventCategoryId                      String
   requesterId                          String
   companyId                            String

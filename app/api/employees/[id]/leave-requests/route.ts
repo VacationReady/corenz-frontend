@@ -73,6 +73,18 @@ const leaveRequestCreateSchema = z.object({
     .or(z.null())
     .or(z.undefined())
     .transform((val) => (typeof val === "string" ? val : undefined)),
+  // Start day type for multi-day bookings (e.g., start afternoon)
+  startDayType: z
+    .enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"])
+    .or(z.null())
+    .or(z.undefined())
+    .transform((val) => (typeof val === "string" ? val : undefined)),
+  // End day type for multi-day bookings (e.g., end morning)
+  endDayType: z
+    .enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"])
+    .or(z.null())
+    .or(z.undefined())
+    .transform((val) => (typeof val === "string" ? val : undefined)),
   // Admin/Manager override flag - when true, bypasses validation warnings
   bypassWarnings: z.boolean().optional().default(false),
 });
@@ -367,7 +379,7 @@ export async function POST(
 
     const userId = session.user.id;
     const body = leaveRequestCreateSchema.parse(await req.json());
-    const { startDate, endDate, reason, sickReasonId, sickReason, paidStatus, dayType, isSick, bypassWarnings, otherEntitlementId } = body;
+    const { startDate, endDate, reason, sickReasonId, sickReason, paidStatus, dayType, startDayType, endDayType, isSick, bypassWarnings, otherEntitlementId } = body;
     
     // DEBUG: Log incoming request details for sick leave troubleshooting
     console.log("🔍 [LEAVE_REQUEST_DEBUG] Incoming request:", {
@@ -490,6 +502,8 @@ export async function POST(
           startDate: startDateObj,
           endDate: endDateObj,
           dayType: dayType ?? "FULL_DAY",
+          startDayType: startDayType ?? null,
+          endDayType: endDayType ?? null,
           reason: reason ?? `${otherEntitlement.name} booking`,
           leaveType: "OTHER_ENTITLEMENT",
           approvalStatus: "APPROVED",
@@ -848,6 +862,8 @@ export async function POST(
                 startDate: startDateObj,
                 endDate: endDateObj,
                 dayType: dayType ?? "FULL_DAY",
+                startDayType: startDayType ?? null,
+                endDayType: endDayType ?? null,
                 reason: reason ?? "",
                 leaveType: "SICK",
                 sickReason: resolvedSickReason,
@@ -1008,6 +1024,8 @@ export async function POST(
                   startDate: startDateObj,
                   endDate: endDateObj,
                   dayType: dayType ?? "FULL_DAY",
+                  startDayType: startDayType ?? null,
+                  endDayType: endDayType ?? null,
                   reason: reason ?? "",
                   leaveType: "LEAVE",
                   updatedAt: new Date(),
@@ -1063,6 +1081,8 @@ export async function POST(
                 startDate: startDateObj,
                 endDate: endDateObj,
                 dayType: dayType ?? "FULL_DAY",
+                startDayType: startDayType ?? null,
+                endDayType: endDayType ?? null,
                 reason: reason ?? "",
                 // First-class sick leave fields
                 leaveType: isSick ? "SICK" : null,
@@ -1139,6 +1159,8 @@ export async function POST(
                 startDate: startDateObj,
                 endDate: endDateObj,
                 dayType: dayType ?? "FULL_DAY",
+                startDayType: startDayType ?? null,
+                endDayType: endDayType ?? null,
                 reason: reason ?? "",
                 // First-class sick leave fields
                 leaveType: isSick ? "SICK" : null,
@@ -1187,6 +1209,8 @@ export async function POST(
         startDate: startDateObj,
         endDate: endDateObj,
         dayType: dayType ?? "FULL_DAY",
+        startDayType: startDayType ?? null,
+        endDayType: endDayType ?? null,
         reason: reason ?? "",
         // First-class sick leave fields
         leaveType: isSick ? "SICK" : null,

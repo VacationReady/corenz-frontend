@@ -138,6 +138,9 @@ export default function AddLeaveRequestDialog({
   const [deductionLoading, setDeductionLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dayType, setDayType] = useState<"FULL_DAY" | "HALF_DAY_AM" | "HALF_DAY_PM">("FULL_DAY");
+  // For multi-day bookings: start afternoon or end morning
+  const [startDayType, setStartDayType] = useState<"FULL_DAY" | "HALF_DAY_PM">("FULL_DAY");
+  const [endDayType, setEndDayType] = useState<"FULL_DAY" | "HALF_DAY_AM">("FULL_DAY");
   
   // First-class sick leave toggle
   const [isSickLeave, setIsSickLeave] = useState(false);
@@ -228,6 +231,8 @@ export default function AddLeaveRequestDialog({
       setDeduction(0);
       setDeductionHours(0);
       setDayType("FULL_DAY");
+      setStartDayType("FULL_DAY");
+      setEndDayType("FULL_DAY");
       setIsSickLeave(false);
       setValidationWarnings([]);
     }
@@ -277,11 +282,29 @@ export default function AddLeaveRequestDialog({
           );
           if (res.ok) {
             const data = await res.json();
-            // Apply half-day multiplier for single-day bookings
-            const isHalfDay = startDate === endDate && (dayType === "HALF_DAY_AM" || dayType === "HALF_DAY_PM");
-            const multiplier = isHalfDay ? 0.5 : 1;
-            setDeduction(data.deduction * multiplier);
-            setDeductionHours((data.deductionHours ?? 0) * multiplier);
+            let adjustedDeduction = data.deduction;
+            let adjustedHours = data.deductionHours ?? 0;
+            
+            if (startDate === endDate) {
+              // Single-day: apply half-day multiplier
+              if (dayType === "HALF_DAY_AM" || dayType === "HALF_DAY_PM") {
+                adjustedDeduction *= 0.5;
+                adjustedHours *= 0.5;
+              }
+            } else {
+              // Multi-day: subtract 0.5 for each half-day start/end
+              if (startDayType === "HALF_DAY_PM") {
+                adjustedDeduction -= 0.5;
+                adjustedHours -= (adjustedHours / data.deduction) * 0.5;
+              }
+              if (endDayType === "HALF_DAY_AM") {
+                adjustedDeduction -= 0.5;
+                adjustedHours -= (adjustedHours / data.deduction) * 0.5;
+              }
+            }
+            
+            setDeduction(Math.max(0, adjustedDeduction));
+            setDeductionHours(Math.max(0, adjustedHours));
             setShowHours(data.hoursEnabled === true);
           } else {
             setDeduction(0);
@@ -299,7 +322,7 @@ export default function AddLeaveRequestDialog({
       setDeductionHours(0);
       setDeductionLoading(false);
     }
-  }, [startDate, endDate, employeeId, dayType]);
+  }, [startDate, endDate, employeeId, dayType, startDayType, endDayType]);
 
   const handleSubmit = async (bypassWarnings = false) => {
     // Check if booking against other entitlement
@@ -365,8 +388,14 @@ export default function AddLeaveRequestDialog({
           endDate,
           reason,
           status: isAdminOrManager ? "APPROVED" : undefined,
-          // Half-day selection (only for single-day bookings)
+          // Half-day selection
+          // For single-day: use dayType (FULL_DAY, HALF_DAY_AM, HALF_DAY_PM)
+          // For multi-day: use startDayType and endDayType
           dayType: startDate === endDate ? dayType : "FULL_DAY",
+          ...(startDate !== endDate ? {
+            startDayType: startDayType,
+            endDayType: endDayType,
+          } : {}),
           // Sick leave specific fields
           ...(isSickLeave && {
             ...(configuredSickReasons.length > 0
@@ -448,6 +477,8 @@ export default function AddLeaveRequestDialog({
       setDeduction(0);
       setDeductionHours(0);
       setDayType("FULL_DAY");
+      setStartDayType("FULL_DAY");
+      setEndDayType("FULL_DAY");
       setIsSickLeave(false);
       setValidationWarnings([]);
       onSubmitted?.();
@@ -769,9 +800,10 @@ export default function AddLeaveRequestDialog({
                     Select the last day you will be <em>away</em>. Do not include your return-to-work day.
                   </p>
                   
-                  {/* Half-day selection - only for single-day bookings */}
+                  {/* Half-day selection */}
                   <AnimatePresence>
                     {startDate && endDate && startDate === endDate && (
+                      /* Single-day booking: Full Day, Half AM, or Half PM */
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
@@ -816,6 +848,80 @@ export default function AddLeaveRequestDialog({
                             Half Day (PM)
                           </button>
                         </div>
+                      </motion.div>
+                    )}
+                    {startDate && endDate && startDate !== endDate && (
+                      /* Multi-day booking: Start afternoon and/or End morning */
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-4 pt-4 border-t border-muted/30 space-y-3"
+                      >
+                        <Label className="text-sm font-medium text-foreground/80 block">
+                          Partial Days
+                        </Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Start day type */}
+                          <div className="space-y-2">
+                            <span className="text-xs text-muted-foreground">First day</span>
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setStartDayType("FULL_DAY")}
+                                className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                                  startDayType === "FULL_DAY"
+                                    ? "bg-primary text-primary-foreground shadow-md"
+                                    : "bg-muted/50 text-foreground/70 hover:bg-muted"
+                                }`}
+                              >
+                                Full
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setStartDayType("HALF_DAY_PM")}
+                                className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                                  startDayType === "HALF_DAY_PM"
+                                    ? "bg-primary text-primary-foreground shadow-md"
+                                    : "bg-muted/50 text-foreground/70 hover:bg-muted"
+                                }`}
+                              >
+                                PM only
+                              </button>
+                            </div>
+                          </div>
+                          {/* End day type */}
+                          <div className="space-y-2">
+                            <span className="text-xs text-muted-foreground">Last day</span>
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setEndDayType("FULL_DAY")}
+                                className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                                  endDayType === "FULL_DAY"
+                                    ? "bg-primary text-primary-foreground shadow-md"
+                                    : "bg-muted/50 text-foreground/70 hover:bg-muted"
+                                }`}
+                              >
+                                Full
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEndDayType("HALF_DAY_AM")}
+                                className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                                  endDayType === "HALF_DAY_AM"
+                                    ? "bg-primary text-primary-foreground shadow-md"
+                                    : "bg-muted/50 text-foreground/70 hover:bg-muted"
+                                }`}
+                              >
+                                AM only
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Select "PM only" to start after lunch, or "AM only" to return after lunch on the last day.
+                        </p>
                       </motion.div>
                     )}
                   </AnimatePresence>

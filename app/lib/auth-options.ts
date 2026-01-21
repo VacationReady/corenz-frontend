@@ -9,6 +9,26 @@ import bcrypt from "bcryptjs";
 
 const MAIN_PRODUCTION_COMPANY_ID = process.env.NEXT_PUBLIC_MAIN_PRODUCTION_COMPANY_ID;
 
+// Determine if we're in production and using secure cookies
+const useSecureCookies = process.env.NODE_ENV === "production";
+// Extract domain from NEXTAUTH_URL for cookie domain (with leading dot for subdomain support)
+const getCookieDomain = () => {
+  const url = process.env.NEXTAUTH_URL;
+  if (!url || process.env.NODE_ENV !== "production") return undefined;
+  try {
+    const hostname = new URL(url).hostname;
+    // Return domain with leading dot for subdomain cookie sharing
+    // e.g., app.peoplecore.co.nz -> .peoplecore.co.nz
+    const parts = hostname.split('.');
+    if (parts.length >= 2) {
+      return '.' + parts.slice(-3).join('.'); // .peoplecore.co.nz
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 export const authConfig = {
   secret: process.env.NEXTAUTH_SECRET,
   trustHost: true,
@@ -50,38 +70,41 @@ export const authConfig = {
       },
     },
     pkceCodeVerifier: {
-      name: process.env.NODE_ENV === "production"
+      name: useSecureCookies
         ? "__Secure-authjs.pkce.code_verifier"
         : "authjs.pkce.code_verifier",
       options: {
         httpOnly: true,
-        sameSite: "none",
+        sameSite: "lax",
         path: "/",
-        secure: true,
+        domain: getCookieDomain(),
+        secure: useSecureCookies,
         maxAge: 60 * 15,
       },
     },
     state: {
-      name: process.env.NODE_ENV === "production"
+      name: useSecureCookies
         ? "__Secure-authjs.state"
         : "authjs.state",
       options: {
         httpOnly: true,
-        sameSite: "none",
+        sameSite: "lax",
         path: "/",
-        secure: true,
+        domain: getCookieDomain(),
+        secure: useSecureCookies,
         maxAge: 60 * 15,
       },
     },
     nonce: {
-      name: process.env.NODE_ENV === "production"
+      name: useSecureCookies
         ? "__Secure-authjs.nonce"
         : "authjs.nonce",
       options: {
         httpOnly: true,
-        sameSite: "none",
+        sameSite: "lax",
         path: "/",
-        secure: true,
+        domain: getCookieDomain(),
+        secure: useSecureCookies,
       },
     },
   },

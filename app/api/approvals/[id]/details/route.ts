@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
 import { calculateLeaveDeductionBatchEnhanced } from "@/lib/calculateLeaveDeductionBatchEnhanced";
-import { formatLeaveBalance, subtractWithPrecision } from "@/lib/decimalPrecision";
+import { formatLeaveBalance, subtractWithPrecision, roundToTwoDecimals } from "@/lib/decimalPrecision";
 import { 
   approvalDetailsCache, 
   departmentColleaguesCache,
@@ -155,13 +155,42 @@ export async function GET(
     });
     
     // Sum up the total requested days
-    const requestedDays = deductionResults.reduce((sum, result) => sum + result.deduction, 0);
+    let requestedDays = deductionResults.reduce((sum, result) => sum + result.deduction, 0);
+    
+    // Adjust for half-day start/end (stored in leaveRequest)
+    const leaveRequestWithDayTypes = leaveRequest as typeof leaveRequest & { 
+      startDayType?: string | null; 
+      endDayType?: string | null;
+    };
+    const isSingleDay = startDate.getTime() === endDate.getTime();
+    
+    if (isSingleDay) {
+      // Single day: apply half-day multiplier based on dayType
+      if (leaveRequest.dayType === "HALF_DAY_AM" || leaveRequest.dayType === "HALF_DAY_PM") {
+        requestedDays = requestedDays * 0.5;
+      }
+    } else {
+      // Multi-day: adjust for half-day start and/or end
+      if (leaveRequestWithDayTypes.startDayType === "HALF_DAY_PM" && deductionResults.length > 0) {
+        // Starting afternoon = half day on first day
+        requestedDays -= deductionResults[0].deduction * 0.5;
+      }
+      if (leaveRequestWithDayTypes.endDayType === "HALF_DAY_AM" && deductionResults.length > 0) {
+        // Ending morning = half day on last day
+        requestedDays -= deductionResults[deductionResults.length - 1].deduction * 0.5;
+      }
+    }
+    
+    requestedDays = roundToTwoDecimals(Math.max(0, requestedDays));
     const formattedRequestedDays = formatLeaveBalance(requestedDays);
     
     console.log(`[APPROVAL_DETAILS] Batch results:`, {
       totalRequestedDays: formattedRequestedDays,
       nonWorkingDays: deductionResults.filter(r => r.isNonWorkingDay).length,
       publicHolidays: deductionResults.filter(r => r.isPublicHoliday).length,
+      dayType: leaveRequest.dayType,
+      startDayType: leaveRequestWithDayTypes.startDayType,
+      endDayType: leaveRequestWithDayTypes.endDayType,
     });
 
     // Calculate remaining days if approved
@@ -308,6 +337,8 @@ export async function GET(
       })),
       reason: leaveRequest.reason,
       dayType: leaveRequest.dayType,
+      startDayType: leaveRequestWithDayTypes.startDayType ?? null,
+      endDayType: leaveRequestWithDayTypes.endDayType ?? null,
     };
 
     // Cache the response for 5 minutes

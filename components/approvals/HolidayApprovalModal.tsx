@@ -55,6 +55,8 @@ interface ApprovalDetails {
   }>;
   reason?: string;
   dayType?: string;
+  startDayType?: string | null;
+  endDayType?: string | null;
 }
 
 export function HolidayApprovalModal({
@@ -246,17 +248,33 @@ export function HolidayApprovalModal({
                     </span>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                      {formatDate(details.dates.start)}
-                    </p>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                        {formatDate(details.dates.start)}
+                      </p>
+                      {details.startDayType === "HALF_DAY_PM" && (
+                        <span className="text-xs text-sky-600 dark:text-sky-400 font-medium">(PM only)</span>
+                      )}
+                      {details.dayType === "HALF_DAY_AM" && details.dates.start === details.dates.end && (
+                        <span className="text-xs text-sky-600 dark:text-sky-400 font-medium">(AM only)</span>
+                      )}
+                      {details.dayType === "HALF_DAY_PM" && details.dates.start === details.dates.end && (
+                        <span className="text-xs text-sky-600 dark:text-sky-400 font-medium">(PM only)</span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-px bg-gradient-to-r from-sky-300 to-cyan-300 dark:from-sky-600 dark:to-cyan-600" />
                       <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">to</span>
                       <div className="flex-1 h-px bg-gradient-to-r from-cyan-300 to-sky-300 dark:from-cyan-600 dark:to-sky-600" />
                     </div>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                      {formatDate(details.dates.end)}
-                    </p>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                        {formatDate(details.dates.end)}
+                      </p>
+                      {details.endDayType === "HALF_DAY_AM" && (
+                        <span className="text-xs text-sky-600 dark:text-sky-400 font-medium">(AM only)</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

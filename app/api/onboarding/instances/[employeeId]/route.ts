@@ -79,7 +79,8 @@ export async function GET(
 
   try {
     // 🔒 Query with tenant scope enforcement
-    const instance = await prisma.onboardingInstance.findFirst({
+    // First try to find an active/in_progress instance
+    let instance = await prisma.onboardingInstance.findFirst({
       where: {
         employeeId,
         status: { in: ["active", "in_progress"] },
@@ -106,6 +107,40 @@ export async function GET(
         },
       },
     });
+
+    // If no active instance, check for recently completed one (within last 5 minutes)
+    // This handles the edge case where employee refreshes right after completion
+    if (!instance) {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      instance = await prisma.onboardingInstance.findFirst({
+        where: {
+          employeeId,
+          status: "completed",
+          completedAt: { gte: fiveMinutesAgo },
+          OnboardingTemplate: { companyId: session.user.companyId },
+        },
+        orderBy: { completedAt: "desc" },
+        include: {
+          OnboardingStepInstance: {
+            include: {
+              OnboardingStepResponse: {
+                orderBy: { createdAt: "desc" },
+              },
+            },
+          },
+          OnboardingTemplate: {
+            include: {
+              OnboardingStep: {
+                include: {
+                  Document: true,
+                  Form: { select: { id: true, name: true, formType: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+    }
 
     if (!instance) {
       return NextResponse.json(

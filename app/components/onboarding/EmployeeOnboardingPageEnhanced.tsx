@@ -560,6 +560,16 @@ export default function EmployeeOnboardingPageEnhanced({
           });
         }
         
+        // Check if onboarding is fully completed
+        if (responseData.onboardingCompleted) {
+          toast.success("Step completed!");
+          fireConfetti("complete");
+          
+          // Show completion animation and redirect
+          setShowCompleteAnimation(true);
+          return;
+        }
+        
         toast.success("Step completed!");
         fireConfetti("step");
         

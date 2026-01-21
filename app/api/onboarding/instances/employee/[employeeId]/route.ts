@@ -46,14 +46,47 @@ export async function GET(
       },
       orderBy: { startedAt: "desc" },
       include: {
-        OnboardingTemplate: { select: { name: true } },
+        OnboardingTemplate: { 
+          include: {
+            OnboardingStep: {
+              select: {
+                id: true,
+                type: true,
+                label: true,
+                order: true,
+              },
+            },
+          },
+        },
         OnboardingStepInstance: {
           orderBy: { order: "asc" },
         },
       },
     });
 
-    return NextResponse.json(instances, { status: 200 });
+    // Normalize response structure for admin view
+    const normalized = instances.map(instance => ({
+      id: instance.id,
+      template: { name: instance.OnboardingTemplate.name },
+      startedAt: instance.startedAt,
+      completedAt: instance.completedAt,
+      status: instance.status,
+      steps: instance.OnboardingStepInstance.map(stepInst => {
+        const templateStep = instance.OnboardingTemplate.OnboardingStep?.find(
+          (ts: any) => ts.id === stepInst.stepId
+        );
+        return {
+          id: stepInst.id,
+          type: templateStep?.type || 'unknown',
+          label: templateStep?.label,
+          status: stepInst.status,
+          order: stepInst.order,
+          completedAt: stepInst.completedAt,
+        };
+      }),
+    }));
+
+    return NextResponse.json(normalized, { status: 200 });
   } catch (error) {
     console.error("Admin get onboarding instances error:", error);
     return NextResponse.json(

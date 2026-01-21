@@ -1013,6 +1013,7 @@ export async function POST(
       ok: true,
       onboardingCompleted,
       syncErrors: syncResult?.errors || null,
+      droppedFields: syncResult?.droppedFields || null,
     });
   } catch (err: any) {
     console.error("Error completing onboarding step:", err);

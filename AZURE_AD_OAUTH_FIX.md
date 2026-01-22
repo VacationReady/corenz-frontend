@@ -1,11 +1,22 @@
-# Azure AD OAuth "invalid_client" Error - Resolution Guide
+# OAuth Authentication Errors - Resolution Guide
 
-## Error Details
+## Errors Fixed
+
+### Google OAuth: "Invalid code verifier"
+```
+CallbackRouteError: invalid_grant - Invalid code verifier
+```
+**Root Cause:** Custom cookie domain configuration was preventing PKCE cookies from being read during OAuth callback.
+
+### Microsoft OAuth: "invalid_client"  
 ```
 OAuthCallbackError: OAuth Provider returned an error: invalid_client
 ```
+**Root Cause:** Same cookie domain issue, plus potential environment variable misconfiguration.
 
-This error occurs during the Microsoft/Azure AD OAuth callback (302 redirect), indicating the OAuth provider rejected the authentication request.
+## Fix Applied
+
+Removed custom `domain` setting from PKCE-related cookies (`pkceCodeVerifier`, `state`, `nonce`) in `app/lib/auth-options.ts`. The custom domain with leading dot (e.g., `.peoplecore.co.nz`) was causing cookies to not be properly read during the OAuth callback phase.
 
 ## Root Causes & Solutions
 

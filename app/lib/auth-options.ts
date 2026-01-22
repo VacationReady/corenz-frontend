@@ -40,23 +40,6 @@ if (process.env.AZURE_AD_CLIENT_ID || process.env.AZURE_AD_CLIENT_SECRET || proc
 
 // Determine if we're in production and using secure cookies
 const useSecureCookies = process.env.NODE_ENV === "production";
-// Extract domain from NEXTAUTH_URL for cookie domain (with leading dot for subdomain support)
-const getCookieDomain = () => {
-  const url = process.env.NEXTAUTH_URL;
-  if (!url || process.env.NODE_ENV !== "production") return undefined;
-  try {
-    const hostname = new URL(url).hostname;
-    // Return domain with leading dot for subdomain cookie sharing
-    // e.g., app.peoplecore.co.nz -> .peoplecore.co.nz
-    const parts = hostname.split('.');
-    if (parts.length >= 2) {
-      return '.' + parts.slice(-3).join('.'); // .peoplecore.co.nz
-    }
-    return undefined;
-  } catch {
-    return undefined;
-  }
-};
 
 export const authConfig = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -106,7 +89,6 @@ export const authConfig = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        domain: getCookieDomain(),
         secure: useSecureCookies,
         maxAge: 60 * 15,
       },
@@ -119,7 +101,6 @@ export const authConfig = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        domain: getCookieDomain(),
         secure: useSecureCookies,
         maxAge: 60 * 15,
       },
@@ -132,7 +113,6 @@ export const authConfig = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        domain: getCookieDomain(),
         secure: useSecureCookies,
       },
     },

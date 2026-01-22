@@ -239,6 +239,78 @@ export const authConfig = {
     },
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      // Allow OAuth sign-in if user exists with matching email
+      // This enables linking OAuth accounts to existing credential-based accounts
+      if (account?.provider && account.provider !== "credentials") {
+        if (!user?.email) {
+          console.error("[auth] OAuth sign-in rejected: no email from provider");
+          return false;
+        }
+        
+        // Check if user exists in database
+        const existingUser = await prisma.user.findFirst({
+          where: { email: { equals: user.email, mode: "insensitive" } },
+          select: { id: true, email: true, companyId: true, role: true },
+        });
+        
+        if (!existingUser) {
+          console.warn("[auth] OAuth sign-in rejected: user not found", { email: user.email });
+          return "/login?error=NoAccount";
+        }
+        
+        // Check if this OAuth account is already linked to a different user
+        const existingAccount = await prisma.account.findUnique({
+          where: {
+            provider_providerAccountId: {
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+            },
+          },
+          select: { userId: true },
+        });
+        
+        if (existingAccount && existingAccount.userId !== existingUser.id) {
+          console.error("[auth] OAuth account linked to different user", {
+            oauthUserId: existingAccount.userId,
+            existingUserId: existingUser.id,
+          });
+          return "/login?error=AccountMismatch";
+        }
+        
+        // If account not linked yet, link it now
+        if (!existingAccount) {
+          console.log("[auth] Linking OAuth account to existing user", {
+            provider: account.provider,
+            userId: existingUser.id,
+            email: existingUser.email,
+          });
+          
+          await prisma.account.create({
+            data: {
+              userId: existingUser.id,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              refresh_token: account.refresh_token,
+              access_token: account.access_token,
+              expires_at: account.expires_at,
+              token_type: account.token_type,
+              scope: account.scope,
+              id_token: account.id_token,
+              session_state: account.session_state as string | undefined,
+            },
+          });
+        }
+        
+        // Update user object with database values for JWT callback
+        user.id = existingUser.id;
+        user.companyId = existingUser.companyId;
+        user.role = existingUser.role;
+      }
+      
+      return true;
+    },
     async redirect({ url, baseUrl }) {
       // Always redirect to the configured base URL to avoid stale preview deployments
       // If the url is relative, prepend the baseUrl

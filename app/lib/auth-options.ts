@@ -1,11 +1,10 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
 import NextAuth, { type NextAuthConfig } from "next-auth";
-import type { Adapter } from "next-auth/adapters";
 import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { CustomPrismaAdapter } from "./auth-adapter";
 
 const MAIN_PRODUCTION_COMPANY_ID = process.env.NEXT_PUBLIC_MAIN_PRODUCTION_COMPANY_ID;
 
@@ -45,7 +44,7 @@ export const authConfig = {
   secret: process.env.NEXTAUTH_SECRET,
   trustHost: true,
 
-  adapter: PrismaAdapter(prisma) as Adapter,
+  adapter: CustomPrismaAdapter(),
   session: { strategy: "jwt" },
   cookies: {
     sessionToken: {

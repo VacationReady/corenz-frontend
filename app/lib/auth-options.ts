@@ -16,6 +16,28 @@ if (!prisma) {
   console.error("[auth-options] CRITICAL: Prisma client exists but user model is undefined!");
 }
 
+// Validate Azure AD configuration at startup
+if (process.env.AZURE_AD_CLIENT_ID || process.env.AZURE_AD_CLIENT_SECRET || process.env.AZURE_AD_TENANT_ID) {
+  const hasClientId = !!process.env.AZURE_AD_CLIENT_ID;
+  const hasClientSecret = !!process.env.AZURE_AD_CLIENT_SECRET;
+  const hasTenantId = !!process.env.AZURE_AD_TENANT_ID;
+  
+  if (!hasClientId || !hasClientSecret || !hasTenantId) {
+    console.error("[auth-options] CRITICAL: Incomplete Azure AD configuration!", {
+      hasClientId,
+      hasClientSecret,
+      hasTenantId,
+      nextAuthUrl: process.env.NEXTAUTH_URL,
+    });
+  } else {
+    console.log("[auth-options] Azure AD provider configured:", {
+      clientIdLength: process.env.AZURE_AD_CLIENT_ID?.length || 0,
+      tenantId: process.env.AZURE_AD_TENANT_ID,
+      expectedCallbackUrl: `${process.env.NEXTAUTH_URL}/api/auth/callback/azure-ad`,
+    });
+  }
+}
+
 // Determine if we're in production and using secure cookies
 const useSecureCookies = process.env.NODE_ENV === "production";
 // Extract domain from NEXTAUTH_URL for cookie domain (with leading dot for subdomain support)
@@ -228,6 +250,15 @@ export const authConfig = {
       },
     }),
   ],
+  events: {
+    async signIn({ user, account, profile }) {
+      console.log("[auth-options] Sign in event:", {
+        provider: account?.provider,
+        userId: user?.id,
+        email: user?.email,
+      });
+    },
+  },
   callbacks: {
     async redirect({ url, baseUrl }) {
       // Always redirect to the configured base URL to avoid stale preview deployments
